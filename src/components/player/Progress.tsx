@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { View, PanResponder } from 'react-native'
 import { useDrag } from '@/utils/hooks'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 // import { scaleSizeW } from '@/utils/pixelRatio'
 // import { AppColors } from '@/theme'
 
@@ -22,8 +22,8 @@ const DefaultBar = memo(() => {
 
 const BufferedBar = memo(({ progress }: { progress: number }) => {
   // console.log(bufferedProgress)
-  const theme = useTheme()
-  return <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-light-600-alpha-900'], position: 'absolute', width: `${progress * 100}%`, left: 0, top: 0 }}></View>
+  const apple = useApple()
+  return <View style={{ ...styles.progressBar, backgroundColor: apple.fill, position: 'absolute', width: `${progress * 100}%`, left: 0, top: 0 }}></View>
 })
 
 const PreassBar = memo(({ onDragState, setDragProgress, onSetProgress }: {
@@ -74,7 +74,7 @@ export const ProgressPlain = ({ progress, duration, buffered, paddingTop }: {
   paddingTop?: number
 }) => {
   // const { progress } = usePlayTimeBuffer()
-  const theme = useTheme()
+  const apple = useApple()
   // console.log(progress)
   const progressStr: `${number}%` = `${progress * 100}%`
 
@@ -88,7 +88,7 @@ export const ProgressPlain = ({ progress, duration, buffered, paddingTop }: {
       <View style={{ flex: 1 }}>
         <DefaultBar />
         <BufferedBar progress={buffered} />
-        <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-alpha-900'], width: progressStr, position: 'absolute', left: 0, top: 0 }} />
+        <View style={{ ...styles.progressBar, backgroundColor: apple.accent, width: progressStr, position: 'absolute', left: 0, top: 0 }} />
       </View>
       <View style={styles.pressBar} />
     </View>
@@ -102,7 +102,7 @@ const Progress = ({ progress, duration, buffered, paddingTop }: {
   paddingTop?: number
 }) => {
   // const { progress } = usePlayTimeBuffer()
-  const theme = useTheme()
+  const apple = useApple()
   const [draging, setDraging] = useState(false)
   const [dragProgress, setDragProgress] = useState(0)
   // console.log(progress)
@@ -125,11 +125,11 @@ const Progress = ({ progress, duration, buffered, paddingTop }: {
           draging
             ? (
                 <>
-                  <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-light-200-alpha-900'], width: progressStr, position: 'absolute', left: 0, top: 0 }} />
-                  <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-light-100-alpha-800'], width: `${dragProgress * 100}%`, position: 'absolute', left: 0, top: 0 }} />
+                  <View style={{ ...styles.progressBar, backgroundColor: apple.tertiaryFill, width: progressStr, position: 'absolute', left: 0, top: 0 }} />
+                  <View style={{ ...styles.progressBar, backgroundColor: apple.accentPressed, width: `${dragProgress * 100}%`, position: 'absolute', left: 0, top: 0 }} />
                 </>
               ) : (
-                <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-alpha-900'], width: progressStr, position: 'absolute', left: 0, top: 0 }} />
+                <View style={{ ...styles.progressBar, backgroundColor: apple.accent, width: progressStr, position: 'absolute', left: 0, top: 0 }} />
               )
         }
       </View>

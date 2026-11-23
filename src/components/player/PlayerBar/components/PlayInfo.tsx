@@ -4,7 +4,7 @@ import { View, StyleSheet } from 'react-native'
 import Progress, { ProgressPlain } from '@/components/player/Progress'
 import Status from './Status'
 import { useProgress } from '@/store/player/hook'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { COMPONENT_IDS } from '@/config/constant'
@@ -20,18 +20,18 @@ const MARGIN_TOP = Math.round(scaleSizeH(2))
 const PADDING_TOP_PROGRESS = PADDING_TOP + MARGIN_TOP
 
 const PlayTimeCurrent = ({ timeStr }: { timeStr: string }) => {
-  const theme = useTheme()
+  const apple = useApple()
   // console.log(timeStr)
-  return <Text size={FONT_SIZE} color={theme['c-500']}>{timeStr}</Text>
+  return <Text size={FONT_SIZE} color={apple.secondaryLabel}>{timeStr}</Text>
 }
 
 const PlayTimeMax = memo(({ timeStr }: { timeStr: string }) => {
-  const theme = useTheme()
-  return <Text size={FONT_SIZE} color={theme['c-500']}>{timeStr}</Text>
+  const apple = useApple()
+  return <Text size={FONT_SIZE} color={apple.secondaryLabel}>{timeStr}</Text>
 })
 
 export default ({ isHome }: { isHome: boolean }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const [autoUpdate, setAutoUpdate] = useState(true)
   const { maxPlayTimeStr, nowPlayTimeStr, progress, maxPlayTime } = useProgress(autoUpdate)
   const buffered = useBufferProgress()
@@ -49,7 +49,7 @@ export default ({ isHome }: { isHome: boolean }) => {
       </View>
       <View style={{ flexGrow: 0, flexShrink: 0, flexDirection: 'row', alignItems: 'flex-start' }} >
         <PlayTimeCurrent timeStr={nowPlayTimeStr} />
-        <Text size={FONT_SIZE} color={theme['c-500']}> / </Text>
+        <Text size={FONT_SIZE} color={apple.secondaryLabel}> / </Text>
         <PlayTimeMax timeStr={maxPlayTimeStr} />
       </View>
       <View style={[StyleSheet.absoluteFill, stylesRaw.progress]}>
