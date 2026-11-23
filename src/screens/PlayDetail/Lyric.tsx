@@ -1,86 +1,52 @@
+// Modified for Apple Music style UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
 import { memo, useMemo, useEffect, useRef, useCallback } from 'react'
 import { View, FlatList, type FlatListProps, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native'
 // import { useLayout } from '@/utils/hooks'
 import { type Line, useLrcPlay, useLrcSet } from '@/plugins/lyric'
 import { createStyle } from '@/utils/tools'
 // import { useComponentIds } from '@/store/common/hook'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, fontWeight } from '@/theme/apple'
 import { useSettingValue } from '@/store/setting/hook'
 import { AnimatedColorText } from '@/components/common/Text'
 import { setSpText } from '@/utils/pixelRatio'
 import playerState from '@/store/player/state'
 import { scrollTo } from '@/utils/scroll'
-import PlayLine, { type PlayLineType } from '../components/PlayLine'
+import PlayLine, { type PlayLineType } from './components/PlayLine'
 // import { screenkeepAwake } from '@/utils/nativeModules/utils'
 // import { log } from '@/utils/log'
 // import { toast } from '@/utils/tools'
 
 type FlatListType = FlatListProps<Line>
+export type LyricDirection = 'vertical' | 'horizontal'
 
-// const useLock = () => {
-//   const showCommentRef = useRef(false)
-
-
-//   useEffect(() => {
-//     let appstateListener = AppState.addEventListener('change', (state) => {
-//       switch (state) {
-//         case 'active':
-//           if (showLyricRef.current && !showCommentRef.current) screenkeepAwake()
-//           break
-//         case 'background':
-//           screenUnkeepAwake()
-//           break
-//       }
-//     })
-//     return () => {
-//       appstateListener.remove()
-//     }
-//   }, [])
-//   useEffect(() => {
-//     let listener: ReturnType<typeof onNavigationComponentDidDisappearEvent>
-//     showCommentRef.current = !!componentIds.comment
-//     if (showCommentRef.current) {
-//       if (showLyricRef.current) screenUnkeepAwake()
-//       listener = onNavigationComponentDidDisappearEvent(componentIds.comment as string, () => {
-//         if (showLyricRef.current && AppState.currentState == 'active') screenkeepAwake()
-//       })
-//     }
-
-//     const rm = global.state_event.on('componentIdsUpdated', (ids) => {
-
-//     })
-
-//     return () => {
-//       if (listener) listener.remove()
-//     }
-//   }, [])
-// }
 
 interface LineProps {
   line: Line
   lineNum: number
   activeLine: number
+  direction: LyricDirection
   onLayout: (lineNum: number, height: number, width: number) => void
 }
-const LrcLine = memo(({ line, lineNum, activeLine, onLayout }: LineProps) => {
-  const theme = useTheme()
-  const lrcFontSize = useSettingValue('playDetail.vertical.style.lrcFontSize')
+const LrcLine = memo(({ line, lineNum, activeLine, direction, onLayout }: LineProps) => {
+  const apple = useApple()
+  const lrcFontSize = useSettingValue(direction == 'horizontal' ? 'playDetail.horizontal.style.lrcFontSize' : 'playDetail.vertical.style.lrcFontSize')
   const textAlign = useSettingValue('playDetail.style.align')
   const size = lrcFontSize / 10
   const lineHeight = setSpText(size) * 1.3
 
+  // 当前行高亮，其余行淡化（Apple Music 效果）
   const colors = useMemo(() => {
     const active = activeLine == lineNum
     return active ? [
-      theme['c-primary'],
-      theme['c-primary-alpha-200'],
+      apple.label,
+      apple.secondaryLabel,
       1,
     ] as const : [
-      theme['c-350'],
-      theme['c-300'],
-      0.6,
+      apple.label,
+      apple.label,
+      0.32,
     ] as const
-  }, [activeLine, lineNum, theme])
+  }, [activeLine, lineNum, apple])
 
   const handleLayout = ({ nativeEvent }: LayoutChangeEvent) => {
     onLayout(lineNum, nativeEvent.layout.height, nativeEvent.layout.width)
@@ -93,6 +59,7 @@ const LrcLine = memo(({ line, lineNum, activeLine, onLayout }: LineProps) => {
     <View style={styles.line} onLayout={handleLayout}>
       <AnimatedColorText style={{
         ...styles.lineText,
+        fontWeight: fontWeight.bold,
         textAlign,
         lineHeight,
       }} textBreakStrategy="simple" color={colors[0]} opacity={colors[2]} size={size}>{line.text}</AnimatedColorText>
@@ -114,7 +81,7 @@ const LrcLine = memo(({ line, lineNum, activeLine, onLayout }: LineProps) => {
 })
 const wait = async() => new Promise(resolve => setTimeout(resolve, 100))
 
-export default () => {
+export default ({ direction }: { direction: LyricDirection }) => {
   const lyricLines = useLrcSet()
   const { line } = useLrcPlay()
   const flatListRef = useRef<FlatList>(null)
@@ -299,7 +266,7 @@ export default () => {
 
   const renderItem: FlatListType['renderItem'] = ({ item, index }) => {
     return (
-      <LrcLine line={item} lineNum={index} activeLine={line} onLayout={handleLineLayout} />
+      <LrcLine line={item} lineNum={index} activeLine={line} direction={direction} onLayout={handleLineLayout} />
     )
   }
   const getkey: FlatListType['keyExtractor'] = (item, index) => `${index}${item.text}`
@@ -334,8 +301,8 @@ export default () => {
 const styles = createStyle({
   container: {
     flex: 1,
-    paddingLeft: 20,
-    paddingRight: 20,
+    paddingLeft: 24,
+    paddingRight: 24,
     // backgroundColor: 'rgba(0,0,0,0.1)',
   },
   space: {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { View } from 'react-native'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import Text from '@/components/common/Text'
 import { useSettingValue } from '@/store/setting/hook'
 import Slider, { type SliderProps } from '@/components/common/Slider'
@@ -13,7 +13,7 @@ import styles from './style'
 const LrcFontSize = ({ direction }: {
   direction: 'horizontal' | 'vertical'
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const settingKey = direction == 'horizontal' ? 'playDetail.horizontal.style.lrcFontSize' : 'playDetail.vertical.style.lrcFontSize'
   const lrcFontSize = useSettingValue(settingKey)
   const [sliderSize, setSliderSize] = useState(lrcFontSize)
@@ -36,7 +36,7 @@ const LrcFontSize = ({ direction }: {
     <View style={styles.container}>
       <Text>{t('play_detail_setting_lrc_font_size')}</Text>
       <View style={styles.content}>
-        <Text style={styles.label} color={theme['c-font-label']}>{isSliding ? sliderSize : lrcFontSize}</Text>
+        <Text style={styles.label} color={apple.secondaryLabel}>{isSliding ? sliderSize : lrcFontSize}</Text>
         <Slider
           minimumValue={100}
           maximumValue={300}
