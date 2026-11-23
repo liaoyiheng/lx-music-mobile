@@ -58,7 +58,7 @@ const styles = createStyle({
     // elevation: 3,
     backgroundColor: 'rgba(0,0,0,0)',
     borderRadius: 12,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.3,
     shadowRadius: 20,
   },
