@@ -1,11 +1,9 @@
 import { memo, useRef } from 'react'
 import { View, TouchableOpacity } from 'react-native'
-// import Button from '@/components/common/Button'
 import Text from '@/components/common/Text'
-import Badge, { type BadgeType } from '@/components/common/Badge'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { useI18n } from '@/lang'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, hairline, spacing } from '@/theme/apple'
 import { scaleSizeH } from '@/utils/pixelRatio'
 import { LIST_ITEM_HEIGHT } from '@/config/constant'
 import { createStyle, type RowInfo } from '@/utils/tools'
@@ -14,19 +12,16 @@ export const ITEM_HEIGHT = scaleSizeH(LIST_ITEM_HEIGHT)
 
 const useQualityTag = (musicInfo: LX.Music.MusicInfoOnline) => {
   const t = useI18n()
-  let info: { type: BadgeType | null, text: string } = { type: null, text: '' }
+  let text = ''
   if (musicInfo.meta._qualitys.flac24bit) {
-    info.type = 'secondary'
-    info.text = t('quality_lossless_24bit')
+    text = t('quality_lossless_24bit')
   } else if (musicInfo.meta._qualitys.flac ?? musicInfo.meta._qualitys.ape) {
-    info.type = 'secondary'
-    info.text = t('quality_lossless')
+    text = t('quality_lossless')
   } else if (musicInfo.meta._qualitys['320k']) {
-    info.type = 'tertiary'
-    info.text = t('quality_high_quality')
+    text = t('quality_high_quality')
   }
 
-  return info
+  return text
 }
 
 export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu, selectedList, rowInfo, isShowAlbumName, isShowInterval }: {
@@ -41,7 +36,7 @@ export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu
   isShowAlbumName: boolean
   isShowInterval: boolean
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
 
   const isSelected = selectedList.includes(item)
 
@@ -49,36 +44,56 @@ export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu
   const handleShowMenu = () => {
     if (moreButtonRef.current?.measure) {
       moreButtonRef.current.measure((fx, fy, width, height, px, py) => {
-        // console.log(fx, fy, width, height, px, py)
         onShowMenu(item, index, { x: Math.ceil(px), y: Math.ceil(py), w: Math.ceil(width), h: Math.ceil(height) })
       })
     }
   }
-  const tagInfo = useQualityTag(item)
+  const tagText = useQualityTag(item)
 
   const singer = `${item.singer}${isShowAlbumName && item.meta.albumName ? ` · ${item.meta.albumName}` : ''}`
 
   return (
-    <View style={{ ...styles.listItem, width: rowInfo.rowWidth, height: ITEM_HEIGHT, backgroundColor: isSelected ? theme['c-primary-background-hover'] : 'rgba(0,0,0,0)' }}>
-      <TouchableOpacity style={styles.listItemLeft} onPress={() => { onPress(item, index) }} onLongPress={() => { onLongPress(item, index) }}>
-        <Text style={styles.sn} size={13} color={theme['c-300']}>{index + 1}</Text>
+    <View
+      style={{
+        ...styles.listItem,
+        width: rowInfo.rowWidth,
+        height: ITEM_HEIGHT,
+        backgroundColor: isSelected ? apple.accentFill : apple.background,
+      }}
+    >
+      <TouchableOpacity
+        style={styles.listItemLeft}
+        onPress={() => { onPress(item, index) }}
+        onLongPress={() => { onLongPress(item, index) }}
+        activeOpacity={0.6}
+      >
+        <Text style={styles.sn} size={13} color={apple.secondaryLabel}>{index + 1}</Text>
         <View style={styles.itemInfo}>
-          <Text numberOfLines={1}>{item.name}</Text>
+          <Text size={16} color={apple.label} numberOfLines={1}>{item.name}</Text>
           <View style={styles.listItemSingle}>
-            { tagInfo.type ? <Badge type={tagInfo.type}>{tagInfo.text}</Badge> : null }
-            { showSource ? <Badge type="tertiary">{item.source}</Badge> : null }
-            <Text style={styles.listItemSingleText} size={11} color={theme['c-500']} numberOfLines={1}>{singer}</Text>
+            { tagText ? (
+              <View style={[styles.tagPill, { backgroundColor: apple.fill }]}>
+                <Text size={10} color={apple.secondaryLabel}>{tagText}</Text>
+              </View>
+            ) : null }
+            { showSource ? (
+              <View style={[styles.tagPill, { backgroundColor: apple.fill }]}>
+                <Text size={10} color={apple.secondaryLabel}>{item.source.toUpperCase()}</Text>
+              </View>
+            ) : null }
+            <Text style={styles.listItemSingleText} size={13} color={apple.secondaryLabel} numberOfLines={1}>{singer}</Text>
           </View>
         </View>
         {
           isShowInterval ? (
-            <Text size={12} color={theme['c-250']} numberOfLines={1}>{item.interval}</Text>
+            <Text style={styles.interval} size={12} color={apple.tertiaryLabel} numberOfLines={1}>{item.interval}</Text>
           ) : null
         }
       </TouchableOpacity>
-     <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreButton}>
-        <Icon name="dots-vertical" style={{ color: theme['c-350'] }} size={12} />
+      <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreButton} activeOpacity={0.6}>
+        <IonIcon name="ellipsis-horizontal" rawSize={18} color={apple.secondaryLabel} />
       </TouchableOpacity>
+      <View style={[styles.separator, { backgroundColor: apple.separator }]} pointerEvents="none" />
     </View>
   )
 }, (prevProps, nextProps) => {
@@ -92,13 +107,10 @@ export default memo(({ item, index, showSource, onPress, onLongPress, onShowMenu
 
 const styles = createStyle({
   listItem: {
-    // width: '100%',
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    // paddingLeft: 10,
     paddingRight: 2,
     alignItems: 'center',
-    // borderBottomWidth: BorderWidths.normal,
   },
   listItemLeft: {
     flex: 1,
@@ -106,66 +118,49 @@ const styles = createStyle({
     flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    height: '100%',
   },
   sn: {
     width: 38,
-    // fontSize: 12,
     textAlign: 'center',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
-    paddingLeft: 3,
-    paddingRight: 3,
+    paddingLeft: 4,
+    paddingRight: 4,
   },
   itemInfo: {
     flexGrow: 1,
     flexShrink: 1,
-    paddingRight: 2,
-    // paddingTop: 10,
-    // paddingBottom: 10,
+    paddingRight: spacing.xs,
   },
-  // listItemTitle: {
-  //   // backgroundColor: 'rgba(0,0,0,0.2)',
-  //   flexGrow: 0,
-  //   flexShrink: 1,
-  //   // fontSize: 15,
-  // },
   listItemSingle: {
-    paddingTop: 2,
+    marginTop: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    // alignItems: 'flex-end',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
   },
-  listItemTimeLabel: {
+  tagPill: {
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     marginRight: 5,
-    fontWeight: '400',
   },
   listItemSingleText: {
-    // fontSize: 13,
-    // paddingTop: 2,
     flexGrow: 0,
     flexShrink: 1,
-    fontWeight: '300',
   },
-  listItemBadge: {
-    // fontSize: 10,
-    paddingLeft: 5,
-    paddingTop: 2,
-    alignSelf: 'flex-start',
-  },
-  listItemRight: {
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 'auto',
-    justifyContent: 'center',
+  interval: {
+    marginLeft: spacing.sm,
   },
   moreButton: {
-    height: '80%',
-    paddingLeft: 16,
+    height: '100%',
+    paddingLeft: 14,
     paddingRight: 16,
-    // paddingTop: 10,
-    // paddingBottom: 10,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  separator: {
+    position: 'absolute',
+    left: 38,
+    right: spacing.lg,
+    bottom: 0,
+    height: hairline,
   },
 })
-

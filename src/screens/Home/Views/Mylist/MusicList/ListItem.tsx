@@ -1,17 +1,16 @@
 import { memo, useRef } from 'react'
 import { View, TouchableOpacity } from 'react-native'
 import { LIST_ITEM_HEIGHT } from '@/config/constant'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { createStyle, type RowInfo } from '@/utils/tools'
 import { useAssertApiSupport } from '@/store/common/hook'
 import { scaleSizeH } from '@/utils/pixelRatio'
 import Text from '@/components/common/Text'
-import Badge from '@/components/common/Badge'
-import { useApple, fontSize, hairline } from '@/theme/apple'
+import { useApple, hairline, spacing } from '@/theme/apple'
 
 export const ITEM_HEIGHT = scaleSizeH(LIST_ITEM_HEIGHT)
 
-const SN_WIDTH = 44
+const SN_WIDTH = 38
 
 export default memo(({ item, index, activeIndex, onPress, onShowMenu, onLongPress, selectedList, rowInfo, isShowAlbumName, isShowInterval }: {
   item: LX.Music.MusicInfo
@@ -46,32 +45,38 @@ export default memo(({ item, index, activeIndex, onPress, onShowMenu, onLongPres
       ...styles.listItem,
       width: rowInfo.rowWidth,
       height: ITEM_HEIGHT,
-      backgroundColor: isSelected ? apple.accentFill : 'transparent',
+      backgroundColor: isSelected ? apple.accentFill : apple.background,
       opacity: isSupported ? 1 : 0.5,
     }}>
       <TouchableOpacity activeOpacity={0.6} style={styles.listItemLeft} onPress={() => { onPress(item, index) }} onLongPress={() => { onLongPress(item, index) }}>
         {
           active
-            ? <Icon style={styles.sn} name="play-outline" size={13} color={apple.accent} />
-            : <Text style={styles.sn} size={fontSize.subhead} color={apple.secondaryLabel}>{index + 1}</Text>
+            ? (
+                <View style={styles.snIcon}>
+                  <IonIcon name="volume-high" rawSize={16} color={apple.accent} />
+                </View>
+              )
+            : <Text style={styles.sn} size={13} color={apple.secondaryLabel}>{index + 1}</Text>
         }
         <View style={styles.itemInfo}>
           <Text size={16} color={active ? apple.accent : apple.label} numberOfLines={1}>{item.name}</Text>
           <View style={styles.listItemSingle}>
-            <Badge>{item.source.toUpperCase()}</Badge>
-            <Text style={styles.listItemSingleText} size={fontSize.footnote} color={apple.secondaryLabel} numberOfLines={1}>
+            <View style={[styles.tagPill, { backgroundColor: apple.fill }]}>
+              <Text size={10} color={apple.secondaryLabel}>{item.source.toUpperCase()}</Text>
+            </View>
+            <Text style={styles.listItemSingleText} size={13} color={apple.secondaryLabel} numberOfLines={1}>
               {singer}
             </Text>
           </View>
         </View>
         {
           isShowInterval ? (
-            <Text size={fontSize.footnote} color={apple.secondaryLabel} numberOfLines={1}>{item.interval}</Text>
+            <Text style={styles.interval} size={12} color={apple.tertiaryLabel} numberOfLines={1}>{item.interval}</Text>
           ) : null
         }
       </TouchableOpacity>
-      <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreButton}>
-        <Icon name="dots-vertical" color={apple.secondaryLabel} size={14} />
+      <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreButton} activeOpacity={0.6}>
+        <IonIcon name="ellipsis-horizontal" rawSize={18} color={apple.secondaryLabel} />
       </TouchableOpacity>
       <View pointerEvents="none" style={{ ...styles.separator, backgroundColor: apple.separator }} />
     </View>
@@ -91,41 +96,62 @@ const styles = createStyle({
   listItem: {
     flexDirection: 'row',
     flexWrap: 'nowrap',
+    paddingRight: 2,
     alignItems: 'center',
   },
   listItemLeft: {
     flex: 1,
-    height: '100%',
+    flexGrow: 1,
+    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    height: '100%',
   },
   sn: {
     width: SN_WIDTH,
     textAlign: 'center',
+    paddingLeft: 4,
+    paddingRight: 4,
+  },
+  snIcon: {
+    width: SN_WIDTH,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   itemInfo: {
     flexGrow: 1,
     flexShrink: 1,
-    paddingRight: 6,
+    paddingRight: spacing.xs,
   },
   listItemSingle: {
-    paddingTop: 3,
+    marginTop: 2,
     flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tagPill: {
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    marginRight: 5,
   },
   listItemSingleText: {
     flexGrow: 0,
     flexShrink: 1,
   },
+  interval: {
+    marginLeft: spacing.sm,
+  },
   moreButton: {
     height: '100%',
-    width: 48,
+    paddingLeft: 14,
+    paddingRight: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   separator: {
     position: 'absolute',
     left: SN_WIDTH,
-    right: 0,
+    right: spacing.lg,
     bottom: 0,
     height: hairline,
   },

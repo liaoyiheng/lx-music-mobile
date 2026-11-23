@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { View, TouchableOpacity } from 'react-native'
 
-import { Icon } from '@/components/common/Icon'
+import { Icon, IonIcon } from '@/components/common/Icon'
 import { pop } from '@/navigation'
 import StatusBar from '@/components/common/StatusBar'
 import { useI18n } from '@/lang'
@@ -39,8 +39,8 @@ export default memo(({ musicInfo, onRefresh }: {
           }
         </View>
         <TouchableOpacity style={styles.back} activeOpacity={0.5} onPress={back}>
-          <Icon name="chevron-left" size={18} color={apple.accent} />
-          <Text style={styles.backText} size={fontSize.body} color={apple.accent} numberOfLines={1}>{t('back')}</Text>
+          <IonIcon name="chevron-back" rawSize={24} color={apple.accent} style={styles.backIcon} />
+          <Text size={17} color={apple.accent} numberOfLines={1}>{t('back')}</Text>
         </TouchableOpacity>
         <View style={styles.flex} />
         {
@@ -87,8 +87,8 @@ const styles = createStyle({
     paddingLeft: spacing.xs,
     paddingRight: spacing.sm,
   },
-  backText: {
-    marginLeft: spacing.xxs,
+  backIcon: {
+    marginRight: 2,
   },
   flex: {
     flex: 1,

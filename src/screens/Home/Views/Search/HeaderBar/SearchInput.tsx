@@ -1,7 +1,7 @@
 import { useCallback, useRef, forwardRef, useImperativeHandle, useState } from 'react'
 import { View } from 'react-native'
 import Input, { type InputType, type InputProps } from '@/components/common/Input'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import { useApple, fontSize, radius, spacing } from '@/theme/apple'
@@ -57,7 +57,7 @@ export default forwardRef<SearchInputType, SearchInputProps>(({ onChangeText, on
 
   return (
     <View style={{ ...styles.container, backgroundColor: apple.fill }}>
-      <Icon name="search-2" size={14} color={apple.secondaryLabel} />
+      <IonIcon name="search" rawSize={16} color={apple.secondaryLabel} />
       <Input
         ref={inputRef}
         placeholder={t('apple_search_placeholder')}

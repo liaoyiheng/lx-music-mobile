@@ -5,7 +5,7 @@ import Text from '@/components/common/Text'
 import { createStyle } from '@/utils/tools'
 import { useI18n } from '@/lang'
 import { clearHistoryList, getSearchHistory, removeHistoryWord } from '@/core/search/search'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { useApple, fontSize, fontWeight, hairline, size, spacing } from '@/theme/apple'
 
 export type List = NonNullable<InitState['sourceList'][keyof InitState['sourceList']]>
@@ -27,11 +27,11 @@ const ListItem = ({ keyword, onSearch, onRemove }: {
         onPress={() => { onSearch(keyword) }}
         onLongPress={() => { onRemove(keyword) }}
       >
-        <Icon name="search-2" size={14} color={apple.secondaryLabel} />
+        <IonIcon name="search" rawSize={15} color={apple.secondaryLabel} />
         <Text style={styles.keyword} size={fontSize.body} color={apple.label} numberOfLines={1}>{keyword}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.removeBtn} activeOpacity={0.6} onPress={() => { onRemove(keyword) }}>
-        <Icon name="close" size={11} color={apple.tertiaryLabel} />
+        <IonIcon name="close" rawSize={16} color={apple.tertiaryLabel} />
       </TouchableOpacity>
       <View pointerEvents="none" style={{ ...styles.separator, backgroundColor: apple.separator }} />
     </View>
@@ -40,6 +40,7 @@ const ListItem = ({ keyword, onSearch, onRemove }: {
 
 interface HistorySearchProps {
   onSearch: (keyword: string) => void
+  onEmptyChange?: (isEmpty: boolean) => void
 }
 export interface HistorySearchType {
   show: () => void
@@ -63,13 +64,15 @@ export default forwardRef<HistorySearchType, HistorySearchProps>((props, ref) =>
       void getSearchHistory().then((list) => {
         if (isUnmountedRef.current) return
         setList(list)
+        props.onEmptyChange?.(list.length === 0)
       })
     },
-  }), [])
+  }), [props.onEmptyChange])
 
   const handleClear = () => {
     clearHistoryList()
     setList([])
+    props.onEmptyChange?.(true)
   }
 
   const handleRemove = useCallback((keyword: string) => {
@@ -78,9 +81,10 @@ export default forwardRef<HistorySearchType, HistorySearchProps>((props, ref) =>
       const index = list.indexOf(keyword)
       list.splice(index, 1)
       removeHistoryWord(index)
+      props.onEmptyChange?.(list.length === 0)
       return list
     })
-  }, [])
+  }, [props.onEmptyChange])
 
   return (
     list.length

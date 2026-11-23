@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { TouchableOpacity, View } from 'react-native'
 
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { useActiveListId, useListFetching } from '@/store/list/hook'
 import { createStyle } from '@/utils/tools'
 import { getListPrevSelectId } from '@/utils/data'
@@ -10,7 +10,7 @@ import Text from '@/components/common/Text'
 import Loading from '@/components/common/Loading'
 import { useHorizontalMode } from '@/utils/hooks'
 import { useI18n } from '@/lang'
-import { useApple, fontSize, size, spacing } from '@/theme/apple'
+import { useApple, size, spacing } from '@/theme/apple'
 
 export interface ActiveListProps {
   onShowSearchBar: () => void
@@ -61,14 +61,14 @@ export default forwardRef<ActiveListType, ActiveListProps>(({ onShowSearchBar, o
           ? <View style={styles.flex} />
           : (
               <TouchableOpacity style={styles.back} activeOpacity={0.5} onPress={showList}>
-                <Icon name="chevron-left" size={18} color={apple.accent} />
-                <Text style={styles.backText} size={fontSize.body} color={apple.accent} numberOfLines={1}>{t('apple_tab_library')}</Text>
+                <IonIcon name="chevron-back" rawSize={24} color={apple.accent} style={styles.backIcon} />
+                <Text size={17} color={apple.accent} numberOfLines={1}>{t('apple_tab_library')}</Text>
               </TouchableOpacity>
             )
       }
       {fetching ? <Loading color={apple.secondaryLabel} style={styles.loading} /> : null}
       <TouchableOpacity style={styles.iconBtn} activeOpacity={0.5} onPress={onShowSearchBar}>
-        <Icon color={apple.accent} name="search-2" size={18} />
+        <IonIcon color={apple.accent} name="search" rawSize={20} />
       </TouchableOpacity>
     </TouchableOpacity>
   )
@@ -91,8 +91,8 @@ const styles = createStyle({
     alignItems: 'center',
     paddingLeft: spacing.xs,
   },
-  backText: {
-    marginLeft: spacing.xxs,
+  backIcon: {
+    marginRight: 2,
   },
   loading: {
     marginRight: spacing.sm,

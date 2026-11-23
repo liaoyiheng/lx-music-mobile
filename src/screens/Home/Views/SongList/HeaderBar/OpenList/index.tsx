@@ -1,26 +1,18 @@
 import { useRef, forwardRef, useImperativeHandle } from 'react'
-// import { Icon } from '@/components/common/Icon'
-import Button from '@/components/common/Button'
-// import { navigations } from '@/navigation'
+import { TouchableOpacity } from 'react-native'
+import { IonIcon } from '@/components/common/Icon'
 import Modal, { type ModalType } from './Modal'
 import { type Source } from '@/store/songlist/state'
 import { createStyle } from '@/utils/tools'
-import Text from '@/components/common/Text'
-import { useI18n } from '@/lang'
-import { useApple, fontSize } from '@/theme/apple'
+import { useApple, radius } from '@/theme/apple'
 import { navigations } from '@/navigation'
 import commonState from '@/store/common/state'
-
-// export interface OpenListProps {
-//   onTagChange: (name: string, id: string) => void
-// }
 
 export interface OpenListType {
   setInfo: (source: Source) => void
 }
 
 export default forwardRef<OpenListType, {}>((props, ref) => {
-  const t = useI18n()
   const apple = useApple()
   const modalRef = useRef<ModalType>(null)
   const songlistInfoRef = useRef<{ source: Source }>({ source: 'kw' })
@@ -32,7 +24,6 @@ export default forwardRef<OpenListType, {}>((props, ref) => {
   }))
 
   const handleOpenSonglist = (id: string) => {
-    // console.log(id, songlistInfoRef.current.source)
     navigations.pushSonglistDetailScreen(commonState.componentIds.home!, {
       play_count: undefined,
       id,
@@ -44,16 +35,15 @@ export default forwardRef<OpenListType, {}>((props, ref) => {
     })
   }
 
-  // const handleSourceChange: ModalProps['onSourceChange'] = (source) => {
-  //   songlistInfoRef.current.source = source
-  // }
-
-
   return (
     <>
-      <Button style={styles.button} onPress={() => modalRef.current?.show(songlistInfoRef.current.source)}>
-        <Text size={fontSize.subhead} color={apple.accent}>{t('songlist_open')}</Text>
-      </Button>
+      <TouchableOpacity
+        style={{ ...styles.button, backgroundColor: apple.fill }}
+        activeOpacity={0.6}
+        onPress={() => modalRef.current?.show(songlistInfoRef.current.source)}
+      >
+        <IonIcon name="link-outline" rawSize={16} color={apple.accent} />
+      </TouchableOpacity>
       <Modal ref={modalRef} onOpenId={handleOpenSonglist} />
     </>
   )
@@ -61,10 +51,10 @@ export default forwardRef<OpenListType, {}>((props, ref) => {
 
 const styles = createStyle({
   button: {
-    // backgroundColor: '#ccc',
+    width: 30,
+    height: 30,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingLeft: 12,
-    paddingRight: 12,
   },
 })

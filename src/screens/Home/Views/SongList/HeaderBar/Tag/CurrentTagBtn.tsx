@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useState } from 'react'
 import { TouchableOpacity } from 'react-native'
 import Text from '@/components/common/Text'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import { useApple, fontSize, fontWeight, radius, spacing } from '@/theme/apple'
@@ -28,8 +28,8 @@ export default forwardRef<CurrentTagBtnType, CurrentTagBtnProps>(({ onShowList }
 
   return (
     <TouchableOpacity style={{ ...styles.btn, backgroundColor: apple.fill }} activeOpacity={0.6} onPress={onShowList}>
-      <Text style={styles.text} size={fontSize.subhead} color={apple.label} numberOfLines={1}>{name}</Text>
-      <Icon name="chevron-right" size={10} color={apple.secondaryLabel} />
+      <Text style={styles.text} size={fontSize.footnote} color={apple.label} numberOfLines={1}>{name}</Text>
+      <IonIcon name="chevron-down" rawSize={12} color={apple.secondaryLabel} />
     </TouchableOpacity>
   )
 })
@@ -37,16 +37,17 @@ export default forwardRef<CurrentTagBtnType, CurrentTagBtnProps>(({ onShowList }
 const styles = createStyle({
   btn: {
     height: 30,
-    maxWidth: 160,
-    paddingLeft: 12,
-    paddingRight: 10,
+    maxWidth: 112,
+    paddingLeft: 10,
+    paddingRight: 8,
     borderRadius: radius.pill,
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
   },
   text: {
     flexShrink: 1,
-    marginRight: spacing.xs,
+    marginRight: spacing.xxs + 2,
     fontWeight: fontWeight.medium,
   },
 })
