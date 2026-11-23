@@ -526,5 +526,10 @@
   "version_title_latest": "🎉 The current version is already the latest 🎊",
   "version_title_new": "🌟 New version found 🌟",
   "version_title_unknown": "❓ Failed to get the latest version information ❓",
-  "version_title_update": "🚀 App update 🚀"
+  "version_title_update": "🚀 App update 🚀",
+  "apple_player_not_playing": "Not Playing",
+  "apple_player_play": "Play",
+  "apple_player_pause": "Pause",
+  "apple_player_prev": "Previous",
+  "apple_player_next": "Next"
 }

@@ -1,12 +1,16 @@
+// Modified for Apple Music style UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
+import { memo } from 'react'
 import { TouchableOpacity } from 'react-native'
 import { Icon } from '@/components/common/Icon'
 import { useIsPlay } from '@/store/player/hook'
-import { useApple } from '@/theme/apple'
+import { useI18n } from '@/lang'
+import { useApple, size } from '@/theme/apple'
 import { playNext, playPrev, togglePlay } from '@/core/player/player'
 import { createStyle } from '@/utils/tools'
 import { useHorizontalMode } from '@/utils/hooks'
 
-const BTN_SIZE = 26
+const ICON_SIZE = 24
+
 const handlePlayPrev = () => {
   void playPrev()
 }
@@ -14,65 +18,39 @@ const handlePlayNext = () => {
   void playNext()
 }
 
-const PlayPrevBtn = () => {
+const Btn = ({ icon, label, onPress }: {
+  icon: string
+  label: string
+  onPress: () => void
+}) => {
   const apple = useApple()
-
   return (
-    <TouchableOpacity style={styles.cotrolBtn} activeOpacity={0.5} onPress={handlePlayPrev}>
-      <Icon name='prevMusic' color={apple.label} size={BTN_SIZE} />
+    <TouchableOpacity style={styles.btn} activeOpacity={0.5} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
+      <Icon name={icon} color={apple.label} size={ICON_SIZE} />
     </TouchableOpacity>
   )
 }
 
-const PlayNextBtn = () => {
-  const apple = useApple()
-
-  return (
-    <TouchableOpacity style={styles.cotrolBtn} activeOpacity={0.5} onPress={handlePlayNext}>
-      <Icon name='nextMusic' color={apple.label} size={BTN_SIZE} />
-    </TouchableOpacity>
-  )
-}
-
-const TogglePlayBtn = () => {
+/** 播放 / 暂停、下一首；宽屏额外显示上一首 */
+export default memo(() => {
+  const isWide = useHorizontalMode()
   const isPlay = useIsPlay()
-  const apple = useApple()
+  const t = useI18n()
 
-  return (
-    <TouchableOpacity style={styles.cotrolBtn} activeOpacity={0.5} onPress={togglePlay}>
-      <Icon name={isPlay ? 'pause' : 'play'} color={apple.label} size={BTN_SIZE} />
-    </TouchableOpacity>
-  )
-}
-
-export default () => {
-  const isHorizontalMode = useHorizontalMode()
   return (
     <>
-      {/* <TouchableOpacity activeOpacity={0.5} onPress={toggleNextPlayMode}>
-        <Text style={{ ...styles.cotrolBtn }}>
-          <Icon name={playModeIcon} style={{ color: theme.secondary10 }} size={18} />
-        </Text>
-      </TouchableOpacity>
-    */}
-      {/* {btnPrev} */}
-      { isHorizontalMode ? <PlayPrevBtn /> : null }
-      <TogglePlayBtn />
-      <PlayNextBtn />
+      {isWide ? <Btn icon="prevMusic" label={t('apple_player_prev')} onPress={handlePlayPrev} /> : null}
+      <Btn icon={isPlay ? 'pause' : 'play'} label={t(isPlay ? 'apple_player_pause' : 'apple_player_play')} onPress={togglePlay} />
+      <Btn icon="nextMusic" label={t('apple_player_next')} onPress={handlePlayNext} />
     </>
   )
-}
-
+})
 
 const styles = createStyle({
-  cotrolBtn: {
-    width: 42,
-    height: 42,
+  btn: {
+    width: size.hitTarget,
+    height: size.hitTarget,
     justifyContent: 'center',
     alignItems: 'center',
-
-    // backgroundColor: '#ccc',
-    shadowOpacity: 1,
-    textShadowRadius: 1,
   },
 })
