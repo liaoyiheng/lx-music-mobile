@@ -8,6 +8,7 @@ on:
 jobs:
   Android:
     name: Android
+    if: github.repository == 'lyswhut/lx-music-mobile'  # fork 中跳过上游发布流程
     runs-on: ubuntu-latest
     steps:
       - name: Check out git repository
@@ -150,6 +151,7 @@ jobs:
     runs-on: ubuntu-latest
     # needs: [Android, Android_SL]
     needs: [Android]
+    if: github.repository == 'lyswhut/lx-music-mobile'
     steps:
       - name: Check out git repository
         uses: actions/checkout@v4
