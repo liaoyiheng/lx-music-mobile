@@ -1,9 +1,10 @@
+// Modified for Apple Music style UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { type NativeScrollEvent, type NativeSyntheticEvent, View, TouchableOpacity, Animated } from 'react-native'
 import Text from '@/components/common/Text'
 import { createStyle } from '@/utils/tools'
 import { type Lines } from 'lrc-file-parser'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { BorderWidths } from '@/theme'
 import { formatPlayTime2 } from '@/utils'
 import { Icon } from '@/components/common/Icon'
@@ -23,7 +24,7 @@ export interface PlayLineProps {
 const ANIMATION_DURATION = 300
 
 export default forwardRef<PlayLineType, PlayLineProps>(({ onPlayLine }, ref) => {
-  const theme = useTheme()
+  const apple = useApple()
   const [scrollInfo, setScrollInfo] = useState<NativeSyntheticEvent<NativeScrollEvent>['nativeEvent'] | null>(null)
   const [listLayoutInfo, setListLayoutInfo] = useState<{ spaceHeight: number, lineHeights: number[] }>({ spaceHeight: 0, lineHeights: [] })
   const [lyricLines, setLyricLines] = useState<Lines>([])
@@ -82,11 +83,11 @@ export default forwardRef<PlayLineType, PlayLineProps>(({ onPlayLine }, ref) => 
   const timeLabel = formatPlayTime2(time / 1000)
   return (
     <Animated.View style={{ ...styles.playLine, opacity: opsAnim }}>
-      <Text style={styles.label} color={theme['c-primary-font']} size={13}>{timeLabel}</Text>
+      <Text style={styles.label} color={apple.secondaryLabel} size={13}>{timeLabel}</Text>
       <View style={styles.lineContent}>
-        <View style={{ ...styles.line, borderBottomColor: theme['c-primary-alpha-700'] }} />
+        <View style={{ ...styles.line, borderBottomColor: apple.tertiaryLabel }} />
         <TouchableOpacity style={styles.button} onPress={handlePlayLine}>
-          <Icon name="play" color={theme['c-button-font']} size={18} />
+          <Icon name="play" color={apple.label} size={18} />
         </TouchableOpacity>
       </View>
     </Animated.View>

@@ -526,5 +526,10 @@
   "version_title_latest": "🎉 目前版本已是最新 🎊",
   "version_title_new": "🌟 發現新版本 🌟",
   "version_title_unknown": "❓ 獲取最新版本資訊失敗 ❓",
-  "version_title_update": "🚀 軟體更新 🚀"
+  "version_title_update": "🚀 軟體更新 🚀",
+  "apple_player_not_playing": "未在播放",
+  "apple_player_play": "播放",
+  "apple_player_pause": "暫停",
+  "apple_player_prev": "上一首",
+  "apple_player_next": "下一首"
 }

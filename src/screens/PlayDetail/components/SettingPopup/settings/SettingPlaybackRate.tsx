@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { View } from 'react-native'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import Text from '@/components/common/Text'
 import { useSettingValue } from '@/store/setting/hook'
 import Slider, { type SliderProps } from '@/components/common/Slider'
@@ -18,7 +18,7 @@ const MIN_VALUE = 60
 const MAX_VALUE = 200
 
 export default () => {
-  const theme = useTheme()
+  const apple = useApple()
   const playbackRate = Math.trunc(useSettingValue('player.playbackRate') * 100)
   const [sliderSize, setSliderSize] = useState(playbackRate)
   const [isSliding, setSliding] = useState(false)
@@ -55,7 +55,7 @@ export default () => {
     <View style={styles.container}>
       <Text>{t('play_detail_setting_playback_rate')}</Text>
       <View style={styles.content}>
-        <Text style={styles.label} color={theme['c-font-label']}>{`${((isSliding ? sliderSize : playbackRate) / 100).toFixed(2)}x`}</Text>
+        <Text style={styles.label} color={apple.secondaryLabel}>{`${((isSliding ? sliderSize : playbackRate) / 100).toFixed(2)}x`}</Text>
         <Slider
           minimumValue={MIN_VALUE}
           maximumValue={MAX_VALUE}
