@@ -1,9 +1,10 @@
-import Button from '@/components/common/Button'
+import { forwardRef, useImperativeHandle, useState } from 'react'
+import { TouchableOpacity } from 'react-native'
 import Text from '@/components/common/Text'
+import { Icon } from '@/components/common/Icon'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
-import { forwardRef, useImperativeHandle, useState } from 'react'
-
+import { useApple, fontSize, fontWeight, radius, spacing } from '@/theme/apple'
 
 export interface CurrentTagBtnProps {
   onShowList: () => void
@@ -15,6 +16,7 @@ export interface CurrentTagBtnType {
 
 export default forwardRef<CurrentTagBtnType, CurrentTagBtnProps>(({ onShowList }, ref) => {
   const t = useI18n()
+  const apple = useApple()
   const [name, setName] = useState('')
 
   useImperativeHandle(ref, () => ({
@@ -25,25 +27,26 @@ export default forwardRef<CurrentTagBtnType, CurrentTagBtnProps>(({ onShowList }
   }))
 
   return (
-    <Button style={styles.btn} onPress={onShowList}>
-      <Text style={styles.sourceMenu}>{name}</Text>
-    </Button>
+    <TouchableOpacity style={{ ...styles.btn, backgroundColor: apple.fill }} activeOpacity={0.6} onPress={onShowList}>
+      <Text style={styles.text} size={fontSize.subhead} color={apple.label} numberOfLines={1}>{name}</Text>
+      <Icon name="chevron-right" size={10} color={apple.secondaryLabel} />
+    </TouchableOpacity>
   )
 })
 
-
 const styles = createStyle({
   btn: {
-    paddingLeft: 15,
-    paddingRight: 15,
-    justifyContent: 'center',
+    height: 30,
+    maxWidth: 160,
+    paddingLeft: 12,
+    paddingRight: 10,
+    borderRadius: radius.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  sourceMenu: {
-    // height: 38,
-    // lineHeight: 38,
-    textAlign: 'center',
-    // minWidth: 70,
-    // paddingTop: 10,
-    // paddingBottom: 10,
+  text: {
+    flexShrink: 1,
+    marginRight: spacing.xs,
+    fontWeight: fontWeight.medium,
   },
 })

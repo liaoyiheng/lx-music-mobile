@@ -1,11 +1,11 @@
 import { useRef, useState, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { FlatList, View, RefreshControl, type FlatListProps } from 'react-native'
 
-import ListItem from './ListItem'
+import ListItem, { CARD_GAP } from './ListItem'
 // import { navigations } from '@/navigation'
 import { type ListInfoItem } from '@/store/songlist/state'
 import { useLayout } from '@/utils/hooks'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, pagePadding } from '@/theme/apple'
 import { useI18n } from '@/lang'
 import { scaleSizeW } from '@/utils/pixelRatio'
 import { createStyle } from '@/utils/tools'
@@ -14,8 +14,8 @@ import Text from '@/components/common/Text'
 type FlatListType = FlatListProps<ListInfoItem>
 
 // const MAX_WIDTH = scaleSizeW(110)
-const MIN_WIDTH = scaleSizeW(110)
-const GAP = scaleSizeW(20)
+const MIN_WIDTH = scaleSizeW(140)
+const LIST_PADDING = pagePadding - CARD_GAP / 2
 
 export interface ListProps {
   onRefresh: () => void
@@ -35,7 +35,7 @@ export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenD
   const [showSource, setShowSource] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
   const { onLayout, width } = useLayout()
-  const theme = useTheme()
+  const apple = useApple()
   // console.log('render songlist')
 
   useImperativeHandle(ref, () => ({
@@ -69,11 +69,11 @@ export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenD
   // }
   const refreshControl = useMemo(() => (
     <RefreshControl
-      colors={[theme['c-primary']]}
+      colors={[apple.accent]}
       // progressBackgroundColor={theme.primary}
       refreshing={status == 'refreshing'}
       onRefresh={onRefresh} />
-  ), [status, onRefresh, theme])
+  ), [status, onRefresh, apple])
   const footerComponent = useMemo(() => {
     let label: FooterLabel
     switch (status) {
@@ -112,14 +112,11 @@ export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenD
   // console.log(Math.trunc(width * 0.125), itemWidth)
   // console.log(itemWidth, MIN_WIDTH, GAP, width)
   const rowInfo = useMemo(() => {
-    let w = width - GAP
-    let n = width / (MIN_WIDTH + GAP)
-    if (n > 10) n = 10
-    let computedItemWidth = Math.floor(w / n)
-    const num = Math.max(Math.floor(width / computedItemWidth), 2)
+    const available = width - LIST_PADDING * 2
+    const num = Math.min(Math.max(Math.floor(available / (MIN_WIDTH + CARD_GAP)), 2), 10)
     return {
       num,
-      width: (width - GAP) / num,
+      width: available / num,
     }
   }, [width])
   // console.log(rowNum)
@@ -153,7 +150,7 @@ export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenD
                 key={String(rowInfo.num)}
                 ref={flatListRef}
                 style={styles.list}
-                columnWrapperStyle={{ justifyContent: 'space-evenly' }}
+                columnWrapperStyle={{ justifyContent: 'flex-start' }}
                 numColumns={rowInfo.num}
                 data={list}
                 maxToRenderPerBatch={4}
@@ -182,7 +179,7 @@ const Footer = ({ label, onLoadMore }: {
   label: FooterLabel
   onLoadMore: () => void
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
   const handlePress = () => {
     if (label != 'list_error') return
@@ -192,7 +189,7 @@ const Footer = ({ label, onLoadMore }: {
     label
       ? (
           <View>
-            <Text onPress={handlePress} style={styles.footer} color={theme['c-font-label']}>{t(label)}</Text>
+            <Text onPress={handlePress} style={styles.footer} color={apple.secondaryLabel}>{t(label)}</Text>
           </View>
         )
       : null
@@ -207,8 +204,8 @@ const styles = createStyle({
   },
   list: {
     flex: 1,
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingHorizontal: LIST_PADDING,
+    paddingTop: 4,
   },
   footer: {
     textAlign: 'center',

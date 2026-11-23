@@ -1,58 +1,103 @@
-import { useEffect, useRef } from 'react'
-import settingState from '@/store/setting/state'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { TouchableOpacity, View } from 'react-native'
 import Content from './Content'
 import TagList from './TagList'
-import { useTheme } from '@/store/theme/hook'
-import DrawerLayoutFixed, { type DrawerLayoutFixedType } from '@/components/common/DrawerLayoutFixed'
-import { COMPONENT_IDS } from '@/config/constant'
-import { scaleSizeW } from '@/utils/pixelRatio'
-import type { InitState as CommonState } from '@/store/common/state'
+import Text from '@/components/common/Text'
+import { useI18n } from '@/lang'
+import commonState from '@/store/common/state'
+import { useBackHandler } from '@/utils/hooks/useBackHandler'
+import { useApple, fontSize, fontWeight, hairline, pagePadding, size } from '@/theme/apple'
+import { createStyle } from '@/utils/tools'
 
-const MAX_WIDTH = scaleSizeW(560)
-
+/**
+ * 歌单广场
+ * 原版的标签侧边抽屉改为覆盖在内容上的「标签」页（带完成按钮，返回键关闭）
+ */
 export default () => {
-  const drawer = useRef<DrawerLayoutFixedType>(null)
-  const theme = useTheme()
+  const apple = useApple()
+  const t = useI18n()
+  const [tagVisible, setTagVisible] = useState(false)
+  const tagVisibleRef = useRef(false)
+  tagVisibleRef.current = tagVisible
 
   useEffect(() => {
-    const handleFixDrawer = (id: CommonState['navActiveId']) => {
-      if (id == 'nav_songlist') drawer.current?.fixWidth()
-    }
     const handleShow = () => {
       requestAnimationFrame(() => {
-        drawer.current?.openDrawer()
+        setTagVisible(true)
       })
     }
     const handleHide = () => {
-      drawer.current?.closeDrawer()
+      setTagVisible(false)
     }
-
-    global.state_event.on('navActiveIdUpdated', handleFixDrawer)
     global.app_event.on('showSonglistTagList', handleShow)
     global.app_event.on('hideSonglistTagList', handleHide)
-
     return () => {
-      global.state_event.off('navActiveIdUpdated', handleFixDrawer)
       global.app_event.off('showSonglistTagList', handleShow)
       global.app_event.off('hideSonglistTagList', handleHide)
     }
   }, [])
 
-  const navigationView = () => <TagList />
-  // console.log('render drawer content')
+  useBackHandler(useCallback(() => {
+    if (!tagVisibleRef.current) return false
+    if (Object.keys(commonState.componentIds).length != 1 || commonState.navActiveId != 'nav_songlist') return false
+    setTagVisible(false)
+    return true
+  }, []))
 
   return (
-    <DrawerLayoutFixed
-      ref={drawer}
-      visibleNavNames={[COMPONENT_IDS.home]}
-      widthPercentage={0.8}
-      widthPercentageMax={MAX_WIDTH}
-      drawerPosition={settingState.setting['common.drawerLayoutPosition']}
-      renderNavigationView={navigationView}
-      drawerBackgroundColor={theme['c-content-background']}
-      style={{ elevation: 1 }}
-    >
+    <View style={styles.container}>
       <Content />
-    </DrawerLayoutFixed>
+      <View
+        style={tagVisible ? { ...styles.overlay, backgroundColor: apple.background } : styles.hidden}
+        pointerEvents={tagVisible ? 'auto' : 'none'}
+      >
+        <View style={{ ...styles.tagHeader, borderBottomColor: apple.separator }}>
+          <Text style={styles.tagTitle} size={fontSize.headline} color={apple.label}>{t('apple_tags')}</Text>
+          <TouchableOpacity style={styles.doneBtn} activeOpacity={0.5} onPress={() => { setTagVisible(false) }}>
+            <Text size={fontSize.body} color={apple.accent} style={styles.doneText}>{t('apple_done')}</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.container}>
+          <TagList />
+        </View>
+      </View>
+    </View>
   )
 }
+
+const styles = createStyle({
+  container: {
+    flex: 1,
+  },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+  },
+  hidden: {
+    display: 'none',
+  },
+  tagHeader: {
+    height: size.hitTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: hairline,
+  },
+  tagTitle: {
+    fontWeight: fontWeight.semibold,
+  },
+  doneBtn: {
+    position: 'absolute',
+    right: pagePadding - 4,
+    height: '100%',
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+  },
+  doneText: {
+    fontWeight: fontWeight.semibold,
+  },
+})

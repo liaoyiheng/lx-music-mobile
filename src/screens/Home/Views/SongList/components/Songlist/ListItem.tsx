@@ -1,14 +1,18 @@
 import { memo } from 'react'
-import { View, Platform, TouchableOpacity } from 'react-native'
+import { View, TouchableOpacity } from 'react-native'
 import { createStyle } from '@/utils/tools'
 import { type ListInfoItem } from '@/store/songlist/state'
 import Text from '@/components/common/Text'
-import { scaleSizeW } from '@/utils/pixelRatio'
 import { NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
-import { useTheme } from '@/store/theme/hook'
 import Image from '@/components/common/Image'
+import { useApple, fontSize, radius, spacing } from '@/theme/apple'
 
-const gap = scaleSizeW(15)
+/** 卡片左右间距（List 里计算列宽时也用到） */
+export const CARD_GAP = 14
+
+/**
+ * Apple Music 风格歌单卡片：方形大圆角封面 + 下方两行标题
+ */
 export default memo(({ item, index, width, showSource, onPress }: {
   item: ListInfoItem
   index: number
@@ -16,26 +20,26 @@ export default memo(({ item, index, width, showSource, onPress }: {
   width: number
   onPress: (item: ListInfoItem, index: number) => void
 }) => {
-  const theme = useTheme()
-  const itemWidth = width - gap
+  const apple = useApple()
+  const itemWidth = width - CARD_GAP
   const handlePress = () => {
     onPress(item, index)
   }
   return (
     item.source
       ? (
-          <View style={{ ...styles.listItem, width: itemWidth }}>
-            <View style={{ ...styles.listItemImg, backgroundColor: theme['c-content-background'] }}>
-              <TouchableOpacity activeOpacity={0.5} onPress={handlePress}>
-                <Image url={item.img} nativeID={`${NAV_SHEAR_NATIVE_IDS.songlistDetail_pic}_from_${item.id}`} style={{ width: itemWidth, height: itemWidth, borderRadius: 4 }} />
-                { showSource ? <Text style={styles.sourceLabel} size={9} color="#fff" >{item.source}</Text> : null }
-              </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.7} onPress={handlePress} style={{ ...styles.listItem, width: itemWidth }}>
+            <View style={{ ...styles.artwork, backgroundColor: apple.fill }}>
+              <Image
+                url={item.img}
+                nativeID={`${NAV_SHEAR_NATIVE_IDS.songlistDetail_pic}_from_${item.id}`}
+                style={{ width: itemWidth, height: itemWidth, borderRadius: radius.medium }}
+              />
+              {showSource ? <Text style={styles.sourceLabel} size={9} color="#fff">{item.source.toUpperCase()}</Text> : null}
             </View>
-            <TouchableOpacity activeOpacity={0.5} onPress={handlePress}>
-              <Text style={styles.listItemTitle} numberOfLines={ 2 }>{item.name}</Text>
-            </TouchableOpacity>
-            {/* <Text>{JSON.stringify(item)}</Text> */}
-          </View>
+            <Text style={styles.title} size={fontSize.footnote} color={apple.label} numberOfLines={2}>{item.name}</Text>
+            {item.author ? <Text size={fontSize.caption1} color={apple.secondaryLabel} numberOfLines={1}>{item.author}</Text> : null}
+          </TouchableOpacity>
         )
       : <View style={{ ...styles.listItem, width: itemWidth }} />
   )
@@ -43,42 +47,26 @@ export default memo(({ item, index, width, showSource, onPress }: {
 
 const styles = createStyle({
   listItem: {
-    // width: 90,
-    margin: 10,
+    marginHorizontal: CARD_GAP / 2,
+    marginBottom: spacing.xl,
   },
-  listItemImg: {
-    // backgroundColor: '#eee',
-    borderRadius: 4,
-    marginBottom: 5,
+  artwork: {
+    borderRadius: radius.medium,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: {
-          width: 0,
-          height: 1,
-        },
-        shadowOpacity: 0.20,
-        shadowRadius: 1.41,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    marginBottom: spacing.sm - 2,
   },
   sourceLabel: {
-    paddingLeft: 4,
-    paddingBottom: 2,
-    paddingRight: 4,
     position: 'absolute',
-    top: 0,
-    right: 0,
-    borderBottomLeftRadius: 3,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    top: 6,
+    right: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
-  listItemTitle: {
-    fontSize: 12,
-    // overflow: 'hidden',
-    marginBottom: 5,
+  title: {
+    fontWeight: '500',
+    marginBottom: 2,
   },
 })

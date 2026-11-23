@@ -7,6 +7,7 @@ import { type Source } from '@/store/songlist/state'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
+import { useApple, fontSize } from '@/theme/apple'
 import { navigations } from '@/navigation'
 import commonState from '@/store/common/state'
 
@@ -20,6 +21,7 @@ export interface OpenListType {
 
 export default forwardRef<OpenListType, {}>((props, ref) => {
   const t = useI18n()
+  const apple = useApple()
   const modalRef = useRef<ModalType>(null)
   const songlistInfoRef = useRef<{ source: Source }>({ source: 'kw' })
 
@@ -50,7 +52,7 @@ export default forwardRef<OpenListType, {}>((props, ref) => {
   return (
     <>
       <Button style={styles.button} onPress={() => modalRef.current?.show(songlistInfoRef.current.source)}>
-        <Text>{t('songlist_open')}</Text>
+        <Text size={fontSize.subhead} color={apple.accent}>{t('songlist_open')}</Text>
       </Button>
       <Modal ref={modalRef} onOpenId={handleOpenSonglist} />
     </>
