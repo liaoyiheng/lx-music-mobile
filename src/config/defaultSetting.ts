@@ -1,6 +1,6 @@
 const defaultSetting: LX.AppSetting = {
   version: '2.1',
-  'common.isAutoTheme': false,
+  'common.isAutoTheme': true,
   'common.langId': null,
   'common.apiSource': '',
   'common.sourceNameType': 'alias',
@@ -58,8 +58,8 @@ const defaultSetting: LX.AppSetting = {
   'desktopLyric.style.lyricPlayedColor': 'rgba(7, 197, 86, 1)',
   'desktopLyric.style.lyricShadowColor': 'rgba(0, 0, 0, 0.6)',
 
-  'search.isShowHotSearch': false,
-  'search.isShowHistorySearch': false,
+  'search.isShowHotSearch': true,
+  'search.isShowHistorySearch': true,
 
   'list.isClickPlayList': false,
   'list.isShowSource': true,

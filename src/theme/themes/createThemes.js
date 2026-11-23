@@ -10,17 +10,17 @@ const defaultThemes = [
     name: '绿意盎然',
     isDark: false,
     config: {
-      primary: 'rgb(77, 175, 124)',
-      font: 'rgb(33, 33, 33)',
-      'c-app-background': 'var(c-primary-light-600-alpha-700)',
+      primary: 'rgb(250, 45, 72)',
+      font: 'rgb(0, 0, 0)',
+      'c-app-background': 'rgba(255, 255, 255, 1)',
       'c-main-background': 'rgba(255, 255, 255, 1)',
       'bg-image': '',
       'bg-image-position': 'center',
       'bg-image-size': 'cover',
 
-      'c-badge-primary': 'var(c-primary)',
-      'c-badge-secondary': '#4baed5',
-      'c-badge-tertiary': '#e7aa36',
+      'c-badge-primary': '#8E8E93',
+      'c-badge-secondary': '#8E8E93',
+      'c-badge-tertiary': '#8E8E93',
     },
   },
   {

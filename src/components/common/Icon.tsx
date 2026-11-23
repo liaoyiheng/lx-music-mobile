@@ -1,30 +1,57 @@
 import { createIconSetFromIcoMoon } from 'react-native-vector-icons'
+import IconIonicons from 'react-native-vector-icons/Ionicons'
 import icoMoonConfig from '@/resources/fonts/selection.json'
 import { scaleSizeW } from '@/utils/pixelRatio'
 import { memo, type ComponentProps } from 'react'
 import { useTextShadow, useTheme } from '@/store/theme/hook'
 import { StyleSheet, type StyleProp, type TextStyle } from 'react-native'
 
-// import IconAntDesign from 'react-native-vector-icons/AntDesign'
-// import IconEntypo from 'react-native-vector-icons/Entypo'
-// import IconEvilIcons from 'react-native-vector-icons/EvilIcons'
-// import IconFeather from 'react-native-vector-icons/Feather'
-// import IconFontAwesome from 'react-native-vector-icons/FontAwesome'
-// import IconFontAwesome5 from 'react-native-vector-icons/FontAwesome5'
-// import IconFontisto from 'react-native-vector-icons/Fontisto'
-// import IconFoundation from 'react-native-vector-icons/Foundation'
-// import IconIonicons from 'react-native-vector-icons/Ionicons'
-// import IconMaterialIcons from 'react-native-vector-icons/MaterialIcons'
-// import IconMaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
-// import IconOcticons from 'react-native-vector-icons/Octicons'
-// import IconZocial from 'react-native-vector-icons/Zocial'
-// import IconSimpleLineIcons from 'react-native-vector-icons/SimpleLineIcons'
-
-
 const IcoMoon = createIconSetFromIcoMoon(icoMoonConfig)
 
-
-// https://oblador.github.io/react-native-vector-icons/
+/**
+ * 将原洛雪 icomoon 图标名无缝映射到 iOS 风格的 Ionicons，
+ * 彻底淘汰旧粗笨图标与 Android 竖三点，未映射图标回退至 IcoMoon。
+ */
+const ICOMOON_TO_IONICONS: Record<string, string> = {
+  'menu': 'ellipsis-horizontal',
+  'chevron-left': 'chevron-back',
+  'chevron-right': 'chevron-forward',
+  'chevron-down': 'chevron-down',
+  'play': 'play',
+  'pause': 'pause',
+  'prev': 'play-back',
+  'next': 'play-forward',
+  'search-2': 'search',
+  'setting': 'settings-outline',
+  'home': 'albums-outline',
+  'leaderboard': 'compass-outline',
+  'album': 'disc-outline',
+  'music_time': 'musical-notes',
+  'love': 'heart-outline',
+  'add_music': 'add-circle-outline',
+  'list-add': 'add',
+  'comment': 'chatbubble-outline',
+  'lyric': 'chatbox-ellipses-outline',
+  'available_updates': 'refresh',
+  'remove': 'close',
+  'single-loop': 'repeat',
+  'list-loop': 'repeat',
+  'list-random': 'shuffle',
+  'list-order': 'reorder-three-outline',
+  'stop': 'timer-outline',
+  'slider': 'options-outline',
+  'download-2': 'arrow-down-circle-outline',
+  'share': 'share-outline',
+  'plus': 'add',
+  'minus': 'remove',
+  'check': 'checkmark',
+  'trash': 'trash-outline',
+  'edit': 'create-outline',
+  'info': 'information-circle-outline',
+  'folder': 'folder-open-outline',
+  'sync': 'sync-outline',
+  'help': 'help-circle-outline',
+}
 
 type IconType = ReturnType<typeof createIconSetFromIcoMoon>
 
@@ -33,7 +60,7 @@ interface IconProps extends Omit<ComponentProps<IconType>, 'style'> {
   rawSize?: number
 }
 
-export const Icon = memo(({ size = 15, rawSize, color, style, ...props }: IconProps) => {
+export const Icon = memo(({ name, size = 15, rawSize, color, style, ...props }: IconProps) => {
   const theme = useTheme()
   const textShadow = useTextShadow()
   const newStyle = textShadow ? StyleSheet.compose({
@@ -41,10 +68,27 @@ export const Icon = memo(({ size = 15, rawSize, color, style, ...props }: IconPr
     textShadowOffset: { width: 0.2, height: 0.2 },
     textShadowRadius: 2,
   }, style) : style
+  const resolvedSize = rawSize ?? scaleSizeW(size)
+  const resolvedColor = color ?? theme['c-font']
+  const mappedIonName = ICOMOON_TO_IONICONS[name]
+
+  if (mappedIonName) {
+    return (
+      <IconIonicons
+        name={mappedIonName}
+        size={resolvedSize}
+        color={resolvedColor}
+        // @ts-expect-error react-native-vector-icons bundled types mismatch
+        style={newStyle}
+      />
+    )
+  }
+
   return (
     <IcoMoon
-      size={rawSize ?? scaleSizeW(size)}
-      color={color ?? theme['c-font']}
+      name={name}
+      size={resolvedSize}
+      color={resolvedColor}
       // @ts-expect-error
       style={newStyle}
       {...props}
@@ -52,20 +96,26 @@ export const Icon = memo(({ size = 15, rawSize, color, style, ...props }: IconPr
   )
 })
 
-
-export {
-  // IconAntDesign,
-  // IconEntypo,
-  // IconEvilIcons,
-  // IconFeather,
-  // IconFontAwesome,
-  // IconFontAwesome5,
-  // IconFontisto,
-  // IconFoundation,
-  // IconIonicons,
-  // IconMaterialIcons,
-  // IconMaterialCommunityIcons,
-  // IconOcticons,
-  // IconZocial,
-  // IconSimpleLineIcons,
+interface IonIconProps {
+  name: string
+  size?: number
+  rawSize?: number
+  color?: string
+  style?: StyleProp<TextStyle>
 }
+
+/** 直接使用 Ionicons（iOS / SF Symbols 风格） */
+export const IonIcon = memo(({ name, size = 20, rawSize, color, style }: IonIconProps) => {
+  const theme = useTheme()
+  return (
+    <IconIonicons
+      name={name}
+      size={rawSize ?? scaleSizeW(size)}
+      color={color ?? theme['c-font']}
+      // @ts-expect-error react-native-vector-icons bundled types mismatch
+      style={style}
+    />
+  )
+})
+
+export { IconIonicons }
