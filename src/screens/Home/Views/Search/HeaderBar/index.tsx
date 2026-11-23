@@ -1,22 +1,23 @@
-import { useRef, forwardRef, useImperativeHandle } from 'react'
+import { useRef, forwardRef, useImperativeHandle, useState } from 'react'
 import { View } from 'react-native'
 
-import SourceSelector, {
-  type SourceSelectorType as _SourceSelectorType,
-  type SourceSelectorProps as _SourceSelectorProps,
-} from '@/components/SourceSelector'
+import DorpDownMenu, { type DorpDownMenuProps as _DorpDownMenuProps } from '@/components/common/DorpDownMenu'
+import { useSourceListI18n } from '@/components/SourceSelector'
+import Text from '@/components/common/Text'
+import { IonIcon } from '@/components/common/Icon'
+import { useI18n } from '@/lang'
+import { useSettingValue } from '@/store/setting/hook'
 import SearchInput, { type SearchInputType, type SearchInputProps } from './SearchInput'
 import { createStyle } from '@/utils/tools'
 import { type Source as MusicSource } from '@/store/search/music/state'
 import { type Source as SonglistSource } from '@/store/search/songlist/state'
-import { pagePadding, spacing } from '@/theme/apple'
+import { useApple, fontSize, fontWeight, pagePadding, radius, spacing } from '@/theme/apple'
 
 type Sources = Readonly<Array<MusicSource | SonglistSource>>
-type SourceSelectorProps = _SourceSelectorProps<Sources>
-type SourceSelectorType = _SourceSelectorType<Sources>
+type Source = Sources[number]
 
 export interface HeaderBarProps {
-  onSourceChange: SourceSelectorProps['onSourceChange']
+  onSourceChange: (source: Source) => void
   onTipSearch: SearchInputProps['onChangeText']
   onSearch: SearchInputProps['onSubmit']
   onHideTipList: SearchInputProps['onBlur']
@@ -24,21 +25,26 @@ export interface HeaderBarProps {
 }
 
 export interface HeaderBarType {
-  setSourceList: SourceSelectorType['setSourceList']
+  setSourceList: (list: Sources, activeSource: Source) => void
   setText: SearchInputType['setText']
   blur: SearchInputType['blur']
 }
 
 /**
- * 搜索栏：圆角搜索框 + 右侧来源选择
+ * 搜索栏：圆角搜索框 + 右侧来源切换胶囊
  */
 export default forwardRef<HeaderBarType, HeaderBarProps>(({ onSourceChange, onTipSearch, onSearch, onHideTipList, onShowTipList }, ref) => {
-  const sourceSelectorRef = useRef<SourceSelectorType>(null)
+  const apple = useApple()
+  const t = useI18n()
+  const sourceNameType = useSettingValue('common.sourceNameType')
   const searchInputRef = useRef<SearchInputType>(null)
+  const [list, setList] = useState<Sources>([])
+  const [source, setSource] = useState<Source>('kw')
 
   useImperativeHandle(ref, () => ({
-    setSourceList(list, source) {
-      sourceSelectorRef.current?.setSourceList(list, source)
+    setSourceList(newList, activeSource) {
+      setList(newList)
+      setSource(activeSource)
     },
     setText(text) {
       searchInputRef.current?.setText(text)
@@ -47,6 +53,14 @@ export default forwardRef<HeaderBarType, HeaderBarProps>(({ onSourceChange, onTi
       searchInputRef.current?.blur()
     },
   }), [])
+
+  const sourceList_t = useSourceListI18n(list)
+  type DorpDownMenuProps = _DorpDownMenuProps<typeof sourceList_t>
+
+  const handleChangeSource: DorpDownMenuProps['onPress'] = ({ action }) => {
+    onSourceChange(action as Source)
+    setSource(action as Source)
+  }
 
   return (
     <View style={styles.searchBar}>
@@ -60,7 +74,25 @@ export default forwardRef<HeaderBarType, HeaderBarProps>(({ onSourceChange, onTi
         />
       </View>
       <View style={styles.selector}>
-        <SourceSelector ref={sourceSelectorRef} onSourceChange={onSourceChange} center />
+        <DorpDownMenu
+          menus={sourceList_t}
+          onPress={handleChangeSource}
+          fontSize={fontSize.subhead}
+          activeId={source}
+          center
+        >
+          <View style={{ ...styles.pill, backgroundColor: apple.fill }}>
+            <Text
+              style={styles.pillText}
+              size={fontSize.footnote}
+              color={apple.accent}
+              numberOfLines={1}
+            >
+              {t(`source_${sourceNameType}_${source}`)}
+            </Text>
+            <IonIcon name="chevron-down" rawSize={12} color={apple.accent} />
+          </View>
+        </DorpDownMenu>
       </View>
     </View>
   )
@@ -72,7 +104,7 @@ const styles = createStyle({
     alignItems: 'center',
     height: 48,
     paddingLeft: pagePadding,
-    paddingRight: spacing.sm,
+    paddingRight: pagePadding,
     zIndex: 2,
   },
   input: {
@@ -80,6 +112,19 @@ const styles = createStyle({
     height: 36,
   },
   selector: {
-    marginLeft: spacing.xs,
+    marginLeft: spacing.sm,
+    flexShrink: 0,
+  },
+  pill: {
+    height: 32,
+    paddingLeft: 10,
+    paddingRight: 8,
+    borderRadius: radius.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pillText: {
+    marginRight: spacing.xxs + 2,
+    fontWeight: fontWeight.medium,
   },
 })

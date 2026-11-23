@@ -23,9 +23,9 @@ export interface HeaderBarType {
 }
 
 /**
- * 歌单筛选栏
- * 第一行：标签 / 打开歌单 / 来源
- * 第二行：排序（胶囊按钮，可横向滚动）
+ * 歌单单行紧凑工具条
+ * 左侧：分类标签胶囊 + 排序胶囊
+ * 右侧：打开歌单图标按钮 + 来源胶囊
  */
 export default forwardRef<HeaderBarType, HeaderBarProps>(({ onSortChange, onTagChange, onSourceChange }, ref) => {
   const sortTabRef = useRef<SortTabType>(null)
@@ -44,14 +44,15 @@ export default forwardRef<HeaderBarType, HeaderBarProps>(({ onSortChange, onTagC
 
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
-        <Tag ref={tagRef} onTagChange={onTagChange} />
-        <View style={styles.gap} />
+      <Tag ref={tagRef} onTagChange={onTagChange} />
+      <View style={styles.sortWrap}>
+        <SortTab ref={sortTabRef} onSortChange={onSortChange} />
+      </View>
+      <View style={styles.right}>
         <OpenList ref={openListRef} />
-        <View style={styles.flex} />
+        <View style={styles.gap} />
         <SourceSelector ref={sourceSelectorRef} onSourceChange={onSourceChange} />
       </View>
-      <SortTab ref={sortTabRef} onSortChange={onSortChange} />
     </View>
   )
 })
@@ -59,18 +60,22 @@ export default forwardRef<HeaderBarType, HeaderBarProps>(({ onSortChange, onTagC
 const styles = createStyle({
   container: {
     zIndex: 2,
-    paddingBottom: spacing.sm,
-  },
-  row: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 40,
     paddingHorizontal: pagePadding,
   },
-  gap: {
-    width: spacing.sm,
-  },
-  flex: {
+  sortWrap: {
     flex: 1,
+    marginHorizontal: spacing.sm,
+    justifyContent: 'center',
+  },
+  right: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  gap: {
+    width: spacing.xs,
   },
 })

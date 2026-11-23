@@ -1,6 +1,6 @@
 import { memo, useMemo } from 'react'
 import { TouchableOpacity, View } from 'react-native'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
 import { LIST_IDS } from '@/config/constant'
@@ -37,7 +37,7 @@ const ActionBtn = ({ icon, label, onPress }: { icon: string, label: string, onPr
   const apple = useApple()
   return (
     <TouchableOpacity style={{ ...styles.btn, backgroundColor: apple.fill }} activeOpacity={0.6} onPress={onPress}>
-      <Icon name={icon} size={15} color={apple.accent} />
+      <IonIcon name={icon} rawSize={17} color={apple.accent} />
       <Text style={styles.btnText} size={fontSize.callout} color={apple.accent}>{label}</Text>
     </TouchableOpacity>
   )
@@ -69,7 +69,7 @@ export default memo(() => {
       <View style={styles.btns}>
         <ActionBtn icon="play" label={t('apple_play')} onPress={() => { void handlePlay(false) }} />
         <View style={styles.gap} />
-        <ActionBtn icon="list-random" label={t('apple_shuffle')} onPress={() => { void handlePlay(true) }} />
+        <ActionBtn icon="shuffle" label={t('apple_shuffle')} onPress={() => { void handlePlay(true) }} />
       </View>
     </View>
   )

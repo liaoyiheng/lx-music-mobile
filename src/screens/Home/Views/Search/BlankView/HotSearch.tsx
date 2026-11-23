@@ -10,6 +10,7 @@ import { useApple, fontSize, fontWeight, radius, spacing } from '@/theme/apple'
 
 interface ListProps {
   onSearch: (keyword: string) => void
+  onEmptyChange?: (isEmpty: boolean) => void
 }
 export interface HotSearchType {
   show: (source: Source) => void
@@ -50,9 +51,10 @@ export default forwardRef<HotSearchType, ListProps>((props, ref) => {
       void getList(source).then((list) => {
         if (isUnmountedRef.current) return
         setList(list)
+        props.onEmptyChange?.(list.length === 0)
       })
     },
-  }), [])
+  }), [props.onEmptyChange])
 
   return (
     list.length

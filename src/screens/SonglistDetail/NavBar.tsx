@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { TouchableOpacity, View } from 'react-native'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { pop } from '@/navigation'
 import commonState from '@/store/common/state'
@@ -33,8 +33,8 @@ export default memo(() => {
   return (
     <View style={{ ...styles.bar, paddingTop: statusBarHeight, backgroundColor: apple.background }}>
       <TouchableOpacity style={styles.back} activeOpacity={0.5} onPress={back}>
-        <Icon name="chevron-left" size={fontSize.headline} color={apple.accent} />
-        <Text style={styles.backText} size={fontSize.body} color={apple.accent} numberOfLines={1}>{t('back')}</Text>
+        <IonIcon name="chevron-back" rawSize={24} color={apple.accent} style={styles.backIcon} />
+        <Text size={17} color={apple.accent} numberOfLines={1}>{t('back')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.textBtn} activeOpacity={0.5} onPress={handleCollection}>
         <Text style={styles.textBtnLabel} size={fontSize.body} color={apple.accent} numberOfLines={1}>{t('collect_songlist')}</Text>
@@ -58,8 +58,8 @@ const styles = createStyle({
     alignItems: 'center',
     paddingLeft: spacing.xs,
   },
-  backText: {
-    marginLeft: spacing.xxs,
+  backIcon: {
+    marginRight: 2,
   },
   textBtn: {
     height: size.hitTarget,

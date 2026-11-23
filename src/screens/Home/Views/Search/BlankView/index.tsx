@@ -1,10 +1,11 @@
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
+import { ScrollView, View } from 'react-native'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
 import { useSettingValue } from '@/store/setting/hook'
 import { useApple, fontSize, pagePadding, spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
-import { ScrollView, View } from 'react-native'
 import HistorySearch, { type HistorySearchType } from './HistorySearch'
 import HotSearch, { type HotSearchType } from './HotSearch'
 
@@ -18,8 +19,9 @@ export interface BlankViewType {
 }
 
 export default forwardRef<BlankViewType, BlankViewProps>(({ onSearch }, ref) => {
-  // const [listType, setListType] = useState<SearchState['searchType']>('music')
   const [visible, setVisible] = useState(false)
+  const [hotEmpty, setHotEmpty] = useState(true)
+  const [historyEmpty, setHistoryEmpty] = useState(true)
   const hotSearchRef = useRef<HotSearchType>(null)
   const historySearchRef = useRef<HistorySearchType>(null)
   const isShowHotSearch = useSettingValue('search.isShowHotSearch')
@@ -44,38 +46,51 @@ export default forwardRef<BlankViewType, BlankViewProps>(({ onSearch }, ref) => 
     },
   }), [visible])
 
-  return (
-    visible
-      ? isShowHotSearch || isShowHistorySearch
-        ? (
-            <ScrollView>
-              <View style={styles.content}>
-                { isShowHotSearch ? <HotSearch ref={hotSearchRef} onSearch={onSearch} /> : null }
-                { isShowHistorySearch ? <HistorySearch ref={historySearchRef} onSearch={onSearch} /> : null }
-              </View>
-            </ScrollView>
-          )
-        : (
-            <View style={styles.welcome}>
-              <Text size={fontSize.title3} color={apple.secondaryLabel}>{t('search__welcome')}</Text>
-            </View>
-          )
-      : null
+  if (!visible) return null
 
+  const isAllEmpty = (!isShowHotSearch || hotEmpty) && (!isShowHistorySearch || historyEmpty)
+
+  return (
+    <ScrollView contentContainerStyle={isAllEmpty ? styles.emptyScroll : undefined}>
+      {
+        isAllEmpty
+          ? (
+              <View style={styles.empty}>
+                <IonIcon name="search" rawSize={44} color={apple.tertiaryLabel} />
+                <Text size={fontSize.subhead} color={apple.secondaryLabel} style={styles.emptyText}>
+                  {t('apple_search_placeholder')}
+                </Text>
+              </View>
+            )
+          : null
+      }
+      <View style={isAllEmpty ? styles.hidden : styles.content}>
+        { isShowHotSearch ? <HotSearch ref={hotSearchRef} onSearch={onSearch} onEmptyChange={setHotEmpty} /> : null }
+        { isShowHistorySearch ? <HistorySearch ref={historySearchRef} onSearch={onSearch} onEmptyChange={setHistoryEmpty} /> : null }
+      </View>
+    </ScrollView>
   )
 })
 
-
 const styles = createStyle({
   content: {
-    // paddingTop: 15,
     paddingBottom: spacing.xxxl,
     paddingLeft: pagePadding,
     paddingRight: pagePadding,
   },
-  welcome: {
+  emptyScroll: {
+    flexGrow: 1,
+  },
+  empty: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: pagePadding,
+  },
+  emptyText: {
+    marginTop: spacing.md,
+  },
+  hidden: {
+    display: 'none',
   },
 })

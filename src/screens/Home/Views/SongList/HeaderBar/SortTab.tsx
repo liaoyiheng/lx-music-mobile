@@ -4,7 +4,7 @@ import songlistState, { type SortInfo, type Source } from '@/store/songlist/stat
 import { useI18n } from '@/lang'
 import Text from '@/components/common/Text'
 import { createStyle } from '@/utils/tools'
-import { useApple, fontSize, fontWeight, pagePadding, radius, spacing } from '@/theme/apple'
+import { useApple, fontSize, fontWeight, radius, spacing } from '@/theme/apple'
 
 export interface SortTabProps {
   onSortChange: (id: string) => void
@@ -57,9 +57,9 @@ export default forwardRef<SortTabType, SortTabProps>(({ onSortChange }, ref) => 
               onPress={() => { if (!active) handleSortChange(s.id) }}
             >
               <Text
-                size={fontSize.subhead}
-                color={active ? apple.onAccent : apple.label}
-                style={{ fontWeight: active ? fontWeight.semibold : fontWeight.regular }}
+                size={fontSize.footnote}
+                color={active ? apple.onAccent : apple.secondaryLabel}
+                style={{ fontWeight: active ? fontWeight.semibold : fontWeight.medium }}
               >{s.label}</Text>
             </TouchableOpacity>
           )
@@ -71,13 +71,12 @@ export default forwardRef<SortTabType, SortTabProps>(({ onSortChange }, ref) => 
 
 const styles = createStyle({
   content: {
-    paddingHorizontal: pagePadding,
     alignItems: 'center',
   },
   chip: {
-    height: 30,
-    paddingHorizontal: 14,
-    marginRight: spacing.sm,
+    height: 28,
+    paddingHorizontal: 10,
+    marginRight: spacing.xs + 2,
     borderRadius: radius.pill,
     justifyContent: 'center',
   },

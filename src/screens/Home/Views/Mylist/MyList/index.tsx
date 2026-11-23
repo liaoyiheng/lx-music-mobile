@@ -9,7 +9,7 @@ import { handleRemove, handleSync } from './listAction'
 import ListMusicSort, { type ListMusicSortType } from './ListMusicSort'
 import DuplicateMusic, { type DuplicateMusicType } from './DuplicateMusic'
 import LargeTitle from '@/components/apple/LargeTitle'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { useI18n } from '@/lang'
 import listState from '@/store/list/state'
 import { useApple, size } from '@/theme/apple'
@@ -31,7 +31,7 @@ export default () => {
       onPress={() => listNameEditRef.current?.showCreate(listState.userList.length)}
     >
       <View style={{ ...styles.btnCircle, backgroundColor: apple.fill }}>
-        <Icon name="add_folder" size={16} color={apple.accent} />
+        <IonIcon name="add" rawSize={22} color={apple.accent} />
       </View>
     </TouchableOpacity>
   )

@@ -1,8 +1,8 @@
 import { memo, useEffect, useRef } from 'react'
 import { View, TouchableOpacity, FlatList, type NativeScrollEvent, type NativeSyntheticEvent, type FlatListProps } from 'react-native'
 
-import { Icon } from '@/components/common/Icon'
-import { useActiveListId, useListFetching, useMyList } from '@/store/list/hook'
+import { IonIcon } from '@/components/common/Icon'
+import { useListFetching, useMyList } from '@/store/list/hook'
 import { createStyle } from '@/utils/tools'
 import { LIST_IDS, LIST_SCROLL_POSITION_KEY } from '@/config/constant'
 import { getListPosition, saveListPosition } from '@/utils/data'
@@ -19,24 +19,21 @@ const ARTWORK_SIZE = 48
 
 const getListIcon = (id: string) => {
   switch (id) {
-    case LIST_IDS.LOVE: return 'love'
-    case LIST_IDS.DEFAULT: return 'music_time'
-    default: return 'album'
+    case LIST_IDS.LOVE: return 'heart'
+    case LIST_IDS.DEFAULT: return 'musical-notes'
+    default: return 'albums'
   }
 }
 
-const ListItem = memo(({ item, index, activeId, onPress, onShowMenu }: {
+const ListItem = memo(({ item, index, onPress, onShowMenu }: {
   onPress: (item: LX.List.MyListInfo) => void
   index: number
-  activeId: string
   item: LX.List.MyListInfo
   onShowMenu: (item: LX.List.MyListInfo, index: number, position: { x: number, y: number, w: number, h: number }) => void
 }) => {
   const apple = useApple()
   const moreButtonRef = useRef<TouchableOpacity>(null)
   const fetching = useListFetching(item.id)
-
-  const active = activeId == item.id
 
   const handleShowMenu = () => {
     if (moreButtonRef.current?.measure) {
@@ -54,13 +51,13 @@ const ListItem = memo(({ item, index, activeId, onPress, onShowMenu }: {
     <View style={{ ...styles.listItem, height: ITEM_HEIGHT }}>
       <TouchableOpacity style={styles.main} activeOpacity={0.6} onPress={handlePress}>
         <View style={{ ...styles.artwork, backgroundColor: apple.fill }}>
-          <Icon name={getListIcon(item.id)} size={20} color={apple.accent} />
+          <IonIcon name={getListIcon(item.id)} rawSize={22} color={apple.accent} />
         </View>
-        <Text style={styles.name} size={fontSize.callout} numberOfLines={1} color={active ? apple.accent : apple.label}>{item.name}</Text>
+        <Text style={styles.name} size={fontSize.callout} numberOfLines={1} color={apple.label}>{item.name}</Text>
         {fetching ? <Loading color={apple.secondaryLabel} style={styles.loading} /> : null}
       </TouchableOpacity>
-      <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreBtn}>
-        <Icon name="dots-vertical" color={apple.secondaryLabel} size={14} />
+      <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreBtn} activeOpacity={0.6}>
+        <IonIcon name="ellipsis-horizontal" color={apple.secondaryLabel} rawSize={18} />
       </TouchableOpacity>
       <View pointerEvents="none" style={{ ...styles.separator, backgroundColor: apple.separator }} />
     </View>
@@ -68,9 +65,7 @@ const ListItem = memo(({ item, index, activeId, onPress, onShowMenu }: {
 }, (prevProps, nextProps) => {
   return !!(prevProps.item === nextProps.item &&
     prevProps.index === nextProps.index &&
-    prevProps.item.name == nextProps.item.name &&
-    prevProps.activeId != nextProps.item.id &&
-    nextProps.activeId != nextProps.item.id
+    prevProps.item.name == nextProps.item.name
   )
 })
 
@@ -79,7 +74,6 @@ export default ({ onShowMenu }: {
 }) => {
   const flatListRef = useRef<FlatList>(null)
   const allList = useMyList()
-  const activeListId = useActiveListId()
 
   const handleToggleList = (item: LX.List.MyListInfo) => {
     // 切到歌曲页
@@ -108,7 +102,6 @@ export default ({ onShowMenu }: {
       key={item.id}
       item={item}
       index={index}
-      activeId={activeListId}
       onPress={handleToggleList}
       onShowMenu={showMenu}
     />

@@ -5,7 +5,6 @@ import { createStyle } from '@/utils/tools'
 import { type Position } from './ListMenu'
 import ListItem, { type ListItemProps } from './ListItem'
 import { type BoardItem } from '@/store/leaderboard/state'
-import { pagePadding } from '@/theme/apple'
 
 export interface ListProps {
   onBoundChange: (listId: string) => void
@@ -49,8 +48,10 @@ export default forwardRef<ListType, ListProps>(({ onBoundChange, onShowMenu }, r
   const handleActiveLayout = (e: LayoutChangeEvent) => {
     if (!needScrollRef.current) return
     needScrollRef.current = false
-    const x = Math.max(e.nativeEvent.layout.x - pagePadding * 2, 0)
-    scrollViewRef.current?.scrollTo({ x, animated: false })
+    const x = Math.max(e.nativeEvent.layout.x - 16, 0)
+    if (x > 0) {
+      scrollViewRef.current?.scrollTo({ x, animated: false })
+    }
   }
 
   return (
@@ -81,8 +82,8 @@ export default forwardRef<ListType, ListProps>(({ onBoundChange, onShowMenu }, r
 
 const styles = createStyle({
   content: {
-    paddingLeft: pagePadding,
-    paddingRight: pagePadding - 8,
+    paddingLeft: 16,
+    paddingRight: 8,
     alignItems: 'center',
   },
 })

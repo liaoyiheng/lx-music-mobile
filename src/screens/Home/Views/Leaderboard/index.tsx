@@ -9,11 +9,11 @@ import { getLeaderboardSetting, saveLeaderboardSetting } from '@/utils/data'
 import { getBoardsList } from '@/core/leaderboard'
 import { handleCollect, handlePlay } from './listAction'
 import boardState from '@/store/leaderboard/state'
-import { useApple, hairline, spacing } from '@/theme/apple'
+import { useApple, hairline, pagePadding, spacing } from '@/theme/apple'
 
 /**
  * 排行榜
- * 顶部：榜单胶囊（横向滚动，长按可播放 / 收藏）+ 右侧来源选择
+ * 顶部：榜单胶囊（横向滚动，长按可播放 / 收藏）+ 右侧固定来源胶囊
  * 下方：当前榜单歌曲
  */
 export default () => {
@@ -80,7 +80,9 @@ export default () => {
             onCollect={onCollect}
           />
         </View>
-        <SourceSelector ref={sourceSelectorRef} onSourceChange={onSourceChange} />
+        <View style={styles.sourceWrap}>
+          <SourceSelector ref={sourceSelectorRef} onSourceChange={onSourceChange} />
+        </View>
       </View>
       <MusicList ref={musicListRef} />
     </View>
@@ -95,15 +97,20 @@ const styles = createStyle({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 46,
-    paddingBottom: spacing.xs,
-    paddingRight: spacing.sm,
+    height: 44,
+    paddingRight: pagePadding,
     borderBottomWidth: hairline,
     zIndex: 2,
   },
   boards: {
     flex: 1,
+    minWidth: 0,
     height: '100%',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  sourceWrap: {
+    flexShrink: 0,
+    marginLeft: spacing.sm,
   },
 })
