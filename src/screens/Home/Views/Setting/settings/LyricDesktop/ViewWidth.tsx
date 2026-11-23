@@ -5,7 +5,7 @@ import SubTitle from '../../components/SubTitle'
 import Slider, { type SliderProps } from '../../components/Slider'
 import { useI18n } from '@/lang'
 import { useSettingValue } from '@/store/setting/hook'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { setDesktopLyricWidth } from '@/core/desktopLyric'
@@ -15,7 +15,7 @@ import { updateSetting } from '@/core/common'
 export default memo(() => {
   const t = useI18n()
   const width = useSettingValue('desktopLyric.width')
-  const theme = useTheme()
+  const apple = useApple()
   const [sliderSize, setSliderSize] = useState(width)
   const [isSliding, setSliding] = useState(false)
   const handleSlidingStart = useCallback<NonNullable<SliderProps['onSlidingStart']>>(() => {
@@ -36,7 +36,7 @@ export default memo(() => {
   return (
     <SubTitle title={t('setting_lyric_desktop_view_width')}>
       <View style={styles.content}>
-        <Text style={{ color: theme['c-primary-font'] }}>{isSliding ? sliderSize : width}</Text>
+        <Text color={apple.accent}>{isSliding ? sliderSize : width}</Text>
         <Slider
           minimumValue={10}
           maximumValue={100}

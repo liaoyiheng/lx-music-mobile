@@ -1,12 +1,12 @@
 import { memo, useMemo } from 'react'
-
 import { StyleSheet, View } from 'react-native'
 
 import SubTitle from '../../components/SubTitle'
-import CheckBox from '@/components/common/CheckBox'
+import { RadioRow } from '@/components/apple/RadioRow'
 import { useSettingValue } from '@/store/setting/hook'
 import { useI18n } from '@/lang'
 import { updateSetting } from '@/core/common'
+import { spacing } from '@/theme/apple'
 
 const setAddMusicLocationType = (type: LX.AddMusicLocationType) => {
   updateSetting({ 'list.addMusicLocationType': type })
@@ -18,24 +18,30 @@ const useActive = (id: LX.AddMusicLocationType) => {
   return isActive
 }
 
-const Item = ({ id, name }: {
+const Item = ({ id, name, showSeparator }: {
   id: LX.AddMusicLocationType
   name: string
+  showSeparator: boolean
 }) => {
   const isActive = useActive(id)
-  // const [toggleCheckBox, setToggleCheckBox] = useState(false)
-  return <CheckBox marginRight={8} check={isActive} label={name} onChange={() => { setAddMusicLocationType(id) }} need />
+  return (
+    <RadioRow
+      label={name}
+      selected={isActive}
+      onPress={() => { setAddMusicLocationType(id) }}
+      showSeparator={showSeparator}
+    />
+  )
 }
-
 
 export default memo(() => {
   const t = useI18n()
 
   return (
-    <SubTitle title={t('setting_list_add_music_location_type')}>
+    <SubTitle title={t('setting_list_add_music_location_type')} showSeparator={false}>
       <View style={styles.list}>
-        <Item id="top" name={t('setting_list_add_music_location_type_top')} />
-        <Item id="bottom" name={t('setting_list_add_music_location_type_bottom')} />
+        <Item id="top" name={t('setting_list_add_music_location_type_top')} showSeparator={true} />
+        <Item id="bottom" name={t('setting_list_add_music_location_type_bottom')} showSeparator={false} />
       </View>
     </SubTitle>
   )
@@ -43,7 +49,7 @@ export default memo(() => {
 
 const styles = StyleSheet.create({
   list: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginHorizontal: -spacing.lg,
+    marginBottom: -spacing.md,
   },
 })

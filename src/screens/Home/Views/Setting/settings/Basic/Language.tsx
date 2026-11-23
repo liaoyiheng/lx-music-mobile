@@ -1,13 +1,13 @@
 import { memo, useMemo } from 'react'
-
 import { StyleSheet, View } from 'react-native'
 
 import SubTitle from '../../components/SubTitle'
-import CheckBox from '@/components/common/CheckBox'
+import { RadioRow } from '@/components/apple/RadioRow'
 import type { I18n } from '@/lang'
 import { useI18n, langList } from '@/lang'
 import { setLanguage } from '@/core/common'
 import { useSettingValue } from '@/store/setting/hook'
+import { spacing } from '@/theme/apple'
 
 const useActive = (id: I18n['locale']) => {
   const activeLangId = useSettingValue('common.langId')
@@ -15,13 +15,20 @@ const useActive = (id: I18n['locale']) => {
   return isActive
 }
 
-const Item = ({ id, name }: {
+const Item = ({ id, name, showSeparator }: {
   id: I18n['locale']
   name: string
+  showSeparator: boolean
 }) => {
   const isActive = useActive(id)
-  // const [toggleCheckBox, setToggleCheckBox] = useState(false)
-  return <CheckBox marginRight={8} check={isActive} label={name} onChange={() => { setLanguage(id) }} need />
+  return (
+    <RadioRow
+      label={name}
+      selected={isActive}
+      onPress={() => { setLanguage(id) }}
+      showSeparator={showSeparator}
+    />
+  )
 }
 
 export default memo(() => {
@@ -31,7 +38,14 @@ export default memo(() => {
     <SubTitle title={t('setting_basic_lang')}>
       <View style={styles.list}>
         {
-          langList.map(({ locale, name }) => <Item name={name} id={locale} key={locale} />)
+          langList.map(({ locale, name }, index) => (
+            <Item
+              name={name}
+              id={locale}
+              key={locale}
+              showSeparator={index < langList.length - 1}
+            />
+          ))
         }
       </View>
     </SubTitle>
@@ -40,7 +54,7 @@ export default memo(() => {
 
 const styles = StyleSheet.create({
   list: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginHorizontal: -spacing.lg,
+    marginBottom: -spacing.md,
   },
 })

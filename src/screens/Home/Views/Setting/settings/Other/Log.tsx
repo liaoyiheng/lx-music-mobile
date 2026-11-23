@@ -61,10 +61,10 @@ export default memo(() => {
 
   return (
     <>
-      <SubTitle title={t('setting_other_log')}>
+      <SubTitle title={t('setting_other_log')} showSeparator={false}>
         <View style={styles.checkBox}>
           <CheckBoxItem check={isEnableSyncErrorLog} label={t('setting_other_log_sync_log')} onChange={handleSetEnableSyncErrorLog} />
-          <CheckBoxItem check={isEnableUserApiLog} label={t('setting_other_log_user_api_log')} onChange={handleSetEnableUserApiLog} />
+          <CheckBoxItem check={isEnableUserApiLog} label={t('setting_other_log_user_api_log')} onChange={handleSetEnableUserApiLog} showSeparator={false} />
         </View>
         <View style={styles.btn}>
           <Button onPress={openLogModal}>{t('setting_other_log_btn_show')}</Button>

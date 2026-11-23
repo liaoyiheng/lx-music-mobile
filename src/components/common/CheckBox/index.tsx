@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { View, TouchableOpacity } from 'react-native'
-import CheckBox from './Checkbox'
+import { View, TouchableOpacity, Pressable } from 'react-native'
 
 import { createStyle, tipDialog } from '@/utils/tools'
 import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
-import { useTheme } from '@/store/theme/hook'
 import { useApple } from '@/theme/apple'
 import Text from '../Text'
-import { Icon } from '../Icon'
+import { IonIcon } from '../Icon'
 
 export interface CheckBoxProps {
   check: boolean
@@ -24,18 +22,55 @@ export interface CheckBoxProps {
   helpDesc?: string
 }
 
+const CircleBox = ({
+  checked,
+  disabled,
+  size = 1,
+  onPress,
+}: {
+  checked: boolean
+  disabled?: boolean
+  size?: number
+  onPress?: () => void
+}) => {
+  const apple = useApple()
+  const diameter = scaleSizeW(22 * size)
+  const iconSize = Math.max(12, Math.round(diameter * 0.64))
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="checkbox"
+      accessibilityState={{ disabled, checked }}
+      style={({ pressed }) => ({
+        ...styles.boxWrap,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: diameter,
+          height: diameter,
+          borderRadius: diameter / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: checked
+            ? (disabled ? apple.accentFill : apple.accent)
+            : 'transparent',
+          borderWidth: checked ? 0 : 1.5,
+          borderColor: disabled ? apple.quaternaryLabel : apple.separator,
+        }}
+      >
+        {checked ? <IonIcon name="checkmark" rawSize={iconSize} color="#FFFFFF" /> : null}
+      </View>
+    </Pressable>
+  )
+}
+
 export default ({ check, label, children, onChange, helpTitle, helpDesc, disabled = false, need = false, marginRight = 0, marginBottom = 0, size = 1 }: CheckBoxProps) => {
-  const theme = useTheme()
   const apple = useApple()
   const [isDisabled, setDisabled] = useState(false)
-  const tintColors = {
-    true: apple.accent,
-    false: apple.tertiaryLabel,
-  }
-  const disabledTintColors = {
-    true: apple.accentFill,
-    false: apple.quaternaryLabel,
-  }
 
   useEffect(() => {
     if (need) {
@@ -64,11 +99,10 @@ export default ({ check, label, children, onChange, helpTitle, helpDesc, disable
     }
     return (helpTitle ?? helpDesc) ? (
       <TouchableOpacity style={styles.helpBtn} onPress={handleShowHelp}>
-        <Icon size={15 * size} name="help" />
+        <IonIcon rawSize={Math.round(scaleSizeW(16 * size))} name="help-circle-outline" color={apple.secondaryLabel} />
       </TouchableOpacity>
     ) : null
-  }, [helpTitle, helpDesc, size])
-
+  }, [helpTitle, helpDesc, size, apple.secondaryLabel])
 
   const contentStyle = { ...styles.content, marginBottom: scaleSizeH(marginBottom) }
   const labelStyle = { ...styles.label, marginRight: scaleSizeW(marginRight) }
@@ -77,16 +111,18 @@ export default ({ check, label, children, onChange, helpTitle, helpDesc, disable
     disabled
       ? (
           <View style={contentStyle}>
-            <CheckBox status={check ? 'checked' : 'unchecked'} disabled={true} tintColors={disabledTintColors} size={size} />
-            <View style={labelStyle}>{label ? <Text style={styles.name} color={theme['c-500']} size={15 * size}>{label}</Text> : children}</View>
+            <CircleBox checked={check} disabled={true} size={size} />
+            <View style={labelStyle}>
+              {label ? <Text style={styles.name} color={apple.secondaryLabel} size={15 * size}>{label}</Text> : children}
+            </View>
             {helpComponent}
           </View>
         )
       : (
           <View style={contentStyle}>
-            <CheckBox status={check ? 'checked' : 'unchecked'} disabled={isDisabled} onPress={handleLabelPress} tintColors={tintColors} size={size} />
-            <TouchableOpacity style={labelStyle} activeOpacity={0.3} onPress={handleLabelPress}>
-              {label ? <Text style={styles.name} size={15 * size}>{label}</Text> : children}
+            <CircleBox checked={check} disabled={isDisabled} onPress={handleLabelPress} size={size} />
+            <TouchableOpacity style={labelStyle} activeOpacity={0.5} onPress={handleLabelPress}>
+              {label ? <Text style={styles.name} color={apple.label} size={15 * size}>{label}</Text> : children}
             </TouchableOpacity>
             {helpComponent}
           </View>
@@ -101,27 +137,24 @@ const styles = createStyle({
     marginRight: 15,
     alignItems: 'center',
     flexDirection: 'row',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
   },
-  checkbox: {
-    flex: 0,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
+  boxWrap: {
+    padding: 4,
+    marginLeft: -4,
+    marginRight: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
     flexGrow: 0,
     flexShrink: 1,
-    // marginRight: 15,
-    // alignItems: 'center',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
     paddingRight: 3,
   },
   name: {
-    marginTop: 2,
+    marginTop: 1,
   },
   helpBtn: {
-    // backgroundColor: 'rgba(0, 0, 0, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
 })
-

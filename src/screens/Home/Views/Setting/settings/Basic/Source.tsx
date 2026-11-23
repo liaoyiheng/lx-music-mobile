@@ -1,9 +1,8 @@
 import { memo, useCallback, useMemo, useRef } from 'react'
-
 import { View } from 'react-native'
 
 import SubTitle from '../../components/SubTitle'
-import CheckBox from '@/components/common/CheckBox'
+import { RadioRow } from '@/components/apple/RadioRow'
 import { createStyle } from '@/utils/tools'
 import { setApiSource } from '@/core/apiSource'
 import { useI18n } from '@/lang'
@@ -12,9 +11,7 @@ import { useSettingValue } from '@/store/setting/hook'
 import { useStatus, useUserApiList } from '@/store/userApi'
 import Button from '../../components/Button'
 import UserApiEditModal, { type UserApiEditModalType } from './UserApiEditModal'
-import Text from '@/components/common/Text'
-import { useTheme } from '@/store/theme/hook'
-// import { importUserApi, removeUserApi } from '@/core/userApi'
+import { spacing } from '@/theme/apple'
 
 const apiSourceList = apiSourceInfo.map(api => ({
   id: api.id,
@@ -28,28 +25,25 @@ const useActive = (id: string) => {
   return isActive
 }
 
-const Item = ({ id, name, desc, statusLabel, change }: {
+const Item = ({ id, name, desc, statusLabel, change, showSeparator }: {
   id: string
   name: string
   desc?: string
   statusLabel?: string
   change: (id: string) => void
+  showSeparator: boolean
 }) => {
   const isActive = useActive(id)
-  const theme = useTheme()
-  // const [toggleCheckBox, setToggleCheckBox] = useState(false)
+  const description = [desc, statusLabel].filter(Boolean).join('  ') || undefined
+
   return (
-    <CheckBox marginBottom={5} check={isActive} onChange={() => { change(id) }} need>
-      <Text style={styles.sourceLabel}>
-        {name}
-        {
-          desc ? <Text style={styles.sourceDesc} color={theme['c-500']} size={13}>  {desc}</Text> : null
-        }
-        {
-          statusLabel ? <Text style={styles.sourceStatus} size={13}>  {statusLabel}</Text> : null
-        }
-      </Text>
-    </CheckBox>
+    <RadioRow
+      label={name}
+      description={description}
+      selected={isActive}
+      onPress={() => { change(id) }}
+      showSeparator={showSeparator}
+    />
   )
 }
 
@@ -83,9 +77,6 @@ export default memo(() => {
         label: `${api.name}${statusLabel}`,
         desc: [/^\d/.test(api.version) ? `v${api.version}` : api.version].filter(Boolean).join(', '),
         statusLabel,
-        // status: apiStatus.status,
-        // message: apiStatus.message,
-        // disabled: false,
       }
     })
   }, [userApiListRaw, apiStatus, apiSourceSetting, t])
@@ -95,14 +86,34 @@ export default memo(() => {
     modalRef.current?.show()
   }
 
+  const totalCount = list.length + userApiList.length
+
   return (
     <SubTitle title={t('setting_basic_source')}>
       <View style={styles.list}>
         {
-          list.map(({ id, name }) => <Item name={name} id={id} key={id} change={setApiSourceId} />)
+          list.map(({ id, name }, index) => (
+            <Item
+              name={name}
+              id={id}
+              key={id}
+              change={setApiSourceId}
+              showSeparator={index < totalCount - 1}
+            />
+          ))
         }
         {
-          userApiList.map(({ id, name, desc, statusLabel }) => <Item name={name} desc={desc} statusLabel={statusLabel} id={id} key={id} change={setApiSourceId} />)
+          userApiList.map(({ id, name, desc, statusLabel }, index) => (
+            <Item
+              name={name}
+              desc={desc}
+              statusLabel={statusLabel}
+              id={id}
+              key={id}
+              change={setApiSourceId}
+              showSeparator={list.length + index < totalCount - 1}
+            />
+          ))
         }
       </View>
       <View style={styles.btn}>
@@ -115,22 +126,10 @@ export default memo(() => {
 
 const styles = createStyle({
   list: {
-    flexGrow: 0,
-    flexShrink: 1,
-    // flexDirection: 'row',
-    // flexWrap: 'wrap',
+    marginHorizontal: -spacing.lg,
   },
   btn: {
-    marginTop: 10,
+    marginTop: spacing.sm,
     flexDirection: 'row',
-  },
-  sourceLabel: {
-
-  },
-  sourceDesc: {
-
-  },
-  sourceStatus: {
-
   },
 })

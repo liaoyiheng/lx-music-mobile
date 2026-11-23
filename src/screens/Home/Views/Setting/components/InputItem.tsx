@@ -1,24 +1,24 @@
 import { memo, useState, useEffect, useRef } from 'react'
-
 import { StyleSheet, View, Keyboard } from 'react-native'
 import type { InputType, InputProps } from '@/components/common/Input'
 import Input from '@/components/common/Input'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, fontSize, hairline, radius, spacing } from '@/theme/apple'
 import Text from '@/components/common/Text'
-
 
 export interface InputItemProps extends InputProps {
   value: string
   label: string
   onChanged: (text: string, callback: (vlaue: string) => void) => void
+  showSeparator?: boolean
 }
 
-export default memo(({ value, label, onChanged, ...props }: InputItemProps) => {
+export default memo(({ value, label, onChanged, showSeparator = true, ...props }: InputItemProps) => {
   const [text, setText] = useState(value)
   const textRef = useRef(value)
   const isMountRef = useRef(false)
   const inputRef = useRef<InputType>(null)
-  const theme = useTheme()
+  const apple = useApple()
+
   const saveValue = () => {
     onChanged?.(text, (value: string) => {
       if (!isMountRef.current) return
@@ -61,36 +61,50 @@ export default memo(({ value, label, onChanged, ...props }: InputItemProps) => {
     setText(text)
     textRef.current = text
   }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.label} size={14}>{label}</Text>
-      <Input
-        value={text}
-        ref={inputRef}
-        onChangeText={handleSetSelectMode}
-        style={{ ...styles.input, backgroundColor: theme['c-primary-input-background'] }}
-        {...props}
-        onBlur={saveValue}
-       />
+    <View>
+      <View style={styles.container}>
+        <Text style={styles.label} size={fontSize.subhead} color={apple.secondaryLabel}>{label}</Text>
+        <Input
+          value={text}
+          ref={inputRef}
+          onChangeText={handleSetSelectMode}
+          placeholderTextColor={apple.tertiaryLabel}
+          selectionColor={apple.accent}
+          style={{
+            ...styles.input,
+            backgroundColor: apple.fill,
+            color: apple.label,
+          }}
+          {...props}
+          onBlur={saveValue}
+        />
+      </View>
+      {showSeparator ? <View style={{ ...styles.sep, backgroundColor: apple.separator }} /> : null}
     </View>
   )
 })
 
 const styles = StyleSheet.create({
   container: {
-    paddingLeft: 25,
-    marginBottom: 15,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   label: {
-    marginBottom: 2,
+    marginBottom: spacing.sm,
   },
   input: {
-    backgroundColor: 'rgba(0,0,0,0.2)',
     flexGrow: 1,
     flexShrink: 1,
-    borderRadius: 4,
-    // paddingTop: 3,
-    // paddingBottom: 3,
-    maxWidth: 300,
+    borderRadius: radius.medium,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    fontSize: fontSize.callout,
+    maxWidth: 360,
+  },
+  sep: {
+    height: hairline,
+    marginLeft: spacing.lg,
   },
 })

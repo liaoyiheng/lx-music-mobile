@@ -1,7 +1,7 @@
 import { View } from 'react-native'
 
 import { createStyle } from '@/utils/tools'
-import { useApple, radius } from '@/theme/apple'
+import { useApple, fontSize, radius, spacing } from '@/theme/apple'
 import Text from '@/components/common/Text'
 
 interface Props {
@@ -17,7 +17,7 @@ export default ({ title, children }: Props) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title} size={13} color={apple.secondaryLabel}>{title}</Text>
+      <Text style={styles.title} size={fontSize.footnote} color={apple.secondaryLabel}>{title}</Text>
       <View style={{ ...styles.card, backgroundColor: apple.secondaryBackground }}>
         {children}
       </View>
@@ -27,19 +27,16 @@ export default ({ title, children }: Props) => {
 
 const styles = createStyle({
   container: {
-    marginBottom: 22,
+    marginBottom: spacing.xl,
   },
   title: {
-    paddingLeft: 16,
+    paddingLeft: spacing.lg,
     marginBottom: 7,
     textTransform: 'uppercase',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
   card: {
     borderRadius: radius.large,
-    paddingTop: 14,
-    paddingBottom: 2,
-    paddingRight: 12,
     overflow: 'hidden',
   },
 })
