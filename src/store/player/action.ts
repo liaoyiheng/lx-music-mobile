@@ -89,8 +89,8 @@ export default {
       }
       return true
     })
-    if (topList.length) arrUnshift(state.tempPlayList, topList.map(({ musicInfo, listId }) => ({ musicInfo, listId, isTempPlay: true })))
-    if (bottomList.length) arrPush(state.tempPlayList, bottomList.map(({ musicInfo, listId }) => ({ musicInfo, listId, isTempPlay: true })))
+    if (topList.length) arrUnshift(state.tempPlayList, topList.map(({ musicInfo, listId }) => ({ musicInfo, listId, isTempPlay: true }) as LX.Player.PlayMusicInfo))
+    if (bottomList.length) arrPush(state.tempPlayList, bottomList.map(({ musicInfo, listId }) => ({ musicInfo, listId, isTempPlay: true }) as LX.Player.PlayMusicInfo))
 
     global.state_event.playTempPlayListChanged({ ...state.tempPlayList })
   },

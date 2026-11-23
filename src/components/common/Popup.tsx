@@ -45,7 +45,6 @@ const styles = createStyle({
   },
   closeBtn: {
     position: 'absolute',
-    right: 0,
     // borderTopRightRadius: 8,
     flexGrow: 0,
     flexShrink: 0,
