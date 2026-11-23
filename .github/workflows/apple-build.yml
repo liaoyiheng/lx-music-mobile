@@ -1,28 +1,108 @@
 # Added for the Apple Music style fork (based on lyswhut/lx-music-mobile, Apache-2.0)
+# 仅手动触发：Actions → Build Apple Style APK → Run workflow
 name: Build Apple Style APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - apple-style
+    inputs:
+      version:
+        description: '版本号（如 1.9.2，留空则用 package.json 的 version）'
+        required: false
+        default: ''
+        type: string
+      release:
+        description: '打包成功后创建 GitHub Release 并上传 APK'
+        required: false
+        default: true
+        type: boolean
+      prerelease:
+        description: 'Release 标记为预发布'
+        required: false
+        default: false
+        type: boolean
+      run_lint:
+        description: '同时执行 ESLint 门禁（当前上游代码 lint 未通过，默认关闭）'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-build-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  android:
-    name: Android
+  check:
+    name: Type check
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Check out git repository
         uses: actions/checkout@v4
 
+      - name: Resolve version
+        id: version
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          VERSION="${INPUT_VERSION#v}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::版本号格式不正确：$VERSION（示例：1.9.2 或 1.9.2-apple.1）"
+            exit 1
+          fi
+          echo "版本号：$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check (gate)
+        run: npx tsc --noEmit -p .
+
+      - name: ESLint (gate)
+        if: inputs.run_lint
+        run: npm run lint
+
+  build:
+    name: Build APK
+    needs: check
+    runs-on: ubuntu-latest
+    outputs:
+      signing: ${{ steps.build.outputs.signing }}
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v4
+
+      # Node（.nvmrc）、Java 17、Gradle 缓存、npm 缓存、npm ci
       - name: Setup Env
         uses: ./.github/actions/setup
 
-      - name: Type check (report only)
-        continue-on-error: true
-        run: npx tsc --noEmit
+      - name: Apply version
+        shell: bash
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          if [ "$CURRENT" != "$VERSION" ]; then
+            echo "仅在本次构建中把 versionName 从 $CURRENT 改为 $VERSION（不提交）"
+            npm pkg set version="$VERSION"
+          fi
 
-      - name: Build APK
+      - name: Build release APK
+        id: build
         env:
           DISABLE_SVG: 1
           KS_B64: ${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}
@@ -33,35 +113,99 @@ jobs:
         run: |
           cd android
           if [ -n "$KS_B64" ]; then
+            if [ -z "$KS_ALIAS" ] || [ -z "$KS_PASS" ] || [ -z "$KS_KEY_PASS" ]; then
+              echo "::error::已配置 KEYSTORE_STORE_FILE_BASE64，但 KEYSTORE_KEY_ALIAS / KEYSTORE_PASSWORD / KEYSTORE_KEY_PASSWORD 不完整"
+              exit 1
+            fi
             echo "使用仓库 Secrets 中的自有签名"
+            echo "signing=release" >> "$GITHUB_OUTPUT"
             echo "$KS_B64" | base64 --decode > app/release.keystore
-            ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE=release.keystore \
+            trap 'rm -f app/release.keystore' EXIT
+            ./gradlew assembleRelease --no-daemon \
+              -PMYAPP_UPLOAD_STORE_FILE=release.keystore \
               -PMYAPP_UPLOAD_KEY_ALIAS="$KS_ALIAS" \
               -PMYAPP_UPLOAD_STORE_PASSWORD="$KS_PASS" \
               -PMYAPP_UPLOAD_KEY_PASSWORD="$KS_KEY_PASS"
-            rm -f app/release.keystore
           else
-            echo "未配置签名 Secrets，使用仓库自带的 debug.keystore 签名（仅供个人使用）"
-            ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE=debug.keystore \
+            echo "::warning::未配置签名 Secrets，使用仓库自带的 debug.keystore 签名（仅供个人使用）"
+            echo "signing=debug" >> "$GITHUB_OUTPUT"
+            ./gradlew assembleRelease --no-daemon \
+              -PMYAPP_UPLOAD_STORE_FILE=debug.keystore \
               -PMYAPP_UPLOAD_KEY_ALIAS=androiddebugkey \
               -PMYAPP_UPLOAD_STORE_PASSWORD=android \
               -PMYAPP_UPLOAD_KEY_PASSWORD=android
           fi
 
-      - name: Generate file MD5
+      - name: Rename APK and generate MD5
+        shell: bash
         run: |
+          mkdir -p dist
           cd android/app/build/outputs/apk/release
           ls -lh *.apk
-          md5sum *.apk
+          for f in *.apk; do
+            # lx-music-mobile-v1.9.2-arm64-v8a.apk -> lx-music-apple-v1.9.2-arm64-v8a.apk
+            cp "$f" "$GITHUB_WORKSPACE/dist/${f/lx-music-mobile-/lx-music-apple-}"
+          done
+          cd "$GITHUB_WORKSPACE/dist"
+          md5sum *.apk | tee md5.txt
 
-      - name: Upload arm64-v8a APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lx-music-apple-arm64-v8a
-          path: android/app/build/outputs/apk/release/*-arm64-v8a.apk
+          name: lx-music-apple-v${{ env.VERSION }}
+          path: |
+            dist/*.apk
+            dist/md5.txt
+          if-no-files-found: error
 
-      - name: Upload universal APK
-        uses: actions/upload-artifact@v4
+  release:
+    name: Release
+    needs: [check, build]
+    if: inputs.release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      SIGNING: ${{ needs.build.outputs.signing }}
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
         with:
-          name: lx-music-apple-universal
-          path: android/app/build/outputs/apk/release/*-universal.apk
+          name: lx-music-apple-v${{ env.VERSION }}
+          path: dist
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          {
+            echo "LX Music Apple 风格版 v${VERSION}（基于 [lyswhut/lx-music-mobile](https://github.com/lyswhut/lx-music-mobile) 修改，Apache-2.0）"
+            echo
+            echo "- 包名 \`cn.toside.music.mobile.apple\`，可与官方版同时安装"
+            echo "- 构建提交：${GITHUB_SHA}"
+            echo "- 一般手机下载 \`arm64-v8a\`，不确定就下载 \`universal\`"
+            echo
+            if [ "$SIGNING" = "debug" ]; then
+              echo "> ⚠️ 本版本使用公开的 debug 签名（仓库未配置签名 Secrets），仅供个人使用；之后改用自有签名需先卸载旧版再安装。"
+            else
+              echo "签名：仓库自有发布签名。"
+            fi
+            echo
+            echo "### File MD5"
+            echo '```'
+            cat dist/md5.txt
+            echo '```'
+          } > release-notes.md
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apple-v${{ env.VERSION }}
+          name: LX Music Apple v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ inputs.prerelease }}
+          fail_on_unmatched_files: true
+          files: dist/*.apk

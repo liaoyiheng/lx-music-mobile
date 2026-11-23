@@ -8,6 +8,7 @@ on:
 jobs:
   Android:
     name: Android
+    if: github.repository == 'lyswhut/lx-music-mobile'  # fork 中跳过上游 beta 打包
     runs-on: ubuntu-latest
     steps:
       - name: Check out git repository

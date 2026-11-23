@@ -8,6 +8,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    if: github.repository == 'lyswhut/lx-music-mobile'  # fork 中跳过
 
     steps:
       - name: Check out git repository
