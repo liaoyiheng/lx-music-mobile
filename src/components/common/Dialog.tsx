@@ -1,15 +1,15 @@
 import { useImperativeHandle, forwardRef, useMemo, useRef } from 'react'
-import { View, TouchableHighlight } from 'react-native'
+import { View, TouchableOpacity } from 'react-native'
 
 import Modal, { type ModalType } from './Modal'
 import { Icon } from '@/components/common/Icon'
 import { useKeyboard } from '@/utils/hooks'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius } from '@/theme/apple'
 import Text from './Text'
 import { scaleSizeH } from '@/utils/pixelRatio'
 
-const HEADER_HEIGHT = 20
+const HEADER_HEIGHT = 44
 const styles = createStyle({
   centeredView: {
     flex: 1,
@@ -17,11 +17,12 @@ const styles = createStyle({
     alignItems: 'center',
   },
   modalView: {
-    maxWidth: '90%',
-    minWidth: '60%',
+    maxWidth: '88%',
+    minWidth: '70%',
     maxHeight: '78%',
     // backgroundColor: 'white',
-    borderRadius: 4,
+    borderRadius: radius.alert,
+    overflow: 'hidden',
     // shadowColor: '#000',
     // shadowOffset: {
     //   width: 0,
@@ -29,25 +30,26 @@ const styles = createStyle({
     // },
     // shadowOpacity: 0.25,
     // shadowRadius: 4,
-    elevation: 3,
+    elevation: 0,
   },
   header: {
     flexGrow: 0,
     flexShrink: 0,
     flexDirection: 'row',
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
     height: HEADER_HEIGHT,
   },
   title: {
-    paddingLeft: 5,
-    paddingRight: 25,
-    lineHeight: HEADER_HEIGHT,
+    paddingLeft: 40,
+    paddingRight: 40,
+    textAlign: 'center',
+    fontWeight: '600',
+    flexShrink: 1,
   },
   closeBtn: {
     position: 'absolute',
     right: 0,
-    borderTopRightRadius: 4,
     flexGrow: 0,
     flexShrink: 0,
     height: HEADER_HEIGHT,
@@ -79,7 +81,7 @@ export default forwardRef<DialogType, DialogProps>(({
   children,
   height,
 }: DialogProps, ref) => {
-  const theme = useTheme()
+  const apple = useApple()
   const { keyboardShown, keyboardHeight } = useKeyboard()
   const modalRef = useRef<ModalType>(null)
 
@@ -91,18 +93,20 @@ export default forwardRef<DialogType, DialogProps>(({
 
   const closeBtnComponent = useMemo(() => {
     return closeBtn
-      ? <TouchableHighlight style={{ ...styles.closeBtn, width: scaleSizeH(HEADER_HEIGHT) }} underlayColor={theme['c-primary-dark-200-alpha-600']} onPress={() => modalRef.current?.setVisible(false)}>
-          <Icon name="close" color={theme['c-primary-dark-500-alpha-500']} size={10} />
-        </TouchableHighlight>
+      ? <TouchableOpacity style={{ ...styles.closeBtn, width: scaleSizeH(HEADER_HEIGHT) }} activeOpacity={0.5} onPress={() => modalRef.current?.setVisible(false)}>
+          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: apple.fill, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="close" color={apple.secondaryLabel} size={9} />
+          </View>
+        </TouchableOpacity>
       : null
-  }, [closeBtn, theme])
+  }, [closeBtn, apple])
 
   return (
-    <Modal onHide={onHide} keyHide={keyHide} bgHide={bgHide} bgColor="rgba(50,50,50,.3)" ref={modalRef}>
+    <Modal onHide={onHide} keyHide={keyHide} bgHide={bgHide} bgColor={apple.mask} ref={modalRef}>
       <View style={{ ...styles.centeredView, paddingBottom: keyboardShown ? keyboardHeight : 0 }}>
-        <View style={{ ...styles.modalView, height, backgroundColor: theme['c-content-background'] }} onStartShouldSetResponder={() => true}>
-          <View style={{ ...styles.header, backgroundColor: theme['c-primary-light-100-alpha-100'] }}>
-            <Text style={styles.title} size={13} color={theme['c-primary-light-1000']} numberOfLines={1}>{title}</Text>
+        <View style={{ ...styles.modalView, height, backgroundColor: apple.alertBackground }} onStartShouldSetResponder={() => true}>
+          <View style={styles.header}>
+            <Text style={styles.title} size={17} color={apple.label} numberOfLines={1}>{title}</Text>
             {closeBtnComponent}
           </View>
           {children}

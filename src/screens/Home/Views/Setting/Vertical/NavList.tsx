@@ -1,12 +1,12 @@
 import { memo, useCallback, useState } from 'react'
 import { View, TouchableOpacity, ScrollView } from 'react-native'
 
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { SETTING_SCREENS, type SettingScreenIds } from '../Main'
 import { useI18n } from '@/lang'
-import { BorderRadius, BorderWidths } from '@/theme'
+import { BorderWidths } from '@/theme'
 
 
 const ListItem = memo(({ id, activeId, onPress }: {
@@ -14,7 +14,7 @@ const ListItem = memo(({ id, activeId, onPress }: {
   activeId: string
   id: SettingScreenIds
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
 
   const active = activeId == id
@@ -24,9 +24,9 @@ const ListItem = memo(({ id, activeId, onPress }: {
   }
 
   return (
-    <View style={{ ...styles.listItem, backgroundColor: active ? theme['c-primary-background-active'] : 'transparent' }}>
+    <View style={{ ...styles.listItem, backgroundColor: active ? apple.accent : apple.fill }}>
       <TouchableOpacity style={styles.listName} onPress={handlePress}>
-        <Text numberOfLines={1} color={active ? theme['c-primary-font'] : theme['c-font']}>{t(`setting_${id}`)}</Text>
+        <Text numberOfLines={1} color={active ? apple.onAccent : apple.label}>{t(`setting_${id}`)}</Text>
       </TouchableOpacity>
     </View>
   )
@@ -42,7 +42,7 @@ export default ({ onChangeId }: {
   onChangeId: (id: SettingScreenIds) => void
 }) => {
   const [activeId, setActiveId] = useState(global.lx.settingActiveId)
-  const theme = useTheme()
+  const apple = useApple()
 
   const handleChangeId = useCallback((id: SettingScreenIds) => {
     onChangeId(id)
@@ -52,7 +52,7 @@ export default ({ onChangeId }: {
   }, [])
 
   return (
-    <ScrollView horizontal style={{ ...styles.container, borderBottomColor: theme['c-border-background'] }} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps={'always'}>
+    <ScrollView horizontal style={{ ...styles.container, borderBottomColor: apple.separator }} contentContainerStyle={styles.contentContainer} keyboardShouldPersistTaps={'always'}>
       {
         SETTING_SCREENS.map(id => <ListItem key={id} id={id} activeId={activeId} onPress={handleChangeId} />)
       }
@@ -81,16 +81,17 @@ const styles = createStyle({
 
   listItem: {
     // width: '33.33%',
-    height: 40,
-    paddingLeft: 15,
-    paddingRight: 15,
+    height: 32,
+    paddingLeft: 14,
+    paddingRight: 14,
+    marginRight: 8,
     // height: 'auto',
     // flexDirection: 'row',
     // alignItems: 'center',
     paddingHorizontal: 5,
     // paddingVertical: 10,
-    borderRadius: BorderRadius.normal,
-    marginBottom: 5,
+    borderRadius: radius.pill,
+    marginBottom: 8,
     // backgroundColor: 'rgba(0,0,0,0.1)',
   },
   listName: {

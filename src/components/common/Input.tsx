@@ -2,7 +2,7 @@ import { useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
 import { TextInput, View, TouchableOpacity, StyleSheet, type TextInputProps } from 'react-native'
 import { Icon } from '@/components/common/Icon'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius } from '@/theme/apple'
 import { setSpText } from '@/utils/pixelRatio'
 
 const styles = createStyle({
@@ -18,11 +18,11 @@ const styles = createStyle({
   input: {
     // backgroundColor: 'rgba(0,0,0,0.1)',
     // backgroundColor: 'white',
-    borderRadius: 2,
+    borderRadius: radius.medium,
     paddingTop: 0,
     paddingBottom: 0,
-    height: 32,
-    paddingLeft: 5,
+    height: 36,
+    paddingLeft: 10,
     paddingRight: 0,
     flexGrow: 1,
     flexShrink: 1,
@@ -36,9 +36,10 @@ const styles = createStyle({
   },
   clearBtn: {
     height: '70%',
-    paddingLeft: 5,
-    paddingRight: 5,
+    paddingLeft: 6,
+    paddingRight: 8,
     justifyContent: 'center',
+    alignItems: 'center',
     // backgroundColor: 'rgba(0,0,0,0.2)',
   },
 })
@@ -60,7 +61,7 @@ export interface InputType {
 
 export default forwardRef<InputType, InputProps>(({ onChangeText, onClearText, clearBtn, style, size = 14, ...props }, ref) => {
   const inputRef = useRef<TextInput>(null)
-  const theme = useTheme()
+  const apple = useApple()
   // const scaleClearBtn = useRef(new Animated.Value(0)).current
 
   useImperativeHandle(ref, () => ({
@@ -115,16 +116,19 @@ export default forwardRef<InputType, InputProps>(({ onChangeText, onClearText, c
         autoCapitalize="none"
         onChangeText={changeText}
         autoComplete="off"
-        style={StyleSheet.compose({ ...styles.input, color: theme['c-font'], fontSize: setSpText(size) }, style)}
-        placeholderTextColor={theme['c-primary-dark-100-alpha-600']}
-        selectionColor={theme['c-primary-light-100-alpha-300']}
+        style={StyleSheet.compose({ ...styles.input, backgroundColor: apple.fill, color: apple.label, fontSize: setSpText(size) }, style)}
+        placeholderTextColor={apple.secondaryLabel}
+        selectionColor={apple.accent}
+        cursorColor={apple.accent}
         ref={inputRef} {...props} />
       {/* <View style={styles.clearBtnContent}>
       <Animated.View style={{ ...styles.clearBtnContent, transform: [{ scale: scaleClearBtn }] }}> */}
         {clearBtn
           ? <View style={styles.clearBtnContent}>
               <TouchableOpacity style={styles.clearBtn} onPress={clearText}>
-                <Icon name="remove" color={theme['c-primary-dark-100-alpha-500']} size={11} />
+                <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: apple.tertiaryLabel, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name="close" color={apple.isDark ? '#1C1C1E' : '#FFFFFF'} size={8} />
+                </View>
               </TouchableOpacity>
             </View>
           : null

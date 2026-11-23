@@ -12,6 +12,7 @@ import Other from '../settings/Other'
 import Version from '../settings/Version'
 import About from '../settings/About'
 import { createStyle } from '@/utils/tools'
+import { useApple } from '@/theme/apple'
 import { SETTING_SCREENS, type SettingScreenIds } from '../Main'
 
 type FlatListType = FlatListProps<SettingScreenIds>
@@ -19,10 +20,10 @@ type FlatListType = FlatListProps<SettingScreenIds>
 
 const styles = createStyle({
   content: {
-    paddingLeft: 15,
-    paddingRight: 15,
-    paddingTop: 15,
-    paddingBottom: 15,
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingTop: 12,
+    paddingBottom: 40,
     flex: 0,
   },
 })
@@ -45,6 +46,7 @@ const ListItem = memo(({
 }, () => true)
 
 export default () => {
+  const apple = useApple()
   const renderItem: FlatListType['renderItem'] = ({ item }) => <ListItem id={item} />
   const getkey: FlatListType['keyExtractor'] = item => item
 
@@ -54,6 +56,7 @@ export default () => {
       keyboardShouldPersistTaps={'always'}
       renderItem={renderItem}
       keyExtractor={getkey}
+      style={{ backgroundColor: apple.groupedBackground }}
       contentContainerStyle={styles.content}
       maxToRenderPerBatch={2}
       // updateCellsBatchingPeriod={80}

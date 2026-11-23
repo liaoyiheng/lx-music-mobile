@@ -1,29 +1,27 @@
-import { useTheme } from '@/store/theme/hook'
-import { useMemo, useRef, useImperativeHandle, forwardRef } from 'react'
-import { Pressable, type PressableProps, StyleSheet, type View, type ViewProps } from 'react-native'
-// import { AppColors } from '@/theme'
-
+import { useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
+import { Pressable, type PressableProps, StyleSheet, type View, type ViewProps, type PressableStateCallbackType, type StyleProp, type ViewStyle } from 'react-native'
 
 export interface BtnProps extends PressableProps {
+  /**
+   * Android 水波纹。Apple 风格默认不使用，只有显式传入时才启用
+   */
   ripple?: PressableProps['android_ripple']
+  /**
+   * 按下时的不透明度（iOS 风格），默认 0.5
+   */
+  activeOpacity?: number
   style?: ViewProps['style']
   onChangeText?: (value: string) => void
   onClearText?: () => void
   children: React.ReactNode
 }
 
-
 export interface BtnType {
   measure: (callback: (x: number, y: number, width: number, height: number, pageX: number, pageY: number) => void) => void
 }
 
-export default forwardRef<BtnType, BtnProps>(({ ripple: propsRipple = {}, disabled, children, style, ...props }, ref) => {
-  const theme = useTheme()
+export default forwardRef<BtnType, BtnProps>(({ ripple, activeOpacity = 0.5, disabled, children, style, ...props }, ref) => {
   const btnRef = useRef<View>(null)
-  const ripple = useMemo(() => ({
-    color: theme['c-primary-light-200-alpha-700'],
-    ...propsRipple,
-  }), [theme, propsRipple])
 
   useImperativeHandle(ref, () => ({
     measure(callback) {
@@ -31,11 +29,16 @@ export default forwardRef<BtnType, BtnProps>(({ ripple: propsRipple = {}, disabl
     },
   }))
 
+  const getStyle = useCallback(({ pressed }: PressableStateCallbackType): StyleProp<ViewStyle> => {
+    const opacity = disabled ? 0.35 : (pressed && !ripple) ? activeOpacity : 1
+    return StyleSheet.compose({ opacity }, style)
+  }, [disabled, ripple, activeOpacity, style])
+
   return (
     <Pressable
       android_ripple={ripple}
       disabled={disabled}
-      style={StyleSheet.compose({ opacity: disabled ? 0.3 : 1 }, style)}
+      style={getStyle}
       {...props}
       ref={btnRef}
     >
@@ -43,4 +46,3 @@ export default forwardRef<BtnType, BtnProps>(({ ripple: propsRipple = {}, disabl
     </Pressable>
   )
 })
-

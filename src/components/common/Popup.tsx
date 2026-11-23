@@ -5,7 +5,7 @@ import Modal, { type ModalType } from './Modal'
 import { Icon } from '@/components/common/Icon'
 import { useKeyboard } from '@/utils/hooks'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius } from '@/theme/apple'
 import Text from './Text'
 import { useStatusbarHeight } from '@/store/common/hook'
 
@@ -16,20 +16,30 @@ const styles = createStyle({
     // alignItems: 'center',
   },
   modalView: {
-    elevation: 6,
+    elevation: 0,
+    overflow: 'hidden',
     flexGrow: 0,
     flexShrink: 1,
   },
   header: {
     flex: 0,
     flexDirection: 'row',
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
+    justifyContent: 'center',
+  },
+  grabber: {
+    position: 'absolute',
+    top: 6,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   title: {
-    paddingLeft: 10,
-    paddingRight: 25,
-    paddingTop: 10,
+    flex: 1,
+    textAlign: 'center',
+    fontWeight: '600',
+    paddingLeft: 44,
+    paddingRight: 44,
+    paddingTop: 18,
     paddingBottom: 10,
     // lineHeight: 20,
   },
@@ -39,6 +49,8 @@ const styles = createStyle({
     // borderTopRightRadius: 8,
     flexGrow: 0,
     flexShrink: 0,
+    top: 10,
+    right: 10,
     height: 30,
     width: 30,
     justifyContent: 'center',
@@ -70,7 +82,7 @@ export default forwardRef<PopupType, PopupProps>(({
   title = '',
   children,
 }: PopupProps, ref) => {
-  const theme = useTheme()
+  const apple = useApple()
   const { keyboardShown, keyboardHeight } = useKeyboard()
   const statusBarHeight = useStatusbarHeight()
 
@@ -84,9 +96,11 @@ export default forwardRef<PopupType, PopupProps>(({
 
   const closeBtnComponent = useMemo(() => closeBtn
     ? <TouchableOpacity style={styles.closeBtn} onPress={() => modalRef.current?.setVisible(false)}>
-        <Icon name="close" style={{ color: theme['c-font-label'] }} size={12} />
+        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: apple.fill, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="close" color={apple.secondaryLabel} size={9} />
+        </View>
       </TouchableOpacity>
-    : null, [closeBtn, theme])
+    : null, [closeBtn, apple])
 
   const [centeredViewStyle, modalViewStyle] = useMemo(() => {
     switch (position) {
@@ -161,19 +175,22 @@ export default forwardRef<PopupType, PopupProps>(({
             maxHeight: '78%',
             minHeight: '20%',
             // backgroundColor: 'white',
-            borderTopLeftRadius: 8,
-            borderTopRightRadius: 8,
+            borderTopLeftRadius: radius.sheet,
+            borderTopRightRadius: radius.sheet,
           },
         ] as const
     }
   }, [position, statusBarHeight])
 
   return (
-    <Modal onHide={onHide} keyHide={keyHide} bgHide={bgHide} bgColor="rgba(50,50,50,.2)" ref={modalRef}>
+    <Modal onHide={onHide} keyHide={keyHide} bgHide={bgHide} bgColor={apple.mask} ref={modalRef}>
       <View style={{ ...styles.centeredView, ...centeredViewStyle, paddingBottom: keyboardShown ? keyboardHeight : 0 }}>
-        <View style={{ ...styles.modalView, ...modalViewStyle, backgroundColor: theme['c-content-background'] }} onStartShouldSetResponder={() => true}>
+        <View style={{ ...styles.modalView, ...modalViewStyle, backgroundColor: apple.sheetBackground }} onStartShouldSetResponder={() => true}>
           <View style={styles.header}>
-            <Text size={13} style={styles.title} numberOfLines={1}>{title}</Text>
+            {position == 'bottom'
+              ? <View style={styles.grabber} pointerEvents="none"><View style={{ width: 36, height: 5, borderRadius: 3, backgroundColor: apple.tertiaryLabel }} /></View>
+              : null}
+            <Text size={17} color={apple.label} style={styles.title} numberOfLines={1}>{title}</Text>
             {closeBtnComponent}
           </View>
           {children}

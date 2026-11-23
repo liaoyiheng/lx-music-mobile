@@ -1,38 +1,45 @@
 import { View } from 'react-native'
 
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius } from '@/theme/apple'
 import Text from '@/components/common/Text'
-
 
 interface Props {
   title: string
   children: React.ReactNode | React.ReactNode[]
 }
 
+/**
+ * iOS 分组列表样式：灰色小标题 + 圆角白色卡片
+ */
 export default ({ title, children }: Props) => {
-  const theme = useTheme()
+  const apple = useApple()
 
   return (
     <View style={styles.container}>
-      <Text style={{ ...styles.title, borderLeftColor: theme['c-primary'] }} size={16} >{title}</Text>
-      <View>
+      <Text style={styles.title} size={13} color={apple.secondaryLabel}>{title}</Text>
+      <View style={{ ...styles.card, backgroundColor: apple.secondaryBackground }}>
         {children}
       </View>
     </View>
   )
 }
 
-
 const styles = createStyle({
   container: {
-    // paddingLeft: 10,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
+    marginBottom: 22,
   },
   title: {
-    borderLeftWidth: 5,
-    paddingLeft: 12,
-    marginBottom: 10,
-    // lineHeight: 16,
+    paddingLeft: 16,
+    marginBottom: 7,
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
+  },
+  card: {
+    borderRadius: radius.large,
+    paddingTop: 14,
+    paddingBottom: 2,
+    paddingRight: 12,
+    overflow: 'hidden',
   },
 })

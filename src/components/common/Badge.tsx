@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 import { createStyle } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import Text from './Text'
 // const menuItemHeight = 42
 // const menuItemWidth = 100
@@ -13,7 +14,11 @@ const styles = createStyle({
     // lineHeight: 12,
     // marginTop: 2,
     marginRight: 5,
-    fontWeight: '400',
+    fontWeight: '600',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
     // marginRight: 5,
     // marginBottom: 2,
     // alignSelf: 'flex-start',
@@ -28,6 +33,7 @@ export default memo(({ type = 'normal', children }: {
   children: string
 }) => {
   const theme = useTheme()
+  const apple = useApple()
   // console.log(visible)
   const colors = useMemo(() => {
     const colors = { textColor: '' }
@@ -48,6 +54,6 @@ export default memo(({ type = 'normal', children }: {
     return colors
   }, [type, theme])
 
-  return <Text style={styles.text} size={9} color={colors.textColor}>{children}</Text>
+  return <Text style={{ ...styles.text, backgroundColor: apple.fill }} size={9} color={colors.textColor}>{children}</Text>
 })
 

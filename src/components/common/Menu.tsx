@@ -5,7 +5,7 @@ import { useWindowSize } from '@/utils/hooks'
 import Modal, { type ModalType } from './Modal'
 
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius, hairline } from '@/theme/apple'
 import Text from './Text'
 import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
 
@@ -29,14 +29,17 @@ const styles = createStyle({
   menu: {
     position: 'absolute',
     // borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'lightgray',
-    borderRadius: 2,
-    backgroundColor: 'white',
-    elevation: 3,
+    borderRadius: radius.large,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 6 },
   },
   menuItem: {
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingLeft: 16,
+    paddingRight: 16,
     // height: menuItemHeight,
     // width: menuItemWidth,
     // alignItems: 'center',
@@ -74,7 +77,7 @@ const Menu = ({
   fontSize = 15,
   center = false,
 }: Props) => {
-  const theme = useTheme()
+  const apple = useApple()
   const windowSize = useWindowSize()
   // const fadeAnim = useRef(new Animated.Value(0)).current
   // console.log(buttonPosition)
@@ -127,7 +130,7 @@ const Menu = ({
   // console.log(menuStyle)
   // console.log(menuItemStyle)
   return (
-    <View style={{ ...styles.menu, ...menuStyle, backgroundColor: theme['c-content-background'] }} onStartShouldSetResponder={() => true}>
+    <View style={{ ...styles.menu, ...menuStyle, backgroundColor: apple.isDark ? 'rgba(44, 44, 46, 0.98)' : 'rgba(250, 250, 252, 0.98)' }} onStartShouldSetResponder={() => true}>
       <Animated.ScrollView keyboardShouldPersistTaps={'always'}>
         {
           menus.map((menu, index) => (
@@ -135,7 +138,7 @@ const Menu = ({
               ? (
                   <View
                     key={menu.action}
-                    style={{ ...styles.menuItem, width: menuItemStyle.width, height: menuItemStyle.height, opacity: 0.4 }}
+                    style={{ ...styles.menuItem, width: menuItemStyle.width, height: menuItemStyle.height, opacity: 0.4, borderTopWidth: index ? hairline : 0, borderTopColor: apple.separator }}
                   >
                     <Text style={{ textAlign: center ? 'center' : 'left' }} size={fontSize} numberOfLines={1}>{menu.label}</Text>
                   </View>
@@ -144,16 +147,16 @@ const Menu = ({
                 ? (
                     <View
                       key={menu.action}
-                      style={{ ...styles.menuItem, width: menuItemStyle.width, height: menuItemStyle.height }}
+                      style={{ ...styles.menuItem, width: menuItemStyle.width, height: menuItemStyle.height, borderTopWidth: index ? hairline : 0, borderTopColor: apple.separator }}
                     >
-                      <Text style={{ textAlign: center ? 'center' : 'left' }} color={theme['c-primary-font-active']} size={fontSize} numberOfLines={1}>{menu.label}</Text>
+                      <Text style={{ textAlign: center ? 'center' : 'left' }} color={apple.accent} size={fontSize} numberOfLines={1}>{menu.label}</Text>
                     </View>
                   )
                 : (
                     <TouchableHighlight
                       key={menu.action}
-                      style={{ ...styles.menuItem, width: menuItemStyle.width, height: menuItemStyle.height }}
-                      underlayColor={theme['c-primary-background-active']}
+                      style={{ ...styles.menuItem, width: menuItemStyle.width, height: menuItemStyle.height, borderTopWidth: index ? hairline : 0, borderTopColor: apple.separator }}
+                      underlayColor={apple.highlight}
                       onPress={() => { menuPress(menu) }}
                     >
                       <Text style={{ textAlign: center ? 'center' : 'left' }} size={fontSize} numberOfLines={1}>{menu.label}</Text>

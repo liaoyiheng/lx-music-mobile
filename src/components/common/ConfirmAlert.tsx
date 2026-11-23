@@ -4,50 +4,44 @@ import Dialog, { type DialogType } from './Dialog'
 import Button from './Button'
 import { createStyle } from '@/utils/tools'
 import { useI18n } from '@/lang/index'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, hairline } from '@/theme/apple'
 import Text from './Text'
 
 const styles = createStyle({
   main: {
-    // flexGrow: 0,
     flexShrink: 1,
-    marginTop: 15,
-    marginLeft: 5,
-    marginRight: 5,
-    marginBottom: 25,
+    marginTop: 4,
+    marginLeft: 4,
+    marginRight: 4,
+    marginBottom: 18,
   },
   content: {
     flexGrow: 0,
-    paddingLeft: 10,
-    paddingRight: 10,
+    paddingLeft: 14,
+    paddingRight: 14,
   },
   btns: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    paddingBottom: 15,
-    // paddingRight: 15,
-  },
-  btnsDirection: {
-    paddingLeft: 15,
+    borderTopWidth: hairline,
   },
   btnsReversedDirection: {
-    paddingLeft: 15,
     flexDirection: 'row-reverse',
   },
   btn: {
     flex: 1,
-    paddingTop: 9,
-    paddingBottom: 9,
-    paddingLeft: 10,
-    paddingRight: 10,
+    height: 44,
     alignItems: 'center',
-    borderRadius: 4,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
   },
-  btnDirection: {
-    marginRight: 15,
+  divider: {
+    width: hairline,
   },
-  btnReversedDirection: {
-    marginLeft: 15,
+  cancelText: {
+    fontWeight: '400',
+  },
+  confirmText: {
+    fontWeight: '600',
   },
 })
 
@@ -88,7 +82,7 @@ export default forwardRef<ConfirmAlertType, ConfirmAlertProps>(({
   children,
   reverseBtn = false,
 }: ConfirmAlertProps, ref) => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
 
   const dialogRef = useRef<DialogType>(null)
@@ -108,17 +102,22 @@ export default forwardRef<ConfirmAlertType, ConfirmAlertProps>(({
     <Dialog onHide={onHide} keyHide={keyHide} bgHide={bgHide} closeBtn={closeBtn} title={title} ref={dialogRef}>
       <View style={styles.main}>
         <ScrollView style={styles.content} keyboardShouldPersistTaps={'always'}>
-          {children ?? <Text>{text}</Text>}
+          {children ?? <Text size={14} color={apple.label} style={{ textAlign: 'center' }}>{text}</Text>}
         </ScrollView>
       </View>
-      <View style={{ ...styles.btns, ...(reverseBtn ? styles.btnsReversedDirection : styles.btnsDirection) }}>
-        <Button style={{ ...styles.btn, ...(reverseBtn ? styles.btnReversedDirection : styles.btnDirection), backgroundColor: theme['c-button-background'] }} onPress={handleCancel}>
-          <Text color={theme['c-button-font']}>{cancelText || t('cancel')}</Text>
+      <View style={{ ...styles.btns, ...(reverseBtn ? styles.btnsReversedDirection : null), borderTopColor: apple.separator }}>
+        <Button style={styles.btn} activeOpacity={0.4} onPress={handleCancel}>
+          <Text size={17} color={apple.accent} style={styles.cancelText}>{cancelText || t('cancel')}</Text>
         </Button>
         {showConfirm
-          ? <Button style={{ ...styles.btn, ...(reverseBtn ? styles.btnReversedDirection : styles.btnDirection), backgroundColor: theme['c-button-background'] }} onPress={onConfirm} disabled={disabledConfirm}>
-              <Text color={theme['c-button-font']}>{confirmText || t('confirm')}</Text>
-            </Button>
+          ? (
+              <>
+                <View style={{ ...styles.divider, backgroundColor: apple.separator }} />
+                <Button style={styles.btn} activeOpacity={0.4} onPress={onConfirm} disabled={disabledConfirm}>
+                  <Text size={17} color={apple.accent} style={styles.confirmText}>{confirmText || t('confirm')}</Text>
+                </Button>
+              </>
+            )
           : null}
       </View>
     </Dialog>

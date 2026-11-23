@@ -2,7 +2,7 @@ import { memo } from 'react'
 
 import Slider, { type SliderProps as _SliderProps } from '@react-native-community/slider'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 
 export type SliderProps = Pick<_SliderProps,
 'value'
@@ -14,8 +14,11 @@ export type SliderProps = Pick<_SliderProps,
 | 'step'
 >
 
+/**
+ * Apple 风格滑块：已滑过部分是强调色，未滑过部分是浅灰填充色
+ */
 export default memo(({ value, minimumValue, maximumValue, onSlidingStart, onSlidingComplete, onValueChange, step }: SliderProps) => {
-  const theme = useTheme()
+  const apple = useApple()
 
   const handleValueChange = (value: number) => {
     // 修复当value小于等于minimumValue时，首次调用会传入0的问题
@@ -28,9 +31,9 @@ export default memo(({ value, minimumValue, maximumValue, onSlidingStart, onSlid
       style={styles.slider}
       minimumValue={minimumValue}
       maximumValue={maximumValue}
-      minimumTrackTintColor={theme['c-primary-alpha-500']}
-      maximumTrackTintColor={theme['c-primary-alpha-500']}
-      thumbTintColor={theme['c-primary']}
+      minimumTrackTintColor={apple.accent}
+      maximumTrackTintColor={apple.tertiaryFill}
+      thumbTintColor={apple.isDark ? apple.thumb : apple.accent}
       onSlidingStart={onSlidingStart}
       onSlidingComplete={onSlidingComplete}
       onValueChange={handleValueChange}
@@ -39,14 +42,10 @@ export default memo(({ value, minimumValue, maximumValue, onSlidingStart, onSlid
   )
 })
 
-
 const styles = createStyle({
   slider: {
     flexShrink: 0,
     flexGrow: 1,
-    // width: '100%',
-    // maxWidth: 300,
     height: 40,
-    // backgroundColor: '#eee',
   },
 })

@@ -5,6 +5,7 @@ import CheckBox from './Checkbox'
 import { createStyle, tipDialog } from '@/utils/tools'
 import { scaleSizeH, scaleSizeW } from '@/utils/pixelRatio'
 import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import Text from '../Text'
 import { Icon } from '../Icon'
 
@@ -25,14 +26,15 @@ export interface CheckBoxProps {
 
 export default ({ check, label, children, onChange, helpTitle, helpDesc, disabled = false, need = false, marginRight = 0, marginBottom = 0, size = 1 }: CheckBoxProps) => {
   const theme = useTheme()
+  const apple = useApple()
   const [isDisabled, setDisabled] = useState(false)
   const tintColors = {
-    true: theme['c-primary'],
-    false: theme['c-600'],
+    true: apple.accent,
+    false: apple.tertiaryLabel,
   }
   const disabledTintColors = {
-    true: theme['c-primary-alpha-600'],
-    false: theme['c-400'],
+    true: apple.accentFill,
+    false: apple.quaternaryLabel,
   }
 
   useEffect(() => {
