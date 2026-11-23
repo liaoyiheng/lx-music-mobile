@@ -1,6 +1,6 @@
 import { TouchableOpacity, View } from 'react-native'
 import { Icon } from '@/components/common/Icon'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 // import { useIsPlay } from '@/store/player/hook'
 import { playNext, playPrev, togglePlay } from '@/core/player/player'
 import { useIsPlay } from '@/store/player/hook'
@@ -10,39 +10,39 @@ import { BTN_WIDTH } from './MoreBtn/Btn'
 import { useMemo } from 'react'
 
 const PrevBtn = ({ size }: { size: number }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const handlePlayPrev = () => {
     void playPrev()
   }
   return (
     <TouchableOpacity style={{ ...styles.cotrolBtn, width: size, height: size }} activeOpacity={0.5} onPress={handlePlayPrev}>
-      <Icon name='prevMusic' color={theme['c-button-font']} rawSize={size * 0.7} />
+      <Icon name='prevMusic' color={apple.label} rawSize={size * 0.7} />
     </TouchableOpacity>
   )
 }
 const NextBtn = ({ size }: { size: number }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const handlePlayNext = () => {
     void playNext()
   }
   return (
     <TouchableOpacity style={{ ...styles.cotrolBtn, width: size, height: size }} activeOpacity={0.5} onPress={handlePlayNext}>
-      <Icon name='nextMusic' color={theme['c-button-font']} rawSize={size * 0.7} />
+      <Icon name='nextMusic' color={apple.label} rawSize={size * 0.7} />
     </TouchableOpacity>
   )
 }
 
 const TogglePlayBtn = ({ size }: { size: number }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const isPlay = useIsPlay()
   return (
     <TouchableOpacity style={{ ...styles.cotrolBtn, width: size, height: size }} activeOpacity={0.5} onPress={togglePlay}>
-      <Icon name={isPlay ? 'pause' : 'play'} color={theme['c-button-font']} rawSize={size * 0.7} />
+      <Icon name={isPlay ? 'pause' : 'play'} color={apple.label} rawSize={size * 0.7} />
     </TouchableOpacity>
   )
 }
 
-const MAX_SIZE = BTN_WIDTH * 1.6
+const MAX_SIZE = BTN_WIDTH * 1.9
 const MIN_SIZE = BTN_WIDTH * 1.2
 
 export default () => {

@@ -1,8 +1,5 @@
+// Modified for Apple Music style UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
 import { View, TouchableOpacity } from 'react-native'
-// import Button from '@/components/common/Button'
-// import { navigations } from '@/navigation'
-// import { BorderWidths } from '@/theme'
-import { useTheme } from '@/store/theme/hook'
 import { useNavActiveId, useStatusbarHeight } from '@/store/common/hook'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
@@ -14,85 +11,59 @@ import { scaleSizeH } from '@/utils/pixelRatio'
 import { HEADER_HEIGHT } from '@/config/constant'
 import { type InitState as CommonState } from '@/store/common/state'
 import SearchTypeSelector from '@/screens/Home/Views/Search/SearchTypeSelector'
+import { useApple, fontSize } from '@/theme/apple'
 
 const headerComponents: Partial<Record<CommonState['navActiveId'], React.ReactNode>> = {
   nav_search: <SearchTypeSelector />,
 }
 
+/** 额外高度，用来放大标题 */
+const LARGE_TITLE_EXTRA = 14
 
-// const LeftTitle = () => {
-//   const id = useNavActiveId()
-//   const t = useI18n()
+const openMenu = () => {
+  global.app_event.changeMenuVisible(true)
+}
 
-//   return <Text style={styles.leftTitle} size={18}>{t(id)}</Text>
-// }
-const LeftHeader = () => {
-  const theme = useTheme()
-  const id = useNavActiveId()
-  const t = useI18n()
-  const statusBarHeight = useStatusbarHeight()
-
-  const openMenu = () => {
-    global.app_event.changeMenuVisible(true)
-  }
-
+/** 圆形菜单按钮（打开侧边导航，功能与原版一致） */
+const MenuBtn = () => {
+  const apple = useApple()
   return (
-    <View style={{
-      ...styles.container,
-      height: scaleSizeH(HEADER_HEIGHT) + statusBarHeight,
-      paddingTop: statusBarHeight,
-    }}>
-      <View style={styles.left}>
-        <TouchableOpacity style={styles.btn} onPress={openMenu}>
-          <Icon color={theme['c-font']} name="menu" size={18} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.titleBtn} onPress={openMenu}>
-          <Text style={styles.leftTitle} size={18}>{t(id)}</Text>
-        </TouchableOpacity>
+    <TouchableOpacity style={styles.btn} onPress={openMenu} activeOpacity={0.6}>
+      <View style={{ ...styles.btnCircle, backgroundColor: apple.fill }}>
+        <Icon color={apple.accent} name="menu" size={16} />
       </View>
-      {headerComponents[id] ?? null}
-
-      {/* <TouchableOpacity style={styles.btn} onPress={openSetting}>
-        <Icon style={{ ...styles.btnText, color: theme['c-font'] }} name="setting" size={styles.btnText.fontSize} />
-      </TouchableOpacity> */}
-    </View>
+    </TouchableOpacity>
   )
 }
 
-
-// const RightTitle = () => {
-//   const id = useNavActiveId()
-//   const t = useI18n()
-
-//   return <Text style={styles.rightTitle} size={18}>{t(id)}</Text>
-// }
-const RightHeader = () => {
-  const theme = useTheme()
-  const t = useI18n()
+/**
+ * Apple Music 风格大标题：左对齐、粗体、大字号；菜单按钮放在标题的另一侧
+ * drawerLayoutPosition 为 left 时按钮在左，否则在右，与原版行为保持一致
+ */
+const LargeTitleHeader = ({ btnOnLeft }: { btnOnLeft: boolean }) => {
+  const apple = useApple()
   const id = useNavActiveId()
+  const t = useI18n()
   const statusBarHeight = useStatusbarHeight()
 
-  const openMenu = () => {
-    global.app_event.changeMenuVisible(true)
-  }
   return (
     <View style={{
       ...styles.container,
-      height: scaleSizeH(HEADER_HEIGHT) + statusBarHeight,
+      height: scaleSizeH(HEADER_HEIGHT + LARGE_TITLE_EXTRA) + statusBarHeight,
       paddingTop: statusBarHeight,
+      backgroundColor: apple.background,
     }}>
-      <View style={styles.left}>
-        <TouchableOpacity style={styles.titleBtn} onPress={openMenu}>
-          <Text style={styles.rightTitle} size={18}>{t(id)}</Text>
-        </TouchableOpacity>
-      </View>
-      {headerComponents[id] ?? null}
-      <TouchableOpacity style={styles.btn} onPress={openMenu}>
-        <Icon color={theme['c-font']} name="menu" size={18} />
+      {btnOnLeft ? <MenuBtn /> : null}
+      <TouchableOpacity style={styles.titleBtn} onPress={openMenu} activeOpacity={0.7}>
+        <Text
+          style={{ ...styles.title, paddingLeft: btnOnLeft ? 4 : 16 }}
+          size={fontSize.title1}
+          color={apple.label}
+          numberOfLines={1}
+        >{t(id)}</Text>
       </TouchableOpacity>
-      {/* <TouchableOpacity style={styles.btn} onPress={openSetting}>
-        <Icon style={{ ...styles.btnText, color: theme['c-font'] }} name="setting" size={styles.btnText.fontSize} />
-      </TouchableOpacity> */}
+      {headerComponents[id] ?? null}
+      {btnOnLeft ? null : <MenuBtn />}
     </View>
   )
 }
@@ -103,55 +74,40 @@ const Header = () => {
   return (
     <>
       <StatusBar />
-      {
-        drawerLayoutPosition == 'left'
-          ? <LeftHeader />
-          : <RightHeader />
-      }
-
+      <LargeTitleHeader btnOnLeft={drawerLayoutPosition == 'left'} />
     </>
   )
 }
 
-
 const styles = createStyle({
   container: {
-    // width: '100%',
-    paddingRight: 5,
+    paddingHorizontal: 6,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    // backgroundColor: 'rgba(0,0,0,0.1)',
     zIndex: 10,
   },
-  left: {
-    flex: 1,
-    flexDirection: 'row',
-    paddingLeft: 5,
-    alignItems: 'center',
-    height: '100%',
-  },
   btn: {
-    // flex: 1,
     width: HEADER_HEIGHT,
-    // backgroundColor: 'rgba(0,0,0,0.1)',
+    height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%',
+  },
+  btnCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   titleBtn: {
     flex: 1,
-    // backgroundColor: 'rgba(0,0,0,0.1)',
     height: '100%',
     justifyContent: 'center',
   },
-  leftTitle: {
-    paddingLeft: 14,
-    paddingRight: 16,
-  },
-  rightTitle: {
-    paddingLeft: 16,
-    paddingRight: 16,
+  title: {
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    paddingRight: 12,
   },
 })
 

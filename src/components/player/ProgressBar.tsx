@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, PanResponder } from 'react-native'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { scaleSizeW, scaleSizeH } from '@/utils/pixelRatio'
 import { useDrag } from '@/utils/hooks'
 import { Icon } from '@/components/common/Icon'
@@ -9,15 +9,15 @@ import { Icon } from '@/components/common/Icon'
 
 
 const DefaultBar = memo(() => {
-  const theme = useTheme()
+  const apple = useApple()
 
-  return <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-light-300-alpha-800'], position: 'absolute', width: '100%', left: 0, top: 0 }}></View>
+  return <View style={{ ...styles.progressBar, backgroundColor: apple.fill, position: 'absolute', width: '100%', left: 0, top: 0 }}></View>
 })
 
 const BufferedBar = memo(({ progress }: { progress: number }) => {
   // console.log(bufferedProgress)
-  const theme = useTheme()
-  return <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-light-400-alpha-700'], position: 'absolute', width: `${progress * 100}%`, left: 0, top: 0 }}></View>
+  const apple = useApple()
+  return <View style={{ ...styles.progressBar, backgroundColor: apple.tertiaryFill, position: 'absolute', width: `${progress * 100}%`, left: 0, top: 0 }}></View>
 })
 
 
@@ -68,7 +68,7 @@ const Progress = ({ progress, duration, buffered }: {
   buffered: number
 }) => {
   // const { progress: bufferProgress } = usePlayTimeBuffer()
-  const theme = useTheme()
+  const apple = useApple()
   const [draging, setDraging] = useState(false)
   const [dragProgress, setDragProgress] = useState(0)
   // console.log(progress)
@@ -100,14 +100,14 @@ const Progress = ({ progress, duration, buffered }: {
           draging
             ? (
                 <>
-                  <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-light-100-alpha-700'], width: progressStr, position: 'absolute', left: 0, top: 0 }} />
-                  <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-light-100-alpha-600'], width: `${dragProgress * 100}%`, position: 'absolute', left: 0, top: 0 }}>
-                    <Icon name="full_stop" color={theme['c-primary-light-100']} rawSize={progressDotSize} style={progressDotStyle} />
+                  <View style={{ ...styles.progressBar, backgroundColor: apple.tertiaryFill, width: progressStr, position: 'absolute', left: 0, top: 0 }} />
+                  <View style={{ ...styles.progressBar, backgroundColor: apple.secondaryLabel, width: `${dragProgress * 100}%`, position: 'absolute', left: 0, top: 0 }}>
+                    <Icon name="full_stop" color={apple.label} rawSize={progressDotSize} style={progressDotStyle} />
                   </View>
                 </>
               ) : (
-                <View style={{ ...styles.progressBar, backgroundColor: theme['c-primary-light-100-alpha-400'], width: progressStr, position: 'absolute', left: 0, top: 0 }}>
-                  <Icon name="full_stop" color={theme['c-primary-light-100']} rawSize={progressDotSize} style={progressDotStyle} />
+                <View style={{ ...styles.progressBar, backgroundColor: apple.secondaryLabel, width: progressStr, position: 'absolute', left: 0, top: 0 }}>
+                  <Icon name="full_stop" color={apple.label} rawSize={progressDotSize} style={progressDotStyle} />
                 </View>
               )
         }

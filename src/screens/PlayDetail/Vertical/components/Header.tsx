@@ -4,7 +4,7 @@ import { View, StyleSheet } from 'react-native'
 
 import { pop } from '@/navigation'
 import StatusBar from '@/components/common/StatusBar'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { usePlayerMusicInfo } from '@/store/player/hook'
 import Text from '@/components/common/Text'
 import { scaleSizeH } from '@/utils/pixelRatio'
@@ -19,14 +19,14 @@ export const HEADER_HEIGHT = scaleSizeH(_HEADER_HEIGHT)
 
 
 const Title = () => {
-  const theme = useTheme()
+  const apple = useApple()
   const musicInfo = usePlayerMusicInfo()
 
 
   return (
     <View style={styles.titleContent}>
-      <Text numberOfLines={1} style={styles.title}>{musicInfo.name}</Text>
-      <Text numberOfLines={1} style={styles.title} size={12} color={theme['c-font-label']}>{musicInfo.singer}</Text>
+      <Text numberOfLines={1} style={styles.title} size={16} color={apple.label}>{musicInfo.name}</Text>
+      <Text numberOfLines={1} style={styles.title} size={12} color={apple.secondaryLabel}>{musicInfo.singer}</Text>
     </View>
   )
 }
@@ -70,6 +70,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
+    textAlign: 'center',
+    fontWeight: '600',
     // flex: 1,
     // textAlign: 'center',
   },

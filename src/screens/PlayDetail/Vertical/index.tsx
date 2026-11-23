@@ -2,6 +2,7 @@ import { memo, useState, useRef, useMemo, useEffect } from 'react'
 import { View, AppState } from 'react-native'
 
 import Header from './components/Header'
+import Background from './components/Background'
 // import Aside from './components/Aside'
 // import Main from './components/Main'
 import Player from './Player'
@@ -71,7 +72,8 @@ export default memo(({ componentId }: { componentId: string }) => {
   }, [])
 
   return (
-    <>
+    <View style={styles.root}>
+      <Background />
       <Header />
       <View style={styles.container}>
         <PagerView
@@ -92,11 +94,14 @@ export default memo(({ componentId }: { componentId: string }) => {
         </View> */}
         <Player />
       </View>
-    </>
+    </View>
   )
 })
 
 const styles = createStyle({
+  root: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     flexDirection: 'column',

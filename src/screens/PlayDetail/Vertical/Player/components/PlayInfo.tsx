@@ -4,7 +4,7 @@ import { View } from 'react-native'
 import Progress from '@/components/player/ProgressBar'
 import Status from './Status'
 import { useProgress } from '@/store/player/hook'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { useBufferProgress } from '@/plugins/player'
@@ -12,14 +12,14 @@ import { useBufferProgress } from '@/plugins/player'
 // const FONT_SIZE = 13
 
 const PlayTimeCurrent = ({ timeStr }: { timeStr: string }) => {
-  const theme = useTheme()
+  const apple = useApple()
   // console.log(timeStr)
-  return <Text color={theme['c-500']}>{timeStr}</Text>
+  return <Text color={apple.secondaryLabel}>{timeStr}</Text>
 }
 
 const PlayTimeMax = memo(({ timeStr }: { timeStr: string }) => {
-  const theme = useTheme()
-  return <Text color={theme['c-500']}>{timeStr}</Text>
+  const apple = useApple()
+  return <Text color={apple.secondaryLabel}>{timeStr}</Text>
 })
 
 export default () => {
