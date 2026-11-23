@@ -526,5 +526,11 @@
   "version_title_latest": "🎉 目前版本已是最新 🎊",
   "version_title_new": "🌟 發現新版本 🌟",
   "version_title_unknown": "❓ 獲取最新版本資訊失敗 ❓",
-  "version_title_update": "🚀 軟體更新 🚀"
+  "version_title_update": "🚀 軟體更新 🚀",
+  "apple_comment_loading": "正在載入評論…",
+  "apple_comment_empty": "暫無評論",
+  "apple_comment_error": "評論載入失敗",
+  "apple_comment_retry": "重試",
+  "apple_comment_end": "沒有更多評論了",
+  "apple_comment_load_more_error": "載入失敗，輕點重試"
 }

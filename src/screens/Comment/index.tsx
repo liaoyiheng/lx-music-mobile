@@ -1,41 +1,21 @@
 import { memo, useMemo, useEffect, useRef, useState, useCallback } from 'react'
-import { View, TouchableOpacity } from 'react-native'
+import { View } from 'react-native'
 import PagerView, { type PagerViewOnPageSelectedEvent } from 'react-native-pager-view'
 import Header from './components/Header'
-import { Icon } from '@/components/common/Icon'
+import StateView from './components/StateView'
 import CommentHot from './CommentHot'
 import CommentNew from './CommentNew'
 import { createStyle, toast } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
-import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
 import { COMPONENT_IDS } from '@/config/constant'
 import { setComponentId } from '@/core/common'
 import PageContent from '@/components/PageContent'
 import playerState from '@/store/player/state'
-import { scaleSizeH } from '@/utils/pixelRatio'
-import { BorderWidths } from '@/theme'
+import SegmentedControl, { type SegmentItem } from '@/components/apple/SegmentedControl'
+import { useWindowSize } from '@/utils/hooks'
+import { useApple, pagePadding, size, spacing } from '@/theme/apple'
 
 type ActiveId = 'hot' | 'new'
-
-const BAR_HEIGHT = scaleSizeH(34)
-
-const HeaderItem = ({ id, label, isActive, onPress }: {
-  id: ActiveId
-  label: string
-  isActive: boolean
-  onPress: (id: ActiveId) => void
-}) => {
-  const theme = useTheme()
-  // console.log(theme)
-  const components = useMemo(() => (
-    <TouchableOpacity style={styles.tabBtn} onPress={() => { !isActive && onPress(id) }}>
-      <Text color={isActive ? theme['c-primary-font-active'] : theme['c-font']}>{label}</Text>
-    </TouchableOpacity>
-  ), [isActive, theme, label, onPress, id])
-
-  return components
-}
 
 const HotCommentPage = memo(({ activeId, musicInfo, onUpdateTotal }: {
   activeId: ActiveId
@@ -73,10 +53,12 @@ const TABS = [
   'hot',
   'new',
 ] as const
+
 const getMusicInfo = (musicInfo: LX.Player.PlayMusic | null) => {
   if (!musicInfo) return null
   return 'progress' in musicInfo ? musicInfo.metadata.musicInfo : musicInfo
 }
+
 export default memo(({ componentId }: {
   componentId: string
 }) => {
@@ -84,19 +66,21 @@ export default memo(({ componentId }: {
   const [activeId, setActiveId] = useState<ActiveId>('hot')
   const [musicInfo, setMusicInfo] = useState<LX.Music.MusicInfo | null>(getMusicInfo(playerState.playMusicInfo.musicInfo))
   const t = useI18n()
-  const theme = useTheme()
+  const apple = useApple()
+  const windowSize = useWindowSize()
+  const isWide = windowSize.width >= size.wideBreakpoint
   const [total, setTotal] = useState({ hot: 0, new: 0 })
 
   useEffect(() => {
     setComponentId(COMPONENT_IDS.comment, componentId)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const tabs = useMemo(() => {
+  const tabs = useMemo((): Array<SegmentItem<ActiveId>> => {
     return [
-      { id: TABS[0], label: t('comment_tab_hot', { total: total.hot ? `(${total.hot})` : '' }) },
-      { id: TABS[1], label: t('comment_tab_new', { total: total.new ? `(${total.new})` : '' }) },
-    ] as const
+      { id: TABS[0], label: t('comment_tab_hot', { total: total.hot ? `(${total.hot})` : '' }).trim() },
+      { id: TABS[1], label: t('comment_tab_new', { total: total.new ? `(${total.new})` : '' }).trim() },
+    ]
   }, [total, t])
 
   const toggleTab = useCallback((id: ActiveId) => {
@@ -130,20 +114,12 @@ export default memo(({ componentId }: {
   const commentComponent = useMemo(() => {
     return (
       <View style={styles.container}>
-        <View style={{ ...styles.tabHeader, borderBottomColor: theme['c-border-background'], height: BAR_HEIGHT }}>
-          <View style={styles.left}>
-            {tabs.map(({ id, label }) => <HeaderItem id={id} label={label} key={id} isActive={activeId == id} onPress={toggleTab} />)}
-          </View>
-          <View>
-            <TouchableOpacity onPress={refreshComment} style={{ ...styles.btn, width: BAR_HEIGHT }}>
-              <Icon name="available_updates" size={20} color={theme['c-600']} />
-            </TouchableOpacity>
-          </View>
+        <View style={styles.segment}>
+          <SegmentedControl items={tabs} value={activeId} onChange={toggleTab} />
         </View>
         <PagerView
           ref={pagerViewRef}
           onPageSelected={onPageSelected}
-          // onPageScrollStateChanged={onPageScrollStateChanged}
           style={styles.pagerView}
         >
           <View collapsable={false} style={styles.pageStyle}>
@@ -155,27 +131,28 @@ export default memo(({ componentId }: {
         </PagerView>
       </View>
     )
-  }, [activeId, musicInfo, onPageSelected, refreshComment, setHotTotal, setNewTotal, tabs, theme, toggleTab])
+  }, [activeId, musicInfo, onPageSelected, setHotTotal, setNewTotal, tabs, toggleTab])
+
+  const isLocal = musicInfo?.source == 'local'
 
   return (
     <PageContent>
       {
         musicInfo == null
           ? null
-          : <>
-            <Header musicInfo={musicInfo} />
-            {
-              musicInfo.source == 'local'
-                ? (
-                <View style={{ ...styles.container, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text>{t('comment_not support')}</Text>
+          : (
+              <View style={{ ...styles.container, backgroundColor: apple.background }}>
+                <Header musicInfo={musicInfo} onRefresh={isLocal ? undefined : refreshComment} />
+                <View style={isWide ? styles.wideContent : styles.container}>
+                  {
+                    isLocal
+                      ? <StateView icon="comment" title={t('comment_not support')} />
+                      : commentComponent
+                  }
                 </View>
-                  )
-                : commentComponent
-            }
-        </>
+              </View>
+            )
       }
-
     </PageContent>
   )
 })
@@ -184,31 +161,16 @@ const styles = createStyle({
   container: {
     flex: 1,
   },
-  tabHeader: {
-    flexDirection: 'row',
-    // paddingLeft: 10,
-    paddingRight: 10,
-    // justifyContent: 'center',
-    borderBottomWidth: BorderWidths.normal,
-  },
-  left: {
+  wideContent: {
     flex: 1,
-    flexDirection: 'row',
-    paddingLeft: 5,
+    width: '100%',
+    maxWidth: size.wideBreakpoint,
+    alignSelf: 'center',
   },
-  tabBtn: {
-    // flex: 1,
-    paddingLeft: 10,
-    paddingRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-  },
-  btn: {
-    // flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
+  segment: {
+    paddingHorizontal: pagePadding,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   pagerView: {
     flex: 1,

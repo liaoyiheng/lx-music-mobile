@@ -526,5 +526,11 @@
   "version_title_latest": "🎉 The current version is already the latest 🎊",
   "version_title_new": "🌟 New version found 🌟",
   "version_title_unknown": "❓ Failed to get the latest version information ❓",
-  "version_title_update": "🚀 App update 🚀"
+  "version_title_update": "🚀 App update 🚀",
+  "apple_comment_loading": "Loading Comments…",
+  "apple_comment_empty": "No Comments",
+  "apple_comment_error": "Couldn’t Load Comments",
+  "apple_comment_retry": "Try Again",
+  "apple_comment_end": "No More Comments",
+  "apple_comment_load_more_error": "Couldn’t load. Tap to try again."
 }

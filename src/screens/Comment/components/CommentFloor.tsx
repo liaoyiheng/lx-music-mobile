@@ -1,28 +1,34 @@
 import { memo, useState, useMemo, useCallback } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { BorderWidths } from '@/theme'
 import { Icon } from '@/components/common/Icon'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
 import { type Comment } from '../utils'
 import Text from '@/components/common/Text'
-import { scaleSizeW } from '@/utils/pixelRatio'
 import { useLayout } from '@/utils/hooks'
 import { useI18n } from '@/lang'
 import Image from '@/components/common/Image'
 import CommentImage from './CommentImage'
 import CommentText from './CommentText'
+import { useApple, fontSize, fontWeight, hairline, radius, spacing } from '@/theme/apple'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const defaultUser = require('@/resources/images/defaultUser.jpg')
 
-const GAP = 12
-const avatarWidth = scaleSizeW(36)
+/** 顶层评论头像（圆形） */
+const AVATAR_SIZE = spacing.xxxl + spacing.xs
+/** 回复内头像（圆形，更小） */
+const REPLY_AVATAR_SIZE = spacing.xxl
+const AVATAR_GAP = spacing.md
 
-const CommentFloor = memo(({ comment, isLast }: {
+/**
+ * 单条评论：圆形头像 + 昵称 / 时间 / 归属地 + 点赞数 + 正文 + 图片
+ * 回复（楼中楼）放在正文下方的浅色圆角块中，按头像宽度缩进
+ */
+const CommentFloor = memo(({ comment, isReply, isLast }: {
   comment: Comment
+  isReply?: boolean
   isLast?: boolean
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const [isAvatarError, setIsAvatarError] = useState(false)
   const { onLayout, width } = useLayout()
   const t = useI18n()
@@ -31,56 +37,58 @@ const CommentFloor = memo(({ comment, isLast }: {
     setIsAvatarError(true)
   }, [])
 
+  const avatarSize = isReply ? REPLY_AVATAR_SIZE : AVATAR_SIZE
+
   const replyComments = useMemo(() => {
     if (!comment.reply?.length) return null
     const endIndex = comment.reply.length - 1
     return (
-      <View style={{ ...styles.replyFloor, borderTopColor: theme['c-list-header-border-bottom'] }}>
+      <View style={{ ...styles.replyBlock, backgroundColor: apple.fill }}>
         {
           comment.reply.map((c, index) => (
-            <CommentFloor comment={c} isLast={index === endIndex} key={`${comment.id}_${c.id}`} />
+            <CommentFloor comment={c} isReply isLast={index === endIndex} key={`${comment.id}_${c.id}`} />
           ))
         }
       </View>
     )
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [comment.id, comment.reply, apple])
 
   const likedCount = useMemo(() => {
     if (comment.likedCount == null) return null
     return (
       <View style={styles.like}>
-        <Icon name="thumbs-up" style={{ color: theme['c-450'] }} size={12} />
-        <Text style={styles.likedCount} size={12} color={ theme['c-450'] }>{comment.likedCount}</Text>
+        <Icon name="thumbs-up" color={apple.secondaryLabel} size={fontSize.caption1} />
+        <Text style={styles.likedCount} size={fontSize.caption1} color={apple.secondaryLabel}>{comment.likedCount}</Text>
       </View>
     )
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [comment.likedCount, apple])
+
+  const showSeparator = !isLast
+  const containerStyle = isReply
+    ? { ...styles.replyContainer, borderBottomColor: apple.separator, borderBottomWidth: showSeparator ? hairline : 0 }
+    : styles.container
 
   return (
-    <View style={{ ...styles.container, borderBottomColor: theme['c-list-header-border-bottom'], borderBottomWidth: isLast ? 0 : BorderWidths.normal, paddingBottom: isLast ? 0 : GAP }}>
+    <View style={containerStyle}>
       <View style={styles.comment}>
-        <View>
-          <Image
-            url={comment.avatar && !isAvatarError ? comment.avatar : defaultUser}
-            onError={handleAvatarError}
-            style={stylesRaw.avatar} />
-        </View>
-        <View style={styles.right}>
+        <Image
+          url={comment.avatar && !isAvatarError ? comment.avatar : defaultUser}
+          onError={handleAvatarError}
+          style={isReply ? stylesRaw.replyAvatar : stylesRaw.avatar} />
+        <View style={{ ...styles.right, paddingLeft: isReply ? spacing.sm : AVATAR_GAP }}>
           <View style={styles.info}>
-            <View>
-              <Text selectable numberOfLines={1} size={14}>
+            <View style={styles.infoLeft}>
+              <Text selectable numberOfLines={1} size={isReply ? fontSize.footnote : fontSize.subhead} color={apple.label} style={styles.userName}>
                 {comment.userName}
               </Text>
               <View style={styles.metaInfo}>
-                <Text numberOfLines={1} size={12} color={theme['c-450']}>{comment.timeStr}</Text>
-                { comment.location ? <Text numberOfLines={1} style={styles.location} size={12} color={theme['c-450']}>{t('location', { location: comment.location })}</Text> : null }
+                { comment.timeStr ? <Text numberOfLines={1} size={fontSize.caption1} color={apple.secondaryLabel}>{comment.timeStr}</Text> : null }
+                { comment.location ? <Text numberOfLines={1} style={styles.location} size={fontSize.caption1} color={apple.secondaryLabel}>{t('location', { location: comment.location })}</Text> : null }
               </View>
             </View>
             {likedCount}
           </View>
-          <CommentText text={comment.text} />
+          <CommentText text={comment.text} size={isReply ? fontSize.subhead : fontSize.callout} />
           {
             comment.images?.length
               ? (
@@ -94,69 +102,88 @@ const CommentFloor = memo(({ comment, isLast }: {
           }
         </View>
       </View>
-      {replyComments}
+      {
+        replyComments
+          ? <View style={{ paddingLeft: avatarSize + AVATAR_GAP }}>{replyComments}</View>
+          : null
+      }
+      {
+        !isReply && showSeparator
+          ? <View style={{ ...styles.separator, marginLeft: AVATAR_SIZE + AVATAR_GAP, backgroundColor: apple.separator }} />
+          : null
+      }
     </View>
   )
 })
 
 const styles = createStyle({
   container: {
-    flex: 1,
-    // backgroundColor: 'rgba(0,0,0,0.1)',
-    marginTop: GAP,
-    paddingBottom: GAP,
-    borderBottomWidth: BorderWidths.normal,
-    borderStyle: 'dashed',
+    paddingTop: spacing.md,
+  },
+  replyContainer: {
+    paddingVertical: spacing.sm,
   },
   comment: {
-    flex: 1,
-    // backgroundColor: 'rgba(0,0,0,0.1)',
     flexDirection: 'row',
   },
   right: {
     flex: 1,
-    paddingLeft: 10,
   },
   info: {
-    flex: 1,
     flexDirection: 'row',
-    // backgroundColor: 'rgba(0,0,0,0.1)',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+  },
+  infoLeft: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  userName: {
+    fontWeight: fontWeight.semibold,
   },
   metaInfo: {
-    marginTop: 2,
+    marginTop: spacing.xxs,
     flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   location: {
-    marginLeft: 10,
+    marginLeft: spacing.sm,
   },
   like: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingTop: spacing.xxs,
   },
   likedCount: {
-    marginLeft: 2,
+    marginLeft: spacing.xs,
   },
   images: {
-    paddingTop: 5,
+    paddingTop: spacing.sm,
     width: '100%',
     flexDirection: 'row',
   },
-  replyFloor: {
-    marginTop: GAP,
-    marginLeft: 20,
-    borderTopWidth: BorderWidths.normal,
-    // backgroundColor: 'rgba(0,0,0,0.1)',
-    borderStyle: 'dashed',
+  replyBlock: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.medium,
+  },
+  separator: {
+    height: hairline,
+    marginTop: spacing.md,
   },
 })
 
 const stylesRaw = StyleSheet.create({
   avatar: {
-    height: avatarWidth,
-    width: avatarWidth,
-    borderRadius: 4,
+    height: AVATAR_SIZE,
+    width: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+  },
+  replyAvatar: {
+    height: REPLY_AVATAR_SIZE,
+    width: REPLY_AVATAR_SIZE,
+    borderRadius: REPLY_AVATAR_SIZE / 2,
   },
 })
 
