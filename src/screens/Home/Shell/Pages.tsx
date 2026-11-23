@@ -26,15 +26,7 @@ export const SearchPage = memo(() => {
   )
 })
 
-export const SettingPage = memo(() => {
-  const t = useI18n()
-  return (
-    <>
-      <LargeTitle title={t('nav_setting')} />
-      <View style={styles.body}><Setting /></View>
-    </>
-  )
-})
+export const SettingPage = memo(() => <View style={styles.body}><Setting /></View>)
 
 /**
  * 浏览：歌单广场 + 排行榜
