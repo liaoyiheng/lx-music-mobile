@@ -160,3 +160,47 @@ export const fontSize = {
   caption1: 12,
   caption2: 11,
 } as const
+
+/** 间距 */
+export const spacing = {
+  xxs: 2,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+} as const
+
+/** 页面左右留白 */
+export const pagePadding = 16
+
+/** 字重 */
+export const fontWeight = {
+  regular: '400',
+  medium: '500',
+  semibold: '600',
+  bold: '700',
+  heavy: '800',
+} as const
+
+/** 常用尺寸 */
+export const size = {
+  /** 底部标签栏高度（不含安全区） */
+  tabBar: 50,
+  /** 宽屏左侧边栏宽度 */
+  sidebar: 260,
+  /** 迷你播放条高度 */
+  miniPlayer: 64,
+  /** 歌曲行高度 */
+  songRow: 56,
+  /** 歌曲行封面 */
+  songArtwork: 44,
+  /** 普通设置行高度 */
+  settingRow: 44,
+  /** 图标按钮点击区域 */
+  hitTarget: 44,
+  /** 宽屏判断阈值 */
+  wideBreakpoint: 768,
+} as const
