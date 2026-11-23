@@ -5,7 +5,7 @@ import { View, FlatList, type FlatListProps, type LayoutChangeEvent, type Native
 import { type Line, useLrcPlay, useLrcSet } from '@/plugins/lyric'
 import { createStyle } from '@/utils/tools'
 // import { useComponentIds } from '@/store/common/hook'
-import { useApple, fontWeight } from '@/theme/apple'
+import { fontWeight } from '@/theme/apple'
 import { useSettingValue } from '@/store/setting/hook'
 import { AnimatedColorText } from '@/components/common/Text'
 import { setSpText } from '@/utils/pixelRatio'
@@ -28,25 +28,14 @@ interface LineProps {
   onLayout: (lineNum: number, height: number, width: number) => void
 }
 const LrcLine = memo(({ line, lineNum, activeLine, direction, onLayout }: LineProps) => {
-  const apple = useApple()
   const lrcFontSize = useSettingValue(direction == 'horizontal' ? 'playDetail.horizontal.style.lrcFontSize' : 'playDetail.vertical.style.lrcFontSize')
   const textAlign = useSettingValue('playDetail.style.align')
-  const size = lrcFontSize / 10
-  const lineHeight = setSpText(size) * 1.3
-
-  // 当前行高亮，其余行淡化（Apple Music 效果）
-  const colors = useMemo(() => {
-    const active = activeLine == lineNum
-    return active ? [
-      apple.label,
-      apple.secondaryLabel,
-      1,
-    ] as const : [
-      apple.label,
-      apple.label,
-      0.32,
-    ] as const
-  }, [activeLine, lineNum, apple])
+  const baseSize = lrcFontSize / 10
+  const active = activeLine == lineNum
+  // 当前行 24–26pt 粗体纯白 #FFFFFF，非当前行 20–22pt 粗体半透明白 rgba(255,255,255,0.38)
+  const size = active ? Math.round(baseSize * 1.15) : baseSize
+  const lineHeight = setSpText(size) * 1.45
+  const opacity = active ? 1 : 0.38
 
   const handleLayout = ({ nativeEvent }: LayoutChangeEvent) => {
     onLayout(lineNum, nativeEvent.layout.height, nativeEvent.layout.width)
@@ -62,14 +51,14 @@ const LrcLine = memo(({ line, lineNum, activeLine, direction, onLayout }: LinePr
         fontWeight: fontWeight.bold,
         textAlign,
         lineHeight,
-      }} textBreakStrategy="simple" color={colors[0]} opacity={colors[2]} size={size}>{line.text}</AnimatedColorText>
+      }} textBreakStrategy="simple" color="#FFFFFF" opacity={opacity} size={size}>{line.text}</AnimatedColorText>
       {
         line.extendedLyrics.map((lrc, index) => {
           return (<AnimatedColorText style={{
             ...styles.lineTranslationText,
             textAlign,
-            lineHeight: lineHeight * 0.8,
-          }} textBreakStrategy="simple" key={index} color={colors[1]} opacity={colors[2]} size={size * 0.8}>{lrc}</AnimatedColorText>)
+            lineHeight: lineHeight * 0.82,
+          }} textBreakStrategy="simple" key={index} color="#FFFFFF" opacity={active ? 0.85 : 0.38} size={size * 0.78}>{lrc}</AnimatedColorText>)
         })
       }
     </View>
@@ -309,9 +298,8 @@ const styles = createStyle({
     paddingTop: '100%',
   },
   line: {
-    paddingTop: 10,
-    paddingBottom: 10,
-    // opacity: 0,
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   lineText: {
     textAlign: 'center',

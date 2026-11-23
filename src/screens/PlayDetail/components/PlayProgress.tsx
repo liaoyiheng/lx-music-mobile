@@ -5,12 +5,13 @@ import Progress from '@/components/player/ProgressBar'
 import Text from '@/components/common/Text'
 import { useProgress, useStatusText } from '@/store/player/hook'
 import { useBufferProgress } from '@/plugins/player'
-import { useApple, fontSize, spacing } from '@/theme/apple'
+import { fontSize, spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
-/** 可拖动进度条 + 已播放 / 总时长，中间显示播放状态（加载中、出错等） */
+const TIME_COLOR = 'rgba(255, 255, 255, 0.58)'
+
+/** 可拖动进度条 + 11pt 等宽数字时间标签 */
 export default memo(() => {
-  const apple = useApple()
   const { maxPlayTimeStr, nowPlayTimeStr, progress, maxPlayTime } = useProgress()
   const buffered = useBufferProgress()
   const statusText = useStatusText()
@@ -19,9 +20,9 @@ export default memo(() => {
     <View style={styles.container}>
       <Progress progress={progress} duration={maxPlayTime} buffered={buffered} />
       <View style={styles.info}>
-        <Text size={fontSize.caption1} color={apple.secondaryLabel}>{nowPlayTimeStr}</Text>
-        <Text size={fontSize.caption1} color={apple.secondaryLabel} numberOfLines={1} style={styles.status}>{statusText}</Text>
-        <Text size={fontSize.caption1} color={apple.secondaryLabel}>{maxPlayTimeStr}</Text>
+        <Text size={fontSize.caption2} color={TIME_COLOR} style={styles.time}>{nowPlayTimeStr}</Text>
+        <Text size={fontSize.caption2} color={TIME_COLOR} numberOfLines={1} style={styles.status}>{statusText}</Text>
+        <Text size={fontSize.caption2} color={TIME_COLOR} style={styles.time}>{maxPlayTimeStr}</Text>
       </View>
     </View>
   )
@@ -29,11 +30,16 @@ export default memo(() => {
 
 const styles = createStyle({
   container: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   info: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: -2,
+  },
+  time: {
+    fontVariant: ['tabular-nums'],
+    fontWeight: '500',
   },
   status: {
     flex: 1,

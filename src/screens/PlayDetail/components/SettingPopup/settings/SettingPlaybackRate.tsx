@@ -1,18 +1,17 @@
 import { useState } from 'react'
-
 import { View } from 'react-native'
-import { useApple } from '@/theme/apple'
+import { fontSize, useApple } from '@/theme/apple'
 import Text from '@/components/common/Text'
 import { useSettingValue } from '@/store/setting/hook'
 import Slider, { type SliderProps } from '@/components/common/Slider'
 import { updateSetting } from '@/core/common'
 import { useI18n } from '@/lang'
-import styles from './style'
 import { setPlaybackRate, updateMetaData } from '@/plugins/player'
 import { setPlaybackRate as setLyricPlaybackRate } from '@/core/lyric'
 import ButtonPrimary from '@/components/common/ButtonPrimary'
 import playerState from '@/store/player/state'
 import settingState from '@/store/setting/state'
+import styles from './style'
 
 const MIN_VALUE = 60
 const MAX_VALUE = 200
@@ -24,7 +23,7 @@ export default () => {
   const [isSliding, setSliding] = useState(false)
   const t = useI18n()
 
-  const handleSlidingStart: SliderProps['onSlidingStart'] = value => {
+  const handleSlidingStart: SliderProps['onSlidingStart'] = () => {
     setSliding(true)
   }
   const handleValueChange: SliderProps['onValueChange'] = value => {
@@ -52,22 +51,27 @@ export default () => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text>{t('play_detail_setting_playback_rate')}</Text>
-      <View style={styles.content}>
-        <Text style={styles.label} color={apple.secondaryLabel}>{`${((isSliding ? sliderSize : playbackRate) / 100).toFixed(2)}x`}</Text>
-        <Slider
-          minimumValue={MIN_VALUE}
-          maximumValue={MAX_VALUE}
-          onSlidingComplete={handleSlidingComplete}
-          onValueChange={handleValueChange}
-          onSlidingStart={handleSlidingStart}
-          step={1}
-          value={playbackRate}
-        />
+    <View style={styles.section}>
+      <Text size={fontSize.footnote} color={apple.secondaryLabel} style={styles.sectionTitle}>
+        {t('play_detail_setting_playback_rate')}
+      </Text>
+      <View style={{ ...styles.sliderCard, backgroundColor: apple.secondaryBackground }}>
+        <View style={styles.content}>
+          <Text size={fontSize.subhead} style={styles.label} color={apple.secondaryLabel}>{`${((isSliding ? sliderSize : playbackRate) / 100).toFixed(2)}x`}</Text>
+          <Slider
+            minimumValue={MIN_VALUE}
+            maximumValue={MAX_VALUE}
+            onSlidingComplete={handleSlidingComplete}
+            onValueChange={handleValueChange}
+            onSlidingStart={handleSlidingStart}
+            step={1}
+            value={playbackRate}
+          />
+        </View>
+        <View style={styles.resetRow}>
+          <ButtonPrimary onPress={handleReset}>{t('play_detail_setting_playback_rate_reset')}</ButtonPrimary>
+        </View>
       </View>
-      <ButtonPrimary onPress={handleReset}>{t('play_detail_setting_playback_rate_reset')}</ButtonPrimary>
     </View>
   )
 }
-

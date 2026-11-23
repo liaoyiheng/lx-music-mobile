@@ -4,10 +4,9 @@ import { type NativeScrollEvent, type NativeSyntheticEvent, View, TouchableOpaci
 import Text from '@/components/common/Text'
 import { createStyle } from '@/utils/tools'
 import { type Lines } from 'lrc-file-parser'
-import { useApple } from '@/theme/apple'
 import { BorderWidths } from '@/theme'
 import { formatPlayTime2 } from '@/utils'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 
 
 export interface PlayLineType {
@@ -24,7 +23,6 @@ export interface PlayLineProps {
 const ANIMATION_DURATION = 300
 
 export default forwardRef<PlayLineType, PlayLineProps>(({ onPlayLine }, ref) => {
-  const apple = useApple()
   const [scrollInfo, setScrollInfo] = useState<NativeSyntheticEvent<NativeScrollEvent>['nativeEvent'] | null>(null)
   const [listLayoutInfo, setListLayoutInfo] = useState<{ spaceHeight: number, lineHeights: number[] }>({ spaceHeight: 0, lineHeights: [] })
   const [lyricLines, setLyricLines] = useState<Lines>([])
@@ -60,7 +58,6 @@ export default forwardRef<PlayLineType, PlayLineProps>(({ onPlayLine }, ref) => 
       requestAnimationFrame(() => {
         setShow(visible)
       })
-      // setVisible()
     },
   }))
 
@@ -83,11 +80,11 @@ export default forwardRef<PlayLineType, PlayLineProps>(({ onPlayLine }, ref) => 
   const timeLabel = formatPlayTime2(time / 1000)
   return (
     <Animated.View style={{ ...styles.playLine, opacity: opsAnim }}>
-      <Text style={styles.label} color={apple.secondaryLabel} size={13}>{timeLabel}</Text>
+      <Text style={styles.label} color="rgba(255, 255, 255, 0.72)" size={13}>{timeLabel}</Text>
       <View style={styles.lineContent}>
-        <View style={{ ...styles.line, borderBottomColor: apple.tertiaryLabel }} />
+        <View style={{ ...styles.line, borderBottomColor: 'rgba(255, 255, 255, 0.35)' }} />
         <TouchableOpacity style={styles.button} onPress={handlePlayLine}>
-          <Icon name="play" color={apple.label} size={18} />
+          <IonIcon name="play" color="#FFFFFF" size={18} />
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -101,9 +98,6 @@ const styles = createStyle({
     top: '40%',
     left: 0,
     height: 2,
-    // paddingTop: 5,
-    // paddingBottom: 5,
-    // backgroundColor: 'rgba(0,0,0,0.1)',
   },
   label: {
     position: 'absolute',
@@ -112,9 +106,9 @@ const styles = createStyle({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+    fontVariant: ['tabular-nums'],
   },
   lineContent: {
-    // backgroundColor: 'rgba(0,0,0,0.1)',
     position: 'absolute',
     width: '100%',
     height: 20,

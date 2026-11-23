@@ -2,6 +2,7 @@ import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import Popup, { type PopupType, type PopupProps } from '@/components/common/Popup'
 import { useI18n } from '@/lang'
+import { pagePadding, spacing } from '@/theme/apple'
 
 import SettingLyricProgress from './settings/SettingLyricProgress'
 import SettingVolume from './settings/SettingVolume'
@@ -20,7 +21,6 @@ export interface SettingPopupType {
 export default forwardRef<SettingPopupType, SettingPopupProps>(({ direction, ...props }, ref) => {
   const [visible, setVisible] = useState(false)
   const popupRef = useRef<PopupType>(null)
-  // console.log('render import export')
   const t = useI18n()
 
   useImperativeHandle(ref, () => ({
@@ -35,12 +35,14 @@ export default forwardRef<SettingPopupType, SettingPopupProps>(({ direction, ...
     },
   }))
 
-
   return (
     visible
       ? (
         <Popup ref={popupRef} title={t('play_detail_setting_title')} {...props}>
-          <ScrollView>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: pagePadding, paddingTop: spacing.xs, paddingBottom: spacing.xxl }}
+          >
             <View onStartShouldSetResponder={() => true}>
               <SettingLyricProgress />
               <SettingVolume />

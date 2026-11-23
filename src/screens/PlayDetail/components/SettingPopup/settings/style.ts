@@ -1,32 +1,36 @@
 import { createStyle } from '@/utils/tools'
+import { radius, spacing } from '@/theme/apple'
 
 export default createStyle({
-  container: {
-    paddingTop: 5,
-    paddingLeft: 15,
-    paddingRight: 15,
-    paddingBottom: 15,
-    alignItems: 'flex-start',
+  section: {
+    marginBottom: spacing.lg,
   },
-  // title: {
-
-  // },
-  label: {
-    width: 50,
-    textAlign: 'center',
+  sectionTitle: {
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.md,
+    fontWeight: '500',
+  },
+  card: {
+    borderRadius: radius.large,
+    overflow: 'hidden',
+  },
+  sliderCard: {
+    borderRadius: radius.large,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   content: {
-    flexGrow: 0,
-    flexShrink: 1,
     flexDirection: 'row',
-    flexWrap: 'nowrap',
     alignItems: 'center',
   },
-  list: {
-    flexGrow: 0,
-    flexShrink: 1,
+  label: {
+    width: 52,
+    textAlign: 'left',
+    fontVariant: ['tabular-nums'],
+  },
+  resetRow: {
+    marginTop: spacing.xs,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingTop: 5,
+    justifyContent: 'flex-end',
   },
 })

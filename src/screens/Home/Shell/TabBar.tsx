@@ -1,12 +1,19 @@
 import { memo } from 'react'
 import { TouchableOpacity, View } from 'react-native'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
 import { useNavActiveId } from '@/store/common/hook'
 import { useApple, hairline, size } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
-import { TABS, getTabId, selectTab } from './tabs'
+import { TABS, getTabId, selectTab, type TabId } from './tabs'
+
+const TAB_ICONS: Record<TabId, { active: string, inactive: string }> = {
+  library: { active: 'albums', inactive: 'albums-outline' },
+  browse: { active: 'grid', inactive: 'grid-outline' },
+  search: { active: 'search', inactive: 'search-outline' },
+  setting: { active: 'settings', inactive: 'settings-outline' },
+}
 
 /**
  * Apple Music 风格底部标签栏：半透明底、细分割线、选中项为强调红
@@ -15,7 +22,6 @@ export default memo(() => {
   const apple = useApple()
   const t = useI18n()
   const activeTab = getTabId(useNavActiveId())
-  const inactiveColor = apple.isDark ? '#8E8E93' : '#999999'
 
   return (
     <View style={{
@@ -24,10 +30,12 @@ export default memo(() => {
       borderTopColor: apple.separator,
     }}>
       {TABS.map(tab => {
-        const color = tab.id == activeTab ? apple.accent : inactiveColor
+        const isActive = tab.id == activeTab
+        const color = isActive ? apple.accent : apple.secondaryLabel
+        const iconName = isActive ? TAB_ICONS[tab.id].active : TAB_ICONS[tab.id].inactive
         return (
           <TouchableOpacity key={tab.id} style={styles.item} activeOpacity={0.6} onPress={() => { selectTab(tab.id) }}>
-            <Icon name={tab.icon} size={22} color={color} />
+            <IonIcon name={iconName} size={23} color={color} />
             <Text style={styles.label} size={10} color={color} numberOfLines={1}>{t(tab.label)}</Text>
           </TouchableOpacity>
         )
@@ -49,7 +57,7 @@ const styles = createStyle({
     paddingTop: 2,
   },
   label: {
-    marginTop: 3,
+    marginTop: 2,
     fontWeight: '500',
   },
 })

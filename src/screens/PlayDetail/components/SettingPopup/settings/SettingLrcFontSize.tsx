@@ -1,14 +1,12 @@
 import { useState } from 'react'
-
 import { View } from 'react-native'
-import { useApple } from '@/theme/apple'
+import { fontSize, useApple } from '@/theme/apple'
 import Text from '@/components/common/Text'
 import { useSettingValue } from '@/store/setting/hook'
 import Slider, { type SliderProps } from '@/components/common/Slider'
 import { updateSetting } from '@/core/common'
 import { useI18n } from '@/lang'
 import styles from './style'
-
 
 const LrcFontSize = ({ direction }: {
   direction: 'horizontal' | 'vertical'
@@ -20,7 +18,7 @@ const LrcFontSize = ({ direction }: {
   const [isSliding, setSliding] = useState(false)
   const t = useI18n()
 
-  const handleSlidingStart: SliderProps['onSlidingStart'] = value => {
+  const handleSlidingStart: SliderProps['onSlidingStart'] = () => {
     setSliding(true)
   }
   const handleValueChange: SliderProps['onValueChange'] = value => {
@@ -33,19 +31,23 @@ const LrcFontSize = ({ direction }: {
   }
 
   return (
-    <View style={styles.container}>
-      <Text>{t('play_detail_setting_lrc_font_size')}</Text>
-      <View style={styles.content}>
-        <Text style={styles.label} color={apple.secondaryLabel}>{isSliding ? sliderSize : lrcFontSize}</Text>
-        <Slider
-          minimumValue={100}
-          maximumValue={300}
-          onSlidingComplete={handleSlidingComplete}
-          onValueChange={handleValueChange}
-          onSlidingStart={handleSlidingStart}
-          step={2}
-          value={lrcFontSize}
-        />
+    <View style={styles.section}>
+      <Text size={fontSize.footnote} color={apple.secondaryLabel} style={styles.sectionTitle}>
+        {t('play_detail_setting_lrc_font_size')}
+      </Text>
+      <View style={{ ...styles.sliderCard, backgroundColor: apple.secondaryBackground }}>
+        <View style={styles.content}>
+          <Text size={fontSize.subhead} style={styles.label} color={apple.secondaryLabel}>{isSliding ? sliderSize : lrcFontSize}</Text>
+          <Slider
+            minimumValue={100}
+            maximumValue={300}
+            onSlidingComplete={handleSlidingComplete}
+            onValueChange={handleValueChange}
+            onSlidingStart={handleSlidingStart}
+            step={2}
+            value={lrcFontSize}
+          />
+        </View>
       </View>
     </View>
   )

@@ -1,15 +1,13 @@
 // Modified for Apple Music style UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
 import { memo } from 'react'
 import { TouchableOpacity } from 'react-native'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { useIsPlay } from '@/store/player/hook'
 import { useI18n } from '@/lang'
-import { useApple, size } from '@/theme/apple'
+import { useApple } from '@/theme/apple'
 import { playNext, playPrev, togglePlay } from '@/core/player/player'
 import { createStyle } from '@/utils/tools'
 import { useHorizontalMode } from '@/utils/hooks'
-
-const ICON_SIZE = 24
 
 const handlePlayPrev = () => {
   void playPrev()
@@ -18,20 +16,21 @@ const handlePlayNext = () => {
   void playNext()
 }
 
-const Btn = ({ icon, label, onPress }: {
+const Btn = ({ icon, label, iconSize, onPress }: {
   icon: string
   label: string
+  iconSize: number
   onPress: () => void
 }) => {
   const apple = useApple()
   return (
     <TouchableOpacity style={styles.btn} activeOpacity={0.5} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
-      <Icon name={icon} color={apple.label} size={ICON_SIZE} />
+      <IonIcon name={icon} color={apple.label} size={iconSize} />
     </TouchableOpacity>
   )
 }
 
-/** 播放 / 暂停、下一首；宽屏额外显示上一首 */
+/** 播放 / 暂停（22pt）、下一首（20pt）；宽屏额外显示上一首（20pt） */
 export default memo(() => {
   const isWide = useHorizontalMode()
   const isPlay = useIsPlay()
@@ -39,17 +38,17 @@ export default memo(() => {
 
   return (
     <>
-      {isWide ? <Btn icon="prevMusic" label={t('apple_player_prev')} onPress={handlePlayPrev} /> : null}
-      <Btn icon={isPlay ? 'pause' : 'play'} label={t(isPlay ? 'apple_player_pause' : 'apple_player_play')} onPress={togglePlay} />
-      <Btn icon="nextMusic" label={t('apple_player_next')} onPress={handlePlayNext} />
+      {isWide ? <Btn icon="play-back" label={t('apple_player_prev')} iconSize={20} onPress={handlePlayPrev} /> : null}
+      <Btn icon={isPlay ? 'pause' : 'play'} label={t(isPlay ? 'apple_player_pause' : 'apple_player_play')} iconSize={22} onPress={togglePlay} />
+      <Btn icon="play-forward" label={t('apple_player_next')} iconSize={20} onPress={handlePlayNext} />
     </>
   )
 })
 
 const styles = createStyle({
   btn: {
-    width: size.hitTarget,
-    height: size.hitTarget,
+    width: 40,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },

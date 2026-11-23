@@ -3,7 +3,7 @@ import { memo, useCallback, useState } from 'react'
 import { View } from 'react-native'
 import { useKeyboard } from '@/utils/hooks'
 import { createStyle } from '@/utils/tools'
-import { useApple, radius, hairline, size, spacing } from '@/theme/apple'
+import { useApple, spacing } from '@/theme/apple'
 import { useSettingValue } from '@/store/setting/hook'
 import { usePageVisible } from '@/store/common/hook'
 import { COMPONENT_IDS } from '@/config/constant'
@@ -13,10 +13,11 @@ import Info from './components/Info'
 import ControlBtn from './components/ControlBtn'
 import MiniProgress from './components/MiniProgress'
 
+const BAR_HEIGHT = 56
+const BAR_RADIUS = 14
+
 /**
- * Apple Music 风格迷你播放条：悬浮圆角卡片 + 圆角封面 + 歌名/歌手（播放时显示歌词）+ 播放暂停/下一首 + 底部细进度线
- * 位于底部标签栏上方（宽屏时位于内容区底部）
- * 交互保持不变：点击封面/歌名打开全屏播放页，长按定位到列表；可按设置拖动进度、键盘弹出时自动隐藏
+ * Apple Music 风格迷你播放条：轻盈悬浮圆角胶囊卡片 + 40x40 圆角封面 + 歌名/副标题 + 精致播控 + 底部细进度线
  */
 export default memo(({ isHome = false }: { isHome?: boolean }) => {
   const { keyboardShown } = useKeyboard()
@@ -34,9 +35,9 @@ export default memo(({ isHome = false }: { isHome?: boolean }) => {
     <View style={styles.wrapper}>
       <View style={{
         ...styles.card,
-        backgroundColor: apple.sheetBackground,
-        borderColor: apple.separator,
-        shadowColor: apple.mask,
+        backgroundColor: apple.isDark ? '#1C1C1E' : 'rgba(255, 255, 255, 0.96)',
+        borderWidth: apple.isDark ? 1 : 0,
+        borderColor: apple.isDark ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
       }}>
         <Artwork isHome={isHome} />
         <Info autoUpdate={autoUpdate} />
@@ -52,24 +53,24 @@ export default memo(({ isHome = false }: { isHome?: boolean }) => {
 const styles = createStyle({
   wrapper: {
     width: '100%',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: 10,
     paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
+    paddingBottom: 6,
   },
   card: {
     width: '100%',
-    height: size.miniPlayer,
-    paddingLeft: (size.miniPlayer - size.songArtwork) / 2,
+    height: BAR_HEIGHT,
+    paddingLeft: (BAR_HEIGHT - 40) / 2,
     paddingRight: spacing.xs,
-    borderRadius: radius.alert,
-    borderWidth: hairline,
+    borderRadius: BAR_RADIUS,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
-    elevation: 8,
-    shadowOpacity: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   controls: {
     flexDirection: 'row',

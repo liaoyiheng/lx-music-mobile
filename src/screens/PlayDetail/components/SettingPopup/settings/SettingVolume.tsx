@@ -1,15 +1,13 @@
 import { useState } from 'react'
-
 import { View } from 'react-native'
-import { useApple } from '@/theme/apple'
+import { fontSize, useApple } from '@/theme/apple'
 import Text from '@/components/common/Text'
 import { useSettingValue } from '@/store/setting/hook'
 import Slider, { type SliderProps } from '@/components/common/Slider'
 import { updateSetting } from '@/core/common'
 import { useI18n } from '@/lang'
-import styles from './style'
 import { setVolume } from '@/plugins/player'
-
+import styles from './style'
 
 const Volume = () => {
   const apple = useApple()
@@ -18,7 +16,7 @@ const Volume = () => {
   const [isSliding, setSliding] = useState(false)
   const t = useI18n()
 
-  const handleSlidingStart: SliderProps['onSlidingStart'] = value => {
+  const handleSlidingStart: SliderProps['onSlidingStart'] = () => {
     setSliding(true)
   }
   const handleValueChange: SliderProps['onValueChange'] = value => {
@@ -34,19 +32,23 @@ const Volume = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text>{t('play_detail_setting_volume')}</Text>
-      <View style={styles.content}>
-        <Text style={styles.label} color={apple.secondaryLabel}>{isSliding ? sliderSize : volume}</Text>
-        <Slider
-          minimumValue={0}
-          maximumValue={100}
-          onSlidingComplete={handleSlidingComplete}
-          onValueChange={handleValueChange}
-          onSlidingStart={handleSlidingStart}
-          step={1}
-          value={volume}
-        />
+    <View style={styles.section}>
+      <Text size={fontSize.footnote} color={apple.secondaryLabel} style={styles.sectionTitle}>
+        {t('play_detail_setting_volume')}
+      </Text>
+      <View style={{ ...styles.sliderCard, backgroundColor: apple.secondaryBackground }}>
+        <View style={styles.content}>
+          <Text size={fontSize.subhead} style={styles.label} color={apple.secondaryLabel}>{isSliding ? sliderSize : volume}</Text>
+          <Slider
+            minimumValue={0}
+            maximumValue={100}
+            onSlidingComplete={handleSlidingComplete}
+            onValueChange={handleValueChange}
+            onSlidingStart={handleSlidingStart}
+            step={1}
+            value={volume}
+          />
+        </View>
       </View>
     </View>
   )

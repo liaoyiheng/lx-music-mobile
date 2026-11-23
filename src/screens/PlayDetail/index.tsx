@@ -1,24 +1,27 @@
 // Modified for Apple Music style UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Animated, AppState, PanResponder, View, type LayoutChangeEvent } from 'react-native'
+import { Animated, AppState, PanResponder, StatusBar, TouchableOpacity, View, type LayoutChangeEvent } from 'react-native'
 import PagerView, { type PagerViewOnPageSelectedEvent } from 'react-native-pager-view'
 import { Navigation } from 'react-native-navigation'
 import PageContent from '@/components/PageContent'
-import StatusBar from '@/components/common/StatusBar'
+import Image from '@/components/common/Image'
+import Text from '@/components/common/Text'
+import { IonIcon } from '@/components/common/Icon'
 import { setComponentId } from '@/core/common'
 import { COMPONENT_IDS, NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
 import { pop } from '@/navigation'
 import commonState, { type InitState as CommonState } from '@/store/common/state'
 import { useStatusbarHeight } from '@/store/common/hook'
+import { usePlayerMusicInfo } from '@/store/player/hook'
 import { useHorizontalMode, useWindowSize } from '@/utils/hooks'
 import { screenkeepAwake, screenUnkeepAwake } from '@/utils/nativeModules/utils'
-import { useApple, radius, spacing, pagePadding } from '@/theme/apple'
+import { fontSize, fontWeight, pagePadding, radius, size, spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
 import Background from './components/Background'
 import Header from './components/Header'
 import Artwork from './components/Artwork'
-import TrackInfo from './components/TrackInfo'
+import TrackInfo, { MusicAddBtn } from './components/TrackInfo'
 import PlayProgress from './components/PlayProgress'
 import ControlBtns from './components/ControlBtns'
 import ActionBar from './components/ActionBar'
@@ -107,47 +110,78 @@ const useArtworkSize = (ratio: number) => {
   return { imageSize, onLayout }
 }
 
-const PageDots = ({ index }: { index: number }) => {
-  const apple = useApple()
+/** 歌词视图顶部紧凑歌曲行：44x44 小封面 + 歌名（白粗体）+ 歌手（半透明白），点击切回封面视图 */
+const LyricTrackHeader = memo(({ onBackToArtwork }: { onBackToArtwork: () => void }) => {
+  const musicInfo = usePlayerMusicInfo()
+
   return (
-    <View style={styles.dots} pointerEvents="none">
-      {[0, 1].map(i => <View key={i} style={{ ...styles.dot, backgroundColor: i == index ? apple.secondaryLabel : apple.quaternaryLabel }} />)}
+    <View style={styles.lyricHeader}>
+      <TouchableOpacity style={styles.lyricHeaderMain} activeOpacity={0.7} onPress={onBackToArtwork}>
+        {musicInfo.pic ? (
+          <Image url={musicInfo.pic} style={styles.miniArtwork} />
+        ) : (
+          <View style={styles.miniArtworkPlaceholder}>
+            <IonIcon name="musical-notes" size={18} color="rgba(255, 255, 255, 0.35)" />
+          </View>
+        )}
+        <View style={styles.miniTexts}>
+          <Text numberOfLines={1} size={fontSize.headline} color="#FFFFFF" style={styles.miniTitle}>{musicInfo.name}</Text>
+          <Text numberOfLines={1} size={fontSize.footnote} color="rgba(255, 255, 255, 0.68)" style={styles.miniSinger}>{musicInfo.singer}</Text>
+        </View>
+      </TouchableOpacity>
+      <MusicAddBtn />
     </View>
   )
-}
+})
 
-/** 竖屏：封面页 / 歌词页左右滑动，下方固定播放控制 */
+/** 竖屏：封面视图 / 歌词视图切换（支持底部歌词按钮或左右滑），下方固定播放控制 */
 const VerticalLayout = memo(({ componentId, panHandlers }: {
   componentId: string
   panHandlers: ReturnType<typeof usePullToClose>['panHandlers']
 }) => {
+  const pagerRef = useRef<PagerView>(null)
   const [pageIndex, setPageIndex] = useState(0)
   const [lyricInited, setLyricInited] = useState(false)
   const { imageSize, onLayout } = useArtworkSize(0.86)
   useLyricKeepAwake(pageIndex == 1)
 
-  const onPageSelected = ({ nativeEvent }: PagerViewOnPageSelectedEvent) => {
+  const onPageSelected = useCallback(({ nativeEvent }: PagerViewOnPageSelectedEvent) => {
     setPageIndex(nativeEvent.position)
     if (nativeEvent.position == 1) setLyricInited(true)
-  }
+  }, [])
+
+  const handleToggleLyric = useCallback(() => {
+    const next = pageIndex == 0 ? 1 : 0
+    if (next == 1) setLyricInited(true)
+    setPageIndex(next)
+    pagerRef.current?.setPage(next)
+  }, [pageIndex])
+
+  const handleBackToArtwork = useCallback(() => {
+    setPageIndex(0)
+    pagerRef.current?.setPage(0)
+  }, [])
+
   const lyric = useMemo(() => <Lyric direction="vertical" />, [])
 
   return (
     <>
-      <PagerView style={styles.pager} onPageSelected={onPageSelected}>
+      <PagerView ref={pagerRef} style={styles.pager} onPageSelected={onPageSelected}>
         <View collapsable={false} style={styles.page} onLayout={onLayout} {...panHandlers}>
           {imageSize ? <Artwork componentId={componentId} imageSize={imageSize} /> : null}
         </View>
-        <View collapsable={false} style={styles.page}>
-          {lyricInited ? lyric : null}
+        <View collapsable={false} style={styles.lyricPage}>
+          <LyricTrackHeader onBackToArtwork={handleBackToArtwork} />
+          <View style={styles.lyricBody}>
+            {lyricInited ? lyric : null}
+          </View>
         </View>
       </PagerView>
-      <PageDots index={pageIndex} />
       <View style={styles.player} nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_player}>
-        <TrackInfo />
+        {pageIndex == 0 ? <TrackInfo /> : null}
         <PlayProgress />
         <ControlBtns />
-        <ActionBar />
+        <ActionBar lyricActive={pageIndex == 1} onToggleLyric={handleToggleLyric} />
       </View>
     </>
   )
@@ -201,7 +235,7 @@ export default ({ componentId }: { componentId: string }) => {
 
   return (
     <PageContent>
-      <StatusBar />
+      <StatusBar backgroundColor="rgba(0,0,0,0)" barStyle="light-content" translucent={true} />
       <Animated.View style={{ ...styles.root, transform: [{ translateY }] }}>
         <Background />
         <View style={{ ...styles.container, paddingTop: statusBarHeight }}>
@@ -234,16 +268,48 @@ const styles = createStyle({
   page: {
     flex: 1,
   },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
+  lyricPage: {
+    flex: 1,
   },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: radius.pill,
-    marginHorizontal: spacing.xs,
+  lyricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: pagePadding * 1.5,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+  },
+  lyricHeaderMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: spacing.md,
+  },
+  miniArtwork: {
+    width: size.songArtwork,
+    height: size.songArtwork,
+    borderRadius: radius.small,
+  },
+  miniArtworkPlaceholder: {
+    width: size.songArtwork,
+    height: size.songArtwork,
+    borderRadius: radius.small,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  miniTexts: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  miniTitle: {
+    fontWeight: fontWeight.bold,
+  },
+  miniSinger: {
+    marginTop: 2,
+  },
+  lyricBody: {
+    flex: 1,
+    overflow: 'hidden',
   },
   player: {
     paddingHorizontal: pagePadding * 1.5,

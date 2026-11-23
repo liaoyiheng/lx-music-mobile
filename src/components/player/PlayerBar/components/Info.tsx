@@ -11,7 +11,7 @@ import { jumpToPlayingPosition, openPlayDetail } from '../utils'
 
 /**
  * 歌名 + 副标题
- * 副标题优先显示播放状态（加载中、出错等），播放时显示当前歌词，否则显示歌手
+ * 未播放时显示柔和灰色「未在播放」；播放时副标题优先显示状态，其次歌词或歌手
  */
 export default memo(({ autoUpdate }: { autoUpdate: boolean }) => {
   const apple = useApple()
@@ -26,17 +26,23 @@ export default memo(({ autoUpdate }: { autoUpdate: boolean }) => {
     openPlayDetail()
   }
 
-  const subtitle = musicInfo.id
+  const hasTrack = !!musicInfo.id
+  const subtitle = hasTrack
     ? statusText || (isPlay && lyricText ? lyricText : musicInfo.singer)
     : ''
 
   return (
     <TouchableOpacity style={styles.container} onPress={handlePress} onLongPress={jumpToPlayingPosition} activeOpacity={0.7}>
-      <Text numberOfLines={1} size={fontSize.subhead} color={apple.label} style={styles.title}>
-        {musicInfo.id ? musicInfo.name : t('apple_player_not_playing')}
+      <Text
+        numberOfLines={1}
+        size={fontSize.subhead}
+        color={hasTrack ? apple.label : apple.secondaryLabel}
+        style={hasTrack ? styles.title : styles.idleTitle}
+      >
+        {hasTrack ? musicInfo.name : t('apple_player_not_playing')}
       </Text>
       {subtitle
-        ? <Text numberOfLines={1} size={fontSize.footnote} color={apple.secondaryLabel} style={styles.subtitle}>{subtitle}</Text>
+        ? <Text numberOfLines={1} size={fontSize.caption1} color={apple.secondaryLabel} style={styles.subtitle}>{subtitle}</Text>
         : null}
     </TouchableOpacity>
   )
@@ -51,6 +57,9 @@ const styles = createStyle({
   },
   title: {
     fontWeight: fontWeight.semibold,
+  },
+  idleTitle: {
+    fontWeight: fontWeight.medium,
   },
   subtitle: {
     marginTop: spacing.xxs,
