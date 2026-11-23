@@ -531,5 +531,11 @@
   "apple_player_play": "Play",
   "apple_player_pause": "Pause",
   "apple_player_prev": "Previous",
-  "apple_player_next": "Next"
+  "apple_player_next": "Next",
+  "apple_comment_loading": "Loading Comments…",
+  "apple_comment_empty": "No Comments",
+  "apple_comment_error": "Couldn’t Load Comments",
+  "apple_comment_retry": "Try Again",
+  "apple_comment_end": "No More Comments",
+  "apple_comment_load_more_error": "Couldn’t load. Tap to try again."
 }

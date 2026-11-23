@@ -531,5 +531,11 @@
   "apple_player_play": "播放",
   "apple_player_pause": "暫停",
   "apple_player_prev": "上一首",
-  "apple_player_next": "下一首"
+  "apple_player_next": "下一首",
+  "apple_comment_loading": "正在載入評論…",
+  "apple_comment_empty": "暫無評論",
+  "apple_comment_error": "評論載入失敗",
+  "apple_comment_retry": "重試",
+  "apple_comment_end": "沒有更多評論了",
+  "apple_comment_load_more_error": "載入失敗，輕點重試"
 }

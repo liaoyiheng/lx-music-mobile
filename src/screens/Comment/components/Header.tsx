@@ -3,22 +3,23 @@ import { View, TouchableOpacity } from 'react-native'
 
 import { Icon } from '@/components/common/Icon'
 import { pop } from '@/navigation'
-// import { AppColors } from '@/theme'
 import StatusBar from '@/components/common/StatusBar'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
-import { HEADER_HEIGHT as _HEADER_HEIGHT } from '@/config/constant'
-import { scaleSizeH } from '@/utils/pixelRatio'
 import commonState from '@/store/common/state'
 import { useStatusbarHeight } from '@/store/common/hook'
+import { useApple, fontSize, fontWeight, hairline, size, spacing } from '@/theme/apple'
 
-const HEADER_HEIGHT = scaleSizeH(_HEADER_HEIGHT)
-
-export default memo(({ musicInfo }: {
+/**
+ * Apple Music 风格导航栏：左侧「‹ 返回」，居中歌曲名 + 歌手，右侧刷新按钮
+ */
+export default memo(({ musicInfo, onRefresh }: {
   musicInfo: LX.Music.MusicInfo
+  onRefresh?: () => void
 }) => {
   const t = useI18n()
+  const apple = useApple()
   const statusBarHeight = useStatusbarHeight()
 
   const back = () => {
@@ -26,43 +27,76 @@ export default memo(({ musicInfo }: {
   }
 
   return (
-    <View style={{ height: HEADER_HEIGHT + statusBarHeight, paddingTop: statusBarHeight }}>
+    <View style={{ paddingTop: statusBarHeight, backgroundColor: apple.background, borderBottomColor: apple.separator, borderBottomWidth: hairline }}>
       <StatusBar />
-      <View style={{ ...styles.container }}>
-        <TouchableOpacity onPress={back} style={{ ...styles.button, width: HEADER_HEIGHT }}>
-          <Icon name="chevron-left" size={18} />
+      <View style={styles.bar}>
+        <View style={styles.titleWrap} pointerEvents="none">
+          <Text numberOfLines={1} size={fontSize.headline} color={apple.label} style={styles.title}>{musicInfo.name}</Text>
+          {
+            musicInfo.singer
+              ? <Text numberOfLines={1} size={fontSize.caption1} color={apple.secondaryLabel} style={styles.subtitle}>{musicInfo.singer}</Text>
+              : null
+          }
+        </View>
+        <TouchableOpacity style={styles.back} activeOpacity={0.5} onPress={back}>
+          <Icon name="chevron-left" size={18} color={apple.accent} />
+          <Text style={styles.backText} size={fontSize.body} color={apple.accent} numberOfLines={1}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text numberOfLines={1} size={16} style={styles.title}>{t('comment_title', { name: musicInfo.name, singer: musicInfo.singer })}</Text>
-        {/* <TouchableOpacity onPress={back} style={{ ...styles.button }}>
-          <Icon name="available_updates" style={{ color: theme.normal }} size={24} />
-        </TouchableOpacity> */}
+        <View style={styles.flex} />
+        {
+          onRefresh
+            ? (
+                <TouchableOpacity style={styles.iconBtn} activeOpacity={0.5} onPress={onRefresh}>
+                  <Icon name="available_updates" size={20} color={apple.accent} />
+                </TouchableOpacity>
+              )
+            : null
+        }
       </View>
     </View>
   )
 })
 
-
 const styles = createStyle({
-  container: {
+  bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: '100%',
-    paddingRight: 40,
-    // backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    height: size.hitTarget,
+    paddingHorizontal: spacing.xs,
   },
-  button: {
-    // paddingLeft: 10,
-    // paddingRight: 10,
-    width: '100%',
-    justifyContent: 'center',
+  titleWrap: {
+    position: 'absolute',
+    left: size.hitTarget * 2,
+    right: size.hitTarget * 2,
+    top: 0,
+    bottom: 0,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    flex: 1,
+    fontWeight: fontWeight.semibold,
     textAlign: 'center',
   },
-  icon: {
-    paddingLeft: 4,
-    paddingRight: 4,
+  subtitle: {
+    textAlign: 'center',
+  },
+  back: {
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: spacing.xs,
+    paddingRight: spacing.sm,
+  },
+  backText: {
+    marginLeft: spacing.xxs,
+  },
+  flex: {
+    flex: 1,
+  },
+  iconBtn: {
+    width: size.hitTarget,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 })

@@ -2,18 +2,19 @@ import { memo, useMemo, useState } from 'react'
 import { TouchableOpacity, View } from 'react-native'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, fontSize as appleFontSize, fontWeight, spacing } from '@/theme/apple'
 
 const TEXT_LIMIT = 160
 const SUB_TEXT_LIMIT = TEXT_LIMIT * 1.2
-// const CHAR_RXP = /\n/g
 
-export default memo(({ text }: { text: string }) => {
+/**
+ * 评论正文：超长时折叠，点击「展开 / 收起」切换
+ */
+export default memo(({ text, size = appleFontSize.callout }: { text: string, size?: number }) => {
   const [show, setShow] = useState(false)
-  const theme = useTheme()
+  const apple = useApple()
 
   const length = useMemo(() => {
-    // text.length + (text.match(CHAR_RXP)?.length ?? 0) * 40
     let count = 0
     let bCount = 0
     let subLength = 0
@@ -32,29 +33,34 @@ export default memo(({ text }: { text: string }) => {
     return 0
   }, [text])
 
+  const textStyle = { ...styles.text, lineHeight: Math.round(size * 1.35) }
+
   return (
     length ? (
       <View>
         {
-          show ? <Text selectable style={styles.text}>{text}</Text>
-            : <Text selectable style={styles.text}>{text.substring(0, length)} <Text color={theme['c-font-label']}>……</Text></Text>
+          show
+            ? <Text selectable style={textStyle} size={size} color={apple.label}>{text}</Text>
+            : <Text selectable style={textStyle} size={size} color={apple.label}>{text.substring(0, length)} <Text size={size} color={apple.secondaryLabel}>……</Text></Text>
         }
-        <TouchableOpacity style={styles.toggle} onPress={() => { setShow(!show) }}>
-          <Text color={theme['c-primary-font']}>{show ? global.i18n.t('comment_hide_text') : global.i18n.t('comment_show_text')}</Text>
+        <TouchableOpacity style={styles.toggle} activeOpacity={0.5} onPress={() => { setShow(!show) }}>
+          <Text size={appleFontSize.subhead} color={apple.accent} style={styles.toggleText}>{show ? global.i18n.t('comment_hide_text') : global.i18n.t('comment_show_text')}</Text>
         </TouchableOpacity>
-
       </View>
-    ) : <Text selectable style={styles.text}>{text}</Text>
+    ) : <Text selectable style={textStyle} size={size} color={apple.label}>{text}</Text>
   )
 })
 
 const styles = createStyle({
   text: {
-    marginTop: 5,
-    lineHeight: 19,
+    marginTop: spacing.xs,
   },
   toggle: {
-    marginTop: 15,
-    alignSelf: 'flex-end',
+    marginTop: spacing.xs,
+    paddingVertical: spacing.xs,
+    alignSelf: 'flex-start',
+  },
+  toggleText: {
+    fontWeight: fontWeight.medium,
   },
 })

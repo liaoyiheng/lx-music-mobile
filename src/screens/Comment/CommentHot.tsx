@@ -46,7 +46,13 @@ export default ({ musicInfo, onUpdateTotal }: {
     const list = listRef.current?.getList() ?? []
     const page = list.length ? listInfo.current.page + 1 : 1
     listRef.current?.setStatus('loading')
-    void handleGetComment(musicInfo, page).then(({ comments }) => {
+    void handleGetComment(musicInfo, page).then(({ comments, maxPage, total }) => {
+      // 首次加载失败后重试时，从第 1 页结果更新总数和页数
+      if (page == 1) {
+        listInfo.current.total = total
+        listInfo.current.maxPage = maxPage
+        onUpdateTotal(total)
+      }
       let isEnd = page >= listInfo.current.maxPage
       if (listInfo.current.isEnd != isEnd) listInfo.current.isEnd = isEnd
       listRef.current?.setList(filterList([...listRef.current.getList(), ...comments]))
@@ -85,7 +91,7 @@ export default ({ musicInfo, onUpdateTotal }: {
         listRef.current?.setList(filterList(comments))
         setTimeout(updateStatus, 300)
       }, 300)
-    })
+    }).catch(updateStatus)
   }
 
   useEffect(() => {
