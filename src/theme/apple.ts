@@ -201,6 +201,10 @@ export const size = {
   settingRow: 44,
   /** 图标按钮点击区域 */
   hitTarget: 44,
+  /** 歌单详情页大封面边长 */
+  detailArtwork: 240,
+  /** 播放 / 随机播放按钮组最大宽度（宽屏） */
+  actionBarMaxWidth: 360,
   /** 宽屏判断阈值 */
   wideBreakpoint: 768,
 } as const
