@@ -32,7 +32,7 @@ export const SwitchRow = memo(({
       <TouchableOpacity
         activeOpacity={0.7}
         disabled={disabled}
-        onPress={() => onValueChange(!value)}
+        onPress={() => { onValueChange(!value) }}
         style={[styles.row, { paddingHorizontal: horizontalPadding }]}
       >
         <View style={styles.textCol}>
