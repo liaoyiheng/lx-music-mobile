@@ -1,70 +1,108 @@
-import { useEffect, useRef } from 'react'
-import settingState from '@/store/setting/state'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { View } from 'react-native'
 import MusicList from './MusicList'
 import MyList from './MyList'
-import { useTheme } from '@/store/theme/hook'
-import DrawerLayoutFixed, { type DrawerLayoutFixedType } from '@/components/common/DrawerLayoutFixed'
-import { COMPONENT_IDS } from '@/config/constant'
-import { scaleSizeW } from '@/utils/pixelRatio'
-import type { InitState as CommonState } from '@/store/common/state'
+import { useHorizontalMode } from '@/utils/hooks'
+import { useBackHandler } from '@/utils/hooks/useBackHandler'
+import commonState from '@/store/common/state'
+import { useStatusbarHeight } from '@/store/common/hook'
+import { useApple, hairline } from '@/theme/apple'
+import { createStyle } from '@/utils/tools'
 
-const MAX_WIDTH = scaleSizeW(400)
+type Mode = 'lists' | 'songs'
 
+const LISTS_PANE_WIDTH = 320
+
+/**
+ * 资料库
+ * 竖屏：先显示「我的列表」，点进某个列表后显示歌曲，返回键 / 左上角返回回到列表
+ * 宽屏：左边列表、右边歌曲
+ *
+ * 歌曲页始终保持布局（列表页盖在上面），保证「定位到当前歌曲」能正常滚动
+ */
 export default () => {
-  const drawer = useRef<DrawerLayoutFixedType>(null)
-  const theme = useTheme()
-  // const [width, setWidth] = useState(0)
+  const apple = useApple()
+  const isWide = useHorizontalMode()
+  const statusBarHeight = useStatusbarHeight()
+  const [mode, setMode] = useState<Mode>(global.lx.jumpMyListPosition ? 'songs' : 'lists')
+  const modeRef = useRef(mode)
+  modeRef.current = mode
 
   useEffect(() => {
-    const handleFixDrawer = (id: CommonState['navActiveId']) => {
-      if (id == 'nav_love') drawer.current?.fixWidth()
-    }
+    // 沿用原版事件：true = 显示列表，false = 显示歌曲
     const changeVisible = (visible: boolean) => {
-      if (visible) {
-        requestAnimationFrame(() => {
-          drawer.current?.openDrawer()
-        })
-      } else {
-        drawer.current?.closeDrawer()
-      }
+      setMode(visible ? 'lists' : 'songs')
     }
-
-    // setWidth(getWindowSise().width * 0.82)
-
-    global.state_event.on('navActiveIdUpdated', handleFixDrawer)
+    const handleJump = () => {
+      setMode('songs')
+    }
     global.app_event.on('changeLoveListVisible', changeVisible)
-
-    // 就放旋转屏幕后的宽度没有更新的问题
-    // const changeEvent = onDimensionChange(({ window }) => {
-    //   setWidth(window.width * 0.82)
-    //   drawer.current?.setNativeProps({
-    //     width: window.width,
-    //   })
-    // })
-
+    global.app_event.on('jumpListPosition', handleJump)
     return () => {
-      global.state_event.off('navActiveIdUpdated', handleFixDrawer)
       global.app_event.off('changeLoveListVisible', changeVisible)
-    // changeEvent.remove()
+      global.app_event.off('jumpListPosition', handleJump)
     }
   }, [])
 
-  const navigationView = () => <MyList />
-  // console.log('render drawer content')
+  useBackHandler(useCallback(() => {
+    if (isWide || modeRef.current != 'songs') return false
+    if (Object.keys(commonState.componentIds).length != 1 || commonState.navActiveId != 'nav_love') return false
+    setMode('lists')
+    return true
+  }, [isWide]))
+
+  if (isWide) {
+    return (
+      <View style={styles.row}>
+        <View style={{ ...styles.listsPane, borderRightColor: apple.separator, backgroundColor: apple.background }}>
+          <MyList />
+        </View>
+        <View style={{ ...styles.songsPane, paddingTop: statusBarHeight }}>
+          <MusicList />
+        </View>
+      </View>
+    )
+  }
 
   return (
-    <DrawerLayoutFixed
-      ref={drawer}
-      visibleNavNames={[COMPONENT_IDS.home]}
-      // drawerWidth={width}
-      widthPercentage={0.82}
-      widthPercentageMax={MAX_WIDTH}
-      drawerPosition={settingState.setting['common.drawerLayoutPosition']}
-      renderNavigationView={navigationView}
-      drawerBackgroundColor={theme['c-content-background']}
-      style={{ elevation: 1 }}
-    >
-      <MusicList />
-    </DrawerLayoutFixed>
+    <View style={styles.container}>
+      <View style={{ ...styles.container, paddingTop: statusBarHeight }}>
+        <MusicList />
+      </View>
+      <View
+        style={mode == 'lists' ? { ...styles.overlay, backgroundColor: apple.background } : styles.hidden}
+        pointerEvents={mode == 'lists' ? 'auto' : 'none'}
+      >
+        <MyList />
+      </View>
+    </View>
   )
 }
+
+const styles = createStyle({
+  container: {
+    flex: 1,
+  },
+  row: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  listsPane: {
+    width: LISTS_PANE_WIDTH,
+    borderRightWidth: hairline,
+  },
+  songsPane: {
+    flex: 1,
+  },
+  overlay: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 5,
+  },
+  hidden: {
+    display: 'none',
+  },
+})

@@ -2,21 +2,28 @@ import { memo, useEffect, useRef } from 'react'
 import { View, TouchableOpacity, FlatList, type NativeScrollEvent, type NativeSyntheticEvent, type FlatListProps } from 'react-native'
 
 import { Icon } from '@/components/common/Icon'
-
-import { useTheme } from '@/store/theme/hook'
 import { useActiveListId, useListFetching, useMyList } from '@/store/list/hook'
 import { createStyle } from '@/utils/tools'
-import { LIST_SCROLL_POSITION_KEY } from '@/config/constant'
+import { LIST_IDS, LIST_SCROLL_POSITION_KEY } from '@/config/constant'
 import { getListPosition, saveListPosition } from '@/utils/data'
 import { setActiveList } from '@/core/list'
 import Text from '@/components/common/Text'
 import { type Position } from './ListMenu'
-import { scaleSizeH } from '@/utils/pixelRatio'
 import Loading from '@/components/common/Loading'
+import { useApple, fontSize, hairline, pagePadding, radius, spacing } from '@/theme/apple'
 
 type FlatListType = FlatListProps<LX.List.MyListInfo>
 
-const ITEM_HEIGHT = scaleSizeH(40)
+const ITEM_HEIGHT = 64
+const ARTWORK_SIZE = 48
+
+const getListIcon = (id: string) => {
+  switch (id) {
+    case LIST_IDS.LOVE: return 'love'
+    case LIST_IDS.DEFAULT: return 'music_time'
+    default: return 'album'
+  }
+}
 
 const ListItem = memo(({ item, index, activeId, onPress, onShowMenu }: {
   onPress: (item: LX.List.MyListInfo) => void
@@ -25,7 +32,7 @@ const ListItem = memo(({ item, index, activeId, onPress, onShowMenu }: {
   item: LX.List.MyListInfo
   onShowMenu: (item: LX.List.MyListInfo, index: number, position: { x: number, y: number, w: number, h: number }) => void
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const moreButtonRef = useRef<TouchableOpacity>(null)
   const fetching = useListFetching(item.id)
 
@@ -34,7 +41,6 @@ const ListItem = memo(({ item, index, activeId, onPress, onShowMenu }: {
   const handleShowMenu = () => {
     if (moreButtonRef.current?.measure) {
       moreButtonRef.current.measure((fx, fy, width, height, px, py) => {
-        // console.log(fx, fy, width, height, px, py)
         onShowMenu(item, index, { x: Math.ceil(px), y: Math.ceil(py), w: Math.ceil(width), h: Math.ceil(height) })
       })
     }
@@ -46,18 +52,17 @@ const ListItem = memo(({ item, index, activeId, onPress, onShowMenu }: {
 
   return (
     <View style={{ ...styles.listItem, height: ITEM_HEIGHT }}>
-      {
-        active
-          ? <Icon style={styles.listActiveIcon} name="chevron-right" size={12} color={theme['c-primary-font']} />
-          : null
-      }
-      { fetching ? <Loading color={active ? theme['c-primary-font'] : theme['c-font']} style={styles.loading} /> : null }
-      <TouchableOpacity style={styles.listName} onPress={handlePress}>
-        <Text numberOfLines={1} color={active ? theme['c-primary-font'] : theme['c-font']}>{item.name}</Text>
+      <TouchableOpacity style={styles.main} activeOpacity={0.6} onPress={handlePress}>
+        <View style={{ ...styles.artwork, backgroundColor: apple.fill }}>
+          <Icon name={getListIcon(item.id)} size={20} color={apple.accent} />
+        </View>
+        <Text style={styles.name} size={fontSize.callout} numberOfLines={1} color={active ? apple.accent : apple.label}>{item.name}</Text>
+        {fetching ? <Loading color={apple.secondaryLabel} style={styles.loading} /> : null}
       </TouchableOpacity>
-      <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.listMoreBtn}>
-        <Icon name="dots-vertical" color={theme['c-350']} size={12} />
+      <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreBtn}>
+        <Icon name="dots-vertical" color={apple.secondaryLabel} size={14} />
       </TouchableOpacity>
+      <View pointerEvents="none" style={{ ...styles.separator, backgroundColor: apple.separator }} />
     </View>
   )
 }, (prevProps, nextProps) => {
@@ -69,7 +74,6 @@ const ListItem = memo(({ item, index, activeId, onPress, onShowMenu }: {
   )
 })
 
-
 export default ({ onShowMenu }: {
   onShowMenu: (info: { listInfo: LX.List.MyListInfo, index: number }, position: Position) => void
 }) => {
@@ -78,13 +82,12 @@ export default ({ onShowMenu }: {
   const activeListId = useActiveListId()
 
   const handleToggleList = (item: LX.List.MyListInfo) => {
-    // setVisiblePanel(false)
+    // 切到歌曲页
     global.app_event.changeLoveListVisible(false)
     requestAnimationFrame(() => {
       setActiveList(item.id)
     })
   }
-
 
   const handleScroll = ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
     void saveListPosition(LIST_SCROLL_POSITION_KEY, nativeEvent.contentOffset.y)
@@ -122,69 +125,56 @@ export default ({ onShowMenu }: {
       style={styles.container}
       data={allList}
       maxToRenderPerBatch={9}
-      // updateCellsBatchingPeriod={80}
       windowSize={9}
       removeClippedSubviews={true}
-      initialNumToRender={18}
+      initialNumToRender={14}
       renderItem={renderItem}
       keyExtractor={getkey}
-      // extraData={activeIndex}
       getItemLayout={getItemLayout}
     />
   )
 }
 
-
 const styles = createStyle({
   container: {
-    flexShrink: 1,
-    flexGrow: 0,
+    flex: 1,
   },
-  // listContainer: {
-  //   // borderBottomWidth: BorderWidths.normal2,
-  // },
-
   listItem: {
-    height: 'auto',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingRight: 5,
-    paddingLeft: 5,
-    // borderBottomWidth: BorderWidths.normal,
+    paddingLeft: pagePadding,
   },
-  listActiveIcon: {
-    // width: 18,
-    marginLeft: 3,
-    // paddingRight: 5,
-    textAlign: 'center',
+  main: {
+    flex: 1,
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  artwork: {
+    width: ARTWORK_SIZE,
+    height: ARTWORK_SIZE,
+    borderRadius: radius.small,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  name: {
+    flex: 1,
+    marginLeft: spacing.md,
   },
   loading: {
-    marginLeft: 5,
+    marginLeft: spacing.sm,
   },
-  listName: {
+  moreBtn: {
     height: '100%',
-    // height: 46,
-    // paddingTop: 12,
-    // paddingBottom: 12,
-    justifyContent: 'center',
-    flexGrow: 1,
-    flexShrink: 1,
-    paddingLeft: 5,
-    // backgroundColor: 'rgba(0,0,0,0.1)',
-  },
-  // listNameText: {
-  //   // height: 46,
-  //   fontSize: 14,
-  // },
-  listMoreBtn: {
-    height: '100%',
-    width: 36,
-    // height: 46,
-    // paddingTop: 12,
-    // paddingBottom: 12,
+    width: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    // backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  separator: {
+    position: 'absolute',
+    left: pagePadding + ARTWORK_SIZE + spacing.md,
+    right: 0,
+    bottom: 0,
+    height: hairline,
   },
 })
-

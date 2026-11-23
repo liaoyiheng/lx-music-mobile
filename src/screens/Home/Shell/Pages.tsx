@@ -15,15 +15,7 @@ import SearchTypeSelector from '../Views/Search/SearchTypeSelector'
 import KeepAlive from './KeepAlive'
 import type { BrowseId } from './tabs'
 
-export const LibraryPage = memo(() => {
-  const t = useI18n()
-  return (
-    <>
-      <LargeTitle title={t('apple_tab_library')} />
-      <View style={styles.body}><Mylist /></View>
-    </>
-  )
-})
+export const LibraryPage = memo(() => <View style={styles.body}><Mylist /></View>)
 
 export const SearchPage = memo(() => {
   const t = useI18n()

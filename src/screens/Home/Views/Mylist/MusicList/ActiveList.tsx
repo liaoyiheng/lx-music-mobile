@@ -1,18 +1,16 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
-import { TouchableOpacity } from 'react-native'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
+import { TouchableOpacity, View } from 'react-native'
 
 import { Icon } from '@/components/common/Icon'
-import { BorderWidths } from '@/theme'
-import { useTheme } from '@/store/theme/hook'
 import { useActiveListId, useListFetching } from '@/store/list/hook'
-import listState from '@/store/list/state'
 import { createStyle } from '@/utils/tools'
 import { getListPrevSelectId } from '@/utils/data'
 import { setActiveList } from '@/core/list'
 import Text from '@/components/common/Text'
-import { LIST_IDS } from '@/config/constant'
 import Loading from '@/components/common/Loading'
-import { useSettingValue } from '@/store/setting/hook'
+import { useHorizontalMode } from '@/utils/hooks'
+import { useI18n } from '@/lang'
+import { useApple, fontSize, size, spacing } from '@/theme/apple'
 
 export interface ActiveListProps {
   onShowSearchBar: () => void
@@ -22,24 +20,18 @@ export interface ActiveListType {
   setVisibleBar: (visible: boolean) => void
 }
 
+export const NAV_BAR_HEIGHT = size.hitTarget
+
+/**
+ * 歌曲页导航栏：左侧「‹ 资料库」返回（宽屏不显示），右侧列表内搜索
+ * 长按导航栏回到顶部（沿用原版）
+ */
 export default forwardRef<ActiveListType, ActiveListProps>(({ onShowSearchBar, onScrollToTop }, ref) => {
-  const theme = useTheme()
+  const apple = useApple()
+  const t = useI18n()
+  const isWide = useHorizontalMode()
   const currentListId = useActiveListId()
   const fetching = useListFetching(currentListId)
-  const langId = useSettingValue('common.langId')
-  const currentListName = useMemo(() => {
-    switch (currentListId) {
-      case LIST_IDS.TEMP:
-        return global.i18n.t('list_name_temp')
-      case LIST_IDS.DEFAULT:
-        return global.i18n.t('list_name_default')
-      case LIST_IDS.LOVE:
-        return global.i18n.t('list_name_love')
-      default:
-        return listState.allList.find(l => l.id === currentListId)?.name ?? ''
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentListId, langId])
   const [visibleBar, setVisibleBar] = useState(true)
 
   useImperativeHandle(ref, () => ({
@@ -59,49 +51,56 @@ export default forwardRef<ActiveListType, ActiveListProps>(({ onShowSearchBar, o
   }, [])
 
   return (
-    <TouchableOpacity onPress={showList} onLongPress={onScrollToTop} style={{ ...styles.currentList, opacity: visibleBar ? 1 : 0, borderBottomColor: theme['c-border-background'] }}>
-      <Icon style={styles.currentListIcon} color={theme['c-button-font']} name="chevron-right" size={12} />
-      { fetching ? <Loading color={theme['c-button-font']} style={styles.loading} /> : null }
-      <Text style={styles.currentListText} numberOfLines={1} color={theme['c-button-font']}>{currentListName}</Text>
-      <TouchableOpacity style={styles.currentListBtns} onPress={onShowSearchBar}>
-        <Icon color={theme['c-button-font']} name="search-2" />
+    <TouchableOpacity
+      activeOpacity={1}
+      onLongPress={onScrollToTop}
+      style={{ ...styles.bar, opacity: visibleBar ? 1 : 0 }}
+    >
+      {
+        isWide
+          ? <View style={styles.flex} />
+          : (
+              <TouchableOpacity style={styles.back} activeOpacity={0.5} onPress={showList}>
+                <Icon name="chevron-left" size={18} color={apple.accent} />
+                <Text style={styles.backText} size={fontSize.body} color={apple.accent} numberOfLines={1}>{t('apple_tab_library')}</Text>
+              </TouchableOpacity>
+            )
+      }
+      {fetching ? <Loading color={apple.secondaryLabel} style={styles.loading} /> : null}
+      <TouchableOpacity style={styles.iconBtn} activeOpacity={0.5} onPress={onShowSearchBar}>
+        <Icon color={apple.accent} name="search-2" size={18} />
       </TouchableOpacity>
     </TouchableOpacity>
   )
 })
 
-
 const styles = createStyle({
-  currentList: {
+  bar: {
     flexDirection: 'row',
-    paddingRight: 2,
-    height: 36,
+    height: NAV_BAR_HEIGHT,
     alignItems: 'center',
-    borderBottomWidth: BorderWidths.normal,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
+    paddingHorizontal: spacing.xs,
   },
-  currentListIcon: {
-    paddingLeft: 15,
-    paddingRight: 10,
-    // paddingTop: 10,
-    // paddingBottom: 0,
-  },
-  currentListText: {
+  flex: {
     flex: 1,
-    // minWidth: 70,
-    // paddingLeft: 10,
-    paddingRight: 10,
-    // paddingTop: 10,
-    // paddingBottom: 10,
+  },
+  back: {
+    flex: 1,
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: spacing.xs,
+  },
+  backText: {
+    marginLeft: spacing.xxs,
   },
   loading: {
-    marginRight: 5,
+    marginRight: spacing.sm,
   },
-  currentListBtns: {
-    width: 46,
+  iconBtn: {
+    width: size.hitTarget,
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    height: '100%',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
   },
 })

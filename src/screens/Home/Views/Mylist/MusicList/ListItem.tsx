@@ -1,17 +1,17 @@
 import { memo, useRef } from 'react'
 import { View, TouchableOpacity } from 'react-native'
 import { LIST_ITEM_HEIGHT } from '@/config/constant'
-// import { BorderWidths } from '@/theme'
 import { Icon } from '@/components/common/Icon'
 import { createStyle, type RowInfo } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
 import { useAssertApiSupport } from '@/store/common/hook'
 import { scaleSizeH } from '@/utils/pixelRatio'
 import Text from '@/components/common/Text'
 import Badge from '@/components/common/Badge'
+import { useApple, fontSize, hairline } from '@/theme/apple'
 
 export const ITEM_HEIGHT = scaleSizeH(LIST_ITEM_HEIGHT)
 
+const SN_WIDTH = 44
 
 export default memo(({ item, index, activeIndex, onPress, onShowMenu, onLongPress, selectedList, rowInfo, isShowAlbumName, isShowInterval }: {
   item: LX.Music.MusicInfo
@@ -25,16 +25,14 @@ export default memo(({ item, index, activeIndex, onPress, onShowMenu, onLongPres
   isShowAlbumName: boolean
   isShowInterval: boolean
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
 
   const isSelected = selectedList.includes(item)
-  // console.log(item.name, selectedList, selectedList.includes(item))
   const isSupported = useAssertApiSupport(item.source)
   const moreButtonRef = useRef<TouchableOpacity>(null)
   const handleShowMenu = () => {
     if (moreButtonRef.current?.measure) {
       moreButtonRef.current.measure((fx, fy, width, height, px, py) => {
-        // console.log(fx, fy, width, height, px, py)
         onShowMenu(item, index, { x: Math.ceil(px), y: Math.ceil(py), w: Math.ceil(width), h: Math.ceil(height) })
       })
     }
@@ -44,35 +42,38 @@ export default memo(({ item, index, activeIndex, onPress, onShowMenu, onLongPres
   const singer = `${item.singer}${isShowAlbumName && item.meta.albumName ? ` · ${item.meta.albumName}` : ''}`
 
   return (
-    <View style={{ ...styles.listItem, width: rowInfo.rowWidth, height: ITEM_HEIGHT, backgroundColor: isSelected ? theme['c-primary-background-hover'] : 'rgba(0,0,0,0)', opacity: isSupported ? 1 : 0.5 }}>
-      <TouchableOpacity style={styles.listItemLeft} onPress={() => { onPress(item, index) }} onLongPress={() => { onLongPress(item, index) }}>
+    <View style={{
+      ...styles.listItem,
+      width: rowInfo.rowWidth,
+      height: ITEM_HEIGHT,
+      backgroundColor: isSelected ? apple.accentFill : 'transparent',
+      opacity: isSupported ? 1 : 0.5,
+    }}>
+      <TouchableOpacity activeOpacity={0.6} style={styles.listItemLeft} onPress={() => { onPress(item, index) }} onLongPress={() => { onLongPress(item, index) }}>
         {
           active
-            ? <Icon style={styles.sn} name="play-outline" size={13} color={theme['c-primary-font']} />
-            : <Text style={styles.sn} size={13} color={theme['c-300']}>{index + 1}</Text>
+            ? <Icon style={styles.sn} name="play-outline" size={13} color={apple.accent} />
+            : <Text style={styles.sn} size={fontSize.subhead} color={apple.secondaryLabel}>{index + 1}</Text>
         }
         <View style={styles.itemInfo}>
-          {/* <View style={styles.listItemTitle}> */}
-          <Text color={active ? theme['c-primary-font'] : theme['c-font']} numberOfLines={1}>{item.name}</Text>
-          {/* </View> */}
+          <Text size={16} color={active ? apple.accent : apple.label} numberOfLines={1}>{item.name}</Text>
           <View style={styles.listItemSingle}>
             <Badge>{item.source.toUpperCase()}</Badge>
-            <Text style={styles.listItemSingleText} size={11} color={active ? theme['c-primary-alpha-200'] : theme['c-500']} numberOfLines={1}>
+            <Text style={styles.listItemSingleText} size={fontSize.footnote} color={apple.secondaryLabel} numberOfLines={1}>
               {singer}
             </Text>
           </View>
         </View>
         {
           isShowInterval ? (
-            <Text size={12} color={active ? theme['c-primary-alpha-400'] : theme['c-250']} numberOfLines={1}>{item.interval}</Text>
+            <Text size={fontSize.footnote} color={apple.secondaryLabel} numberOfLines={1}>{item.interval}</Text>
           ) : null
         }
       </TouchableOpacity>
-      {/* <View style={styles.listItemRight}> */}
       <TouchableOpacity onPress={handleShowMenu} ref={moreButtonRef} style={styles.moreButton}>
-        <Icon name="dots-vertical" style={{ color: theme['c-350'] }} size={12} />
+        <Icon name="dots-vertical" color={apple.secondaryLabel} size={14} />
       </TouchableOpacity>
-      {/* </View> */}
+      <View pointerEvents="none" style={{ ...styles.separator, backgroundColor: apple.separator }} />
     </View>
   )
 }, (prevProps, nextProps) => {
@@ -86,75 +87,46 @@ export default memo(({ item, index, activeIndex, onPress, onShowMenu, onLongPres
   )
 })
 
-
 const styles = createStyle({
   listItem: {
-    // width: '50%',
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    // paddingLeft: 10,
-    paddingRight: 2,
     alignItems: 'center',
-    // borderBottomWidth: BorderWidths.normal,
   },
   listItemLeft: {
     flex: 1,
-    flexGrow: 1,
-    flexShrink: 1,
+    height: '100%',
     flexDirection: 'row',
     alignItems: 'center',
   },
   sn: {
-    width: 38,
-    // fontSize: 12,
+    width: SN_WIDTH,
     textAlign: 'center',
-    // backgroundColor: 'rgba(0,0,0,0.2)',
-    paddingLeft: 3,
-    paddingRight: 3,
   },
   itemInfo: {
     flexGrow: 1,
     flexShrink: 1,
-    // paddingTop: 10,
-    // paddingBottom: 10,
-    paddingRight: 2,
+    paddingRight: 6,
   },
-  // listItemTitle: {
-  //   flexGrow: 0,
-  //   flexShrink: 1,
-  // },
   listItemSingle: {
     paddingTop: 3,
     flexDirection: 'row',
-    // alignItems: 'flex-end',
   },
   listItemSingleText: {
-    // backgroundColor: 'rgba(0,0,0,0.2)',
     flexGrow: 0,
     flexShrink: 1,
-    fontWeight: '300',
-    // fontSize: 15,
   },
-  // listItemBadge: {
-  //   // fontSize: 10,
-  //   paddingLeft: 5,
-  //   paddingTop: 2,
-  //   alignSelf: 'flex-start',
-  // },
-  listItemRight: {
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 'auto',
-    justifyContent: 'center',
-  },
-
   moreButton: {
-    height: '80%',
-    paddingLeft: 16,
-    paddingRight: 16,
-    // paddingTop: 10,
-    // paddingBottom: 10,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
+    height: '100%',
+    width: 48,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  separator: {
+    position: 'absolute',
+    left: SN_WIDTH,
+    right: 0,
+    bottom: 0,
+    height: hairline,
   },
 })
