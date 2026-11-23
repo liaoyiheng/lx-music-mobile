@@ -1,10 +1,11 @@
-import { forwardRef, useImperativeHandle, useState } from 'react'
-import { View, ScrollView } from 'react-native'
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
+import { ScrollView, View, type LayoutChangeEvent } from 'react-native'
 
 import { createStyle } from '@/utils/tools'
 import { type Position } from './ListMenu'
 import ListItem, { type ListItemProps } from './ListItem'
 import { type BoardItem } from '@/store/leaderboard/state'
+import { pagePadding } from '@/theme/apple'
 
 export interface ListProps {
   onBoundChange: (listId: string) => void
@@ -19,9 +20,13 @@ export default forwardRef<ListType, ListProps>(({ onBoundChange, onShowMenu }, r
   const [activeId, setActiveId] = useState('')
   const [longPressIndex, setLongPressIndex] = useState(-1)
   const [list, setList] = useState<BoardItem[]>([])
+  const scrollViewRef = useRef<ScrollView>(null)
+  const needScrollRef = useRef(false)
 
   useImperativeHandle(ref, () => ({
     setList(list, activeId) {
+      needScrollRef.current = true
+      scrollViewRef.current?.scrollTo({ x: 0, animated: false })
       setList(list)
       setActiveId(activeId)
     },
@@ -40,33 +45,44 @@ export default forwardRef<ListType, ListProps>(({ onBoundChange, onShowMenu }, r
     onShowMenu({ listId, name, index }, position)
   }
 
+  /** 首次显示时把当前榜单滚到可见位置 */
+  const handleActiveLayout = (e: LayoutChangeEvent) => {
+    if (!needScrollRef.current) return
+    needScrollRef.current = false
+    const x = Math.max(e.nativeEvent.layout.x - pagePadding * 2, 0)
+    scrollViewRef.current?.scrollTo({ x, animated: false })
+  }
+
   return (
-    <ScrollView style={styles.scrollView} keyboardShouldPersistTaps={'always'}>
-      <View>
-        {
-          list.map((item, index) => {
-            return (
-              <ListItem
-                key={item.id}
-                item={item}
-                index={index}
-                longPressIndex={longPressIndex}
-                activeId={activeId}
-                onShowMenu={handleShowMenu}
-                onBoundChange={handleBoundChange}
-              />
-            )
-          })
-        }
-      </View>
+    <ScrollView
+      ref={scrollViewRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps={'always'}
+      contentContainerStyle={styles.content}
+    >
+      {
+        list.map((item, index) => (
+          <View key={item.id} onLayout={item.id == activeId ? handleActiveLayout : undefined}>
+            <ListItem
+              item={item}
+              index={index}
+              longPressIndex={longPressIndex}
+              activeId={activeId}
+              onShowMenu={handleShowMenu}
+              onBoundChange={handleBoundChange}
+            />
+          </View>
+        ))
+      }
     </ScrollView>
   )
 })
 
-
 const styles = createStyle({
-  scrollView: {
-    flexShrink: 1,
+  content: {
+    paddingLeft: pagePadding,
+    paddingRight: pagePadding - 8,
+    alignItems: 'center',
   },
 })
-
