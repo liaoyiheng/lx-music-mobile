@@ -6,6 +6,7 @@ import listState from '@/store/list/state'
 import syncSourceList from '@/core/syncSourceList'
 import { confirmDialog, toMD5, toast } from '@/utils/tools'
 import { type Source } from '@/store/songlist/state'
+import { shuffleList } from '@/utils/shuffle'
 
 const getListId = (id: string, source: LX.OnlineSource) => `${source}__${id}`
 
@@ -55,4 +56,32 @@ export const handleCollect = async(id: string, source: Source, name: string) => 
     sourceListId: id,
   })
   toast(global.i18n.t('collect_success'))
+}
+
+/**
+ * 随机播放（只对这一次生效）：把歌单打乱后从第一首开始顺序播放，不修改全局播放模式
+ */
+export const handleShufflePlay = async(id: string, source: Source, list?: LX.Music.MusicInfoOnline[]) => {
+  const listId = getListId(id, source)
+  let firstId: string | null = null
+  if (!list?.length) list = (await getListDetail(id, source, 1)).list
+  if (list?.length) {
+    const shuffled = shuffleList(list)
+    firstId = shuffled[0].id
+    await setTempList(listId, shuffled)
+    void playList(LIST_IDS.TEMP, 0)
+  }
+  const fullList = await getListDetailAll(source, id)
+  if (!fullList.length) return
+  if (firstId) {
+    // 用户已切到别的列表就不再覆盖
+    if (listState.tempListMeta.id != listId) return
+    // 完整列表到达后重新打乱，正在播的那首保持在最前
+    const first = fullList.find(m => m.id == firstId)
+    const rest = shuffleList(fullList.filter(m => m.id != firstId))
+    await setTempList(listId, first ? [first, ...rest] : rest)
+  } else {
+    await setTempList(listId, shuffleList(fullList))
+    void playList(LIST_IDS.TEMP, 0)
+  }
 }

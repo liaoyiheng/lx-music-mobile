@@ -7,23 +7,27 @@ import { LIST_IDS } from '@/config/constant'
 import listState from '@/store/list/state'
 import { useActiveListId, useMyList } from '@/store/list/hook'
 import { useSettingValue } from '@/store/setting/hook'
-import { getListMusics } from '@/core/list'
+import { getListMusics, setTempList } from '@/core/list'
 import { playList } from '@/core/player/player'
-import { updateSetting } from '@/core/common'
 import { useApple, fontSize, fontWeight, pagePadding, radius, spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
+import { shuffleList } from '@/utils/shuffle'
 
 /** 头部固定高度（列表的 getItemLayout 依赖这个值） */
 export const LIST_HEADER_HEIGHT = 124
 
+/**
+ * 播放 = 从第一首顺序播放；
+ * 随机播放 = 把列表打乱后放进临时列表播放这一次，不改全局播放模式，也不改动原列表顺序
+ */
 const handlePlay = async(shuffle: boolean) => {
   const listId = listState.activeListId
   if (!listId) return
   const list = await getListMusics(listId)
   if (!list.length) return
   if (shuffle) {
-    updateSetting({ 'player.togglePlayMethod': 'random' })
-    void playList(listId, Math.floor(Math.random() * list.length))
+    await setTempList(`mylist__${listId}`, shuffleList(list) as LX.Music.MusicInfoOnline[])
+    void playList(LIST_IDS.TEMP, 0)
   } else {
     void playList(listId, 0)
   }
