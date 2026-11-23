@@ -1,34 +1,42 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { TouchableOpacity, View } from 'react-native'
 import { type InitState } from '@/store/hotSearch/state'
-import Button from '@/components/common/Button'
 import Text from '@/components/common/Text'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
 import { useI18n } from '@/lang'
 import { clearHistoryList, getSearchHistory, removeHistoryWord } from '@/core/search/search'
 import { Icon } from '@/components/common/Icon'
-
+import { useApple, fontSize, fontWeight, hairline, size, spacing } from '@/theme/apple'
 
 export type List = NonNullable<InitState['sourceList'][keyof InitState['sourceList']]>
 
+/**
+ * 最近搜索行：搜索图标 + 关键词 + 右侧删除；长按也可删除（沿用原版）
+ */
 const ListItem = ({ keyword, onSearch, onRemove }: {
   keyword: string
   onSearch: (keyword: string) => void
   onRemove: (keyword: string) => void
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   return (
-    <Button
-      style={{ ...styles.button, backgroundColor: theme['c-button-background'] }}
-      onPress={() => { onSearch(keyword) }}
-      onLongPress={() => { onRemove(keyword) }}
-    >
-      <Text color={theme['c-button-font']} size={13}>{keyword}</Text>
-    </Button>
+    <View style={styles.row}>
+      <TouchableOpacity
+        style={styles.rowMain}
+        activeOpacity={0.6}
+        onPress={() => { onSearch(keyword) }}
+        onLongPress={() => { onRemove(keyword) }}
+      >
+        <Icon name="search-2" size={14} color={apple.secondaryLabel} />
+        <Text style={styles.keyword} size={fontSize.body} color={apple.label} numberOfLines={1}>{keyword}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.removeBtn} activeOpacity={0.6} onPress={() => { onRemove(keyword) }}>
+        <Icon name="close" size={11} color={apple.tertiaryLabel} />
+      </TouchableOpacity>
+      <View pointerEvents="none" style={{ ...styles.separator, backgroundColor: apple.separator }} />
+    </View>
   )
 }
-
 
 interface HistorySearchProps {
   onSearch: (keyword: string) => void
@@ -41,7 +49,7 @@ export default forwardRef<HistorySearchType, HistorySearchProps>((props, ref) =>
   const [list, setList] = useState<List>([])
   const isUnmountedRef = useRef(false)
   const t = useI18n()
-  const theme = useTheme()
+  const apple = useApple()
 
   useEffect(() => {
     isUnmountedRef.current = false
@@ -77,14 +85,14 @@ export default forwardRef<HistorySearchType, HistorySearchProps>((props, ref) =>
   return (
     list.length
       ? (
-          <View>
+          <View style={styles.section}>
             <View style={styles.titleContent}>
-              <Text size={16}>{t('search_history_search')}</Text>
-              <TouchableOpacity onPress={handleClear} style={styles.titleBtn}>
-                <Icon name="eraser" color={theme['c-300']} size={14} />
+              <Text style={styles.title} size={fontSize.title3} color={apple.label}>{t('search_history_search')}</Text>
+              <TouchableOpacity onPress={handleClear} style={styles.clearBtn} activeOpacity={0.5}>
+                <Text size={fontSize.subhead} color={apple.accent}>{t('apple_clear')}</Text>
               </TouchableOpacity>
             </View>
-            <View style={styles.list}>
+            <View>
               {
                 list.map(keyword => <ListItem keyword={keyword} key={keyword} onSearch={props.onSearch} onRemove={handleRemove} />)
               }
@@ -95,36 +103,48 @@ export default forwardRef<HistorySearchType, HistorySearchProps>((props, ref) =>
   )
 })
 
-
 const styles = createStyle({
+  section: {
+    paddingTop: spacing.xl,
+  },
   titleContent: {
-    paddingTop: 15,
     flexDirection: 'row',
     alignItems: 'center',
   },
   title: {
-    // paddingLeft: 15,
-    // paddingBottom: 5,
+    flex: 1,
+    fontWeight: fontWeight.bold,
   },
-  titleBtn: {
-    marginLeft: 10,
-    padding: 5,
+  clearBtn: {
+    paddingVertical: spacing.xs,
+    paddingLeft: spacing.md,
   },
-  list: {
-    // paddingLeft: 15,
-    // paddingRight: 15,
+  row: {
+    height: size.settingRow,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    // paddingBottom: 15,
+    alignItems: 'center',
   },
-  button: {
-    textAlign: 'center',
-    paddingLeft: 10,
-    paddingRight: 10,
-    paddingTop: 5,
-    paddingBottom: 5,
-    borderRadius: 4,
-    marginRight: 10,
-    marginTop: 8,
+  rowMain: {
+    flex: 1,
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  keyword: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  removeBtn: {
+    width: size.hitTarget,
+    height: '100%',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  separator: {
+    position: 'absolute',
+    left: 26,
+    right: 0,
+    bottom: 0,
+    height: hairline,
   },
 })

@@ -1,21 +1,20 @@
 import { useRef, useImperativeHandle, forwardRef, useState, useEffect } from 'react'
+import { TouchableHighlight, View } from 'react-native'
 import SearchTipList, { type SearchTipListProps as _SearchTipListProps, type SearchTipListType as _SearchTipListType } from '@/components/SearchTipList'
-import Button from '@/components/common/Button'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
-import { scaleSizeH } from '@/utils/pixelRatio'
+import { Icon } from '@/components/common/Icon'
 import musicSdk from '@/utils/musicSdk'
 import searchState, { type InitState as SearchState } from '@/store/search/state'
 import { setSearchText, setTipList, setTipListInfo } from '@/core/search/search'
 import { debounce } from '@/utils'
+import { useApple, fontSize, hairline, pagePadding, size, spacing } from '@/theme/apple'
 
-export const ITEM_HEIGHT = scaleSizeH(36)
+export const ITEM_HEIGHT = size.settingRow
 
 export const debounceTipSearch = debounce((keyword: string, source: SearchState['temp_source'], callback: (list: string[]) => void) => {
-  // console.log(reslutList)
   void musicSdk[source].tipSearch.search(keyword).then(callback)
 }, 200)
-
 
 export type SearchTipListProps = _SearchTipListProps<string>
 export type SearchTipListType = _SearchTipListType<string>
@@ -34,6 +33,7 @@ export default forwardRef<TipListType, TipListProps>(({ onSearch }, ref) => {
   const [visible, setVisible] = useState(false)
   const visibleListRef = useRef(false)
   const isUnmountedRef = useRef(false)
+  const apple = useApple()
 
   useEffect(() => {
     isUnmountedRef.current = false
@@ -98,9 +98,13 @@ export default forwardRef<TipListType, TipListProps>(({ onSearch }, ref) => {
 
   const renderItem: SearchTipListProps['renderItem'] = ({ item, index }) => {
     return (
-      <Button style={styles.item} onPress={() => { onSearch(item) }} key={index}>
-        <Text numberOfLines={1}>{item}</Text>
-      </Button>
+      <TouchableHighlight underlayColor={apple.highlight} onPress={() => { onSearch(item) }} key={index}>
+        <View style={styles.item}>
+          <Icon name="search-2" size={14} color={apple.secondaryLabel} />
+          <Text style={styles.text} size={fontSize.body} color={apple.label} numberOfLines={1}>{item}</Text>
+          <View pointerEvents="none" style={{ ...styles.separator, backgroundColor: apple.separator }} />
+        </View>
+      </TouchableHighlight>
     )
   }
   const getkey: SearchTipListProps['keyExtractor'] = (item, index) => String(index)
@@ -121,15 +125,22 @@ export default forwardRef<TipListType, TipListProps>(({ onSearch }, ref) => {
   )
 })
 
-
 const styles = createStyle({
   item: {
     height: ITEM_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: 15,
-    paddingRight: 15,
-    // backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    paddingHorizontal: pagePadding,
+  },
+  text: {
+    flex: 1,
+    marginLeft: spacing.md,
+  },
+  separator: {
+    position: 'absolute',
+    left: pagePadding + 26,
+    right: 0,
+    bottom: 0,
+    height: hairline,
   },
 })
-

@@ -11,7 +11,6 @@ import SongList from '../Views/SongList'
 import Mylist from '../Views/Mylist'
 import Leaderboard from '../Views/Leaderboard'
 import Setting from '../Views/Setting'
-import SearchTypeSelector from '../Views/Search/SearchTypeSelector'
 import KeepAlive from './KeepAlive'
 import type { BrowseId } from './tabs'
 
@@ -21,7 +20,7 @@ export const SearchPage = memo(() => {
   const t = useI18n()
   return (
     <>
-      <LargeTitle title={t('nav_search')} right={<SearchTypeSelector />} />
+      <LargeTitle title={t('nav_search')} />
       <View style={styles.body}><Search /></View>
     </>
   )

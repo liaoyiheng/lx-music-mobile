@@ -6,6 +6,7 @@ import { type LayoutChangeEvent, View } from 'react-native'
 // import TipList from './components/TipList'
 // import MusicList from './components/MusicList'
 import HeaderBar, { type HeaderBarProps, type HeaderBarType } from './HeaderBar'
+import SearchTypeSelector from './SearchTypeSelector'
 import searchState, { type SearchType } from '@/store/search/state'
 import searchMusicState from '@/store/search/music/state'
 import searchSonglistState from '@/store/search/songlist/state'
@@ -107,6 +108,7 @@ export default () => {
         onHideTipList={handleHideTipList}
         onShowTipList={handleShowTipList}
       />
+      <SearchTypeSelector />
       <View style={styles.content} onLayout={handleLayout}>
         <TipList ref={searchTipListRef} onSearch={handleSearch} />
         <List ref={listRef} onSearch={handleSearch} />
