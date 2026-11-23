@@ -1,14 +1,14 @@
 import { memo, useMemo } from 'react'
-
 import { View } from 'react-native'
 
 import SubTitle from '../../components/SubTitle'
-import CheckBox from '@/components/common/CheckBox'
+import { RadioRow } from '@/components/apple/RadioRow'
 import { useSettingValue } from '@/store/setting/hook'
 import { useI18n } from '@/lang'
 import { setDesktopLyricTextPosition } from '@/core/desktopLyric'
 import { createStyle } from '@/utils/tools'
 import { updateSetting } from '@/core/common'
+import { spacing } from '@/theme/apple'
 
 type X_TYPE = LX.AppSetting['desktopLyric.textPosition.x']
 
@@ -24,14 +24,21 @@ const useActive = (id: X_TYPE) => {
   return isActive
 }
 
-const Item = ({ id, name, change }: {
+const Item = ({ id, name, change, showSeparator }: {
   id: X_TYPE
   name: string
   change: (id: X_TYPE) => void
+  showSeparator: boolean
 }) => {
   const isActive = useActive(id)
-  // const [toggleCheckBox, setToggleCheckBox] = useState(false)
-  return <CheckBox marginBottom={3} check={isActive} label={name} onChange={() => { change(id) }} need />
+  return (
+    <RadioRow
+      label={name}
+      selected={isActive}
+      onPress={() => { change(id) }}
+      showSeparator={showSeparator}
+    />
+  )
 }
 
 export default memo(() => {
@@ -50,7 +57,15 @@ export default memo(() => {
     <SubTitle title={t('setting_lyric_desktop_text_x')}>
       <View style={styles.list}>
         {
-          list.map(({ id, name }) => <Item name={name} id={id} key={id} change={setPosition} />)
+          list.map(({ id, name }, index) => (
+            <Item
+              name={name}
+              id={id}
+              key={id}
+              change={setPosition}
+              showSeparator={index < list.length - 1}
+            />
+          ))
         }
       </View>
     </SubTitle>
@@ -59,9 +74,7 @@ export default memo(() => {
 
 const styles = createStyle({
   list: {
-    flexGrow: 0,
-    flexShrink: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginHorizontal: -spacing.lg,
+    marginBottom: -spacing.md,
   },
 })

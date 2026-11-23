@@ -1,15 +1,14 @@
 import { memo, useMemo } from 'react'
-
 import { StyleSheet, View } from 'react-native'
 
 import SubTitle from '../../components/SubTitle'
-import CheckBox from '@/components/common/CheckBox'
+import { RadioRow } from '@/components/apple/RadioRow'
 import { useI18n } from '@/lang'
 import { setFontSize } from '@/core/common'
 import { useFontSize } from '@/store/common/hook'
 import Text from '@/components/common/Text'
 import { getTextSize } from '@/utils/pixelRatio'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius, spacing } from '@/theme/apple'
 
 const LIST = [
   {
@@ -49,22 +48,30 @@ const useActive = (size: SIZE_TYPE) => {
 const SizeText = () => {
   const size = getTextSize(14) * useFontSize()
   const t = useI18n()
-  const theme = useTheme()
+  const apple = useApple()
 
-  return <Text style={{ fontSize: size }} color={theme['c-primary']}>{t('setting_basic_font_size_preview')}</Text>
+  return <Text style={{ fontSize: size }} color={apple.label}>{t('setting_basic_font_size_preview')}</Text>
 }
 
-const Item = ({ size, label }: {
+const Item = ({ size, label, showSeparator }: {
   size: SIZE_TYPE
   label: string
+  showSeparator: boolean
 }) => {
   const isActive = useActive(size)
-  // const [toggleCheckBox, setToggleCheckBox] = useState(false)
-  return <CheckBox marginRight={8} check={isActive} label={label} onChange={() => { setFontSize(size) }} need />
+  return (
+    <RadioRow
+      label={label}
+      selected={isActive}
+      onPress={() => { setFontSize(size) }}
+      showSeparator={showSeparator}
+    />
+  )
 }
 
 export default memo(() => {
   const t = useI18n()
+  const apple = useApple()
 
   const list = useMemo(() => {
     return LIST.map((item) => ({ size: item.size, name: t(item.name) }))
@@ -72,12 +79,19 @@ export default memo(() => {
 
   return (
     <SubTitle title={t('setting_basic_font_size')}>
-      <View style={styles.preview}>
+      <View style={{ ...styles.preview, backgroundColor: apple.fill }}>
         <SizeText />
       </View>
       <View style={styles.list}>
         {
-          list.map(({ size, name }) => <Item key={size} size={size} label={name} />)
+          list.map(({ size, name }, index) => (
+            <Item
+              key={size}
+              size={size}
+              label={name}
+              showSeparator={index < list.length - 1}
+            />
+          ))
         }
       </View>
     </SubTitle>
@@ -87,12 +101,14 @@ export default memo(() => {
 const styles = StyleSheet.create({
   preview: {
     justifyContent: 'center',
-    // paddingTop: 3,
-    paddingBottom: 10,
-    height: 45,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minHeight: 46,
+    borderRadius: radius.medium,
+    marginBottom: spacing.xs,
   },
   list: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginHorizontal: -spacing.lg,
+    marginBottom: -spacing.md,
   },
 })

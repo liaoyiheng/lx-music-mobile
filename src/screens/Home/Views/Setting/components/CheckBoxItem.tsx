@@ -1,24 +1,32 @@
 import { memo } from 'react'
+import { SwitchRow } from '@/components/apple/SwitchRow'
+import type { CheckBoxProps } from '@/components/common/CheckBox'
 
-import { View } from 'react-native'
+export interface CheckBoxItemProps extends CheckBoxProps {
+  description?: string
+  showSeparator?: boolean
+  horizontalPadding?: number
+}
 
-import CheckBox, { type CheckBoxProps } from '@/components/common/CheckBox'
-import { createStyle } from '@/utils/tools'
-
-
-export default memo((props: CheckBoxProps) => {
+export default memo(({
+  check,
+  label,
+  onChange,
+  disabled,
+  helpDesc,
+  description,
+  showSeparator = true,
+  horizontalPadding = 16,
+}: CheckBoxItemProps) => {
   return (
-    <View style={styles.container}>
-      <CheckBox {...props} />
-    </View>
+    <SwitchRow
+      label={label ?? ''}
+      description={description ?? helpDesc}
+      value={check}
+      onValueChange={onChange}
+      disabled={disabled}
+      showSeparator={showSeparator}
+      horizontalPadding={horizontalPadding}
+    />
   )
 })
-
-const styles = createStyle({
-  container: {
-    paddingLeft: 16,
-    // marginTop: -10,
-    // marginBottom: 0,
-  },
-})
-

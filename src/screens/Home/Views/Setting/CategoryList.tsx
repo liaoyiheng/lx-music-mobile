@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { ScrollView, TouchableHighlight, View } from 'react-native'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
 import { useApple, fontSize, hairline, pagePadding, radius, size, spacing } from '@/theme/apple'
@@ -27,7 +27,7 @@ const Row = memo(({ id, isLast, active, onPress }: {
     >
       <View style={styles.row}>
         <View style={{ ...styles.iconBox, backgroundColor: color }}>
-          <Icon name={icon} rawSize={16} color="#FFFFFF" />
+          <IonIcon name={icon} rawSize={17} color="#FFFFFF" />
         </View>
         <View style={{
           ...styles.rowMain,
@@ -37,7 +37,7 @@ const Row = memo(({ id, isLast, active, onPress }: {
           <Text style={styles.label} size={fontSize.body} color={active ? apple.onAccent : apple.label} numberOfLines={1}>
             {t(`setting_${id}`)}
           </Text>
-          <Icon name="chevron-right" rawSize={13} color={active ? apple.onAccent : apple.tertiaryLabel} />
+          <IonIcon name="chevron-forward" rawSize={15} color={active ? apple.onAccent : apple.tertiaryLabel} />
         </View>
       </View>
     </TouchableHighlight>

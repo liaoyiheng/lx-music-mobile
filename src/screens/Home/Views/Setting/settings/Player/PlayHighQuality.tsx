@@ -1,13 +1,13 @@
 import { memo, useMemo } from 'react'
-
 import { StyleSheet, View } from 'react-native'
 
 import SubTitle from '../../components/SubTitle'
-import CheckBox from '@/components/common/CheckBox'
+import { RadioRow } from '@/components/apple/RadioRow'
 import { useSettingValue } from '@/store/setting/hook'
 import { updateSetting } from '@/core/common'
 import { useI18n } from '@/lang'
 import { TRY_QUALITYS_LIST } from '@/core/music/utils'
+import { spacing } from '@/theme/apple'
 
 const useActive = (id: LX.Quality) => {
   const q = useSettingValue('player.playQuality')
@@ -15,13 +15,20 @@ const useActive = (id: LX.Quality) => {
   return isActive
 }
 
-const Item = ({ id, name }: {
+const Item = ({ id, name, showSeparator }: {
   id: LX.Quality
   name: string
+  showSeparator: boolean
 }) => {
   const isActive = useActive(id)
-  // const [toggleCheckBox, setToggleCheckBox] = useState(false)
-  return <CheckBox marginRight={8} check={isActive} label={name} onChange={() => { updateSetting({ 'player.playQuality': id }) }} need />
+  return (
+    <RadioRow
+      label={name}
+      selected={isActive}
+      onPress={() => { updateSetting({ 'player.playQuality': id }) }}
+      showSeparator={showSeparator}
+    />
+  )
 }
 
 export default memo(() => {
@@ -31,10 +38,17 @@ export default memo(() => {
   }, [])
 
   return (
-    <SubTitle title={t('setting_play_play_quality')}>
+    <SubTitle title={t('setting_play_play_quality')} showSeparator={false}>
       <View style={styles.list}>
         {
-          playQualityList.map((q) => <Item name={q} id={q} key={q} />)
+          playQualityList.map((q, index) => (
+            <Item
+              name={q}
+              id={q}
+              key={q}
+              showSeparator={index < playQualityList.length - 1}
+            />
+          ))
         }
       </View>
     </SubTitle>
@@ -43,30 +57,7 @@ export default memo(() => {
 
 const styles = StyleSheet.create({
   list: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    marginHorizontal: -spacing.lg,
+    marginBottom: -spacing.md,
   },
 })
-
-
-// export default memo(() => {
-//   const t = useI18n()
-//   const isPlayHighQuality = useSettingValue('player.isPlayHighQuality')
-//   const setPlayHighQuality = (isPlayHighQuality: boolean) => {
-//     updateSetting({ 'player.isPlayHighQuality': isPlayHighQuality })
-//   }
-
-//   return (
-//     <View style={styles.content}>
-//       <CheckBoxItem check={isPlayHighQuality} onChange={setPlayHighQuality} label={t('setting_play_quality')} />
-//     </View>
-//   )
-// })
-
-
-// const styles = createStyle({
-//   content: {
-//     marginTop: 5,
-//   },
-// })
-

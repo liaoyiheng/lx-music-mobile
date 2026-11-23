@@ -32,8 +32,8 @@ export default memo(({ value, minimumValue, maximumValue, onSlidingStart, onSlid
       minimumValue={minimumValue}
       maximumValue={maximumValue}
       minimumTrackTintColor={apple.accent}
-      maximumTrackTintColor={apple.tertiaryFill}
-      thumbTintColor={apple.isDark ? apple.thumb : apple.accent}
+      maximumTrackTintColor={apple.fill}
+      thumbTintColor="#FFFFFF"
       onSlidingStart={onSlidingStart}
       onSlidingComplete={onSlidingComplete}
       onValueChange={handleValueChange}

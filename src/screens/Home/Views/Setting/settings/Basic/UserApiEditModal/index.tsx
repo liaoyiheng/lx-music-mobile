@@ -2,7 +2,7 @@ import { useRef, useImperativeHandle, forwardRef, useState } from 'react'
 import Text from '@/components/common/Text'
 import { View, TouchableOpacity } from 'react-native'
 import { createStyle, openUrl } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { useI18n } from '@/lang'
 import Dialog, { type DialogType } from '@/components/common/Dialog'
 import Button from '@/components/common/Button'
@@ -66,7 +66,7 @@ export default forwardRef<UserApiEditModalType, {}>((props, ref) => {
   // const sourceSelectorRef = useRef<SourceSelectorType>(null)
   // const inputRef = useRef<UrlInputType>(null)
   const [visible, setVisible] = useState(false)
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
 
   const handleShow = () => {
@@ -112,7 +112,7 @@ export default forwardRef<UserApiEditModalType, {}>((props, ref) => {
                   {t('user_api_readme')}
                 </Text>
                 <TouchableOpacity onPress={openFAQPage}>
-                  <Text style={{ ...styles.tipsText, textDecorationLine: 'underline' }} size={12} color={theme['c-primary-font']}>FAQ</Text>
+                  <Text style={{ ...styles.tipsText, textDecorationLine: 'underline' }} size={12} color={apple.accent}>FAQ</Text>
                 </TouchableOpacity>
                 <View>
                   <Text style={styles.tipsText} size={12}>{t('user_api_note')}</Text>
@@ -120,10 +120,10 @@ export default forwardRef<UserApiEditModalType, {}>((props, ref) => {
               </View>
             </View>
             <View style={styles.btns}>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleCancel}>
-                <Text size={14} color={theme['c-button-font']}>{t('close')}</Text>
+              <Button style={{ ...styles.btn, backgroundColor: apple.fill }} onPress={handleCancel}>
+                <Text size={14} color={apple.accent}>{t('close')}</Text>
               </Button>
-              <ImportBtn btnStyle={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} />
+              <ImportBtn btnStyle={{ ...styles.btn, backgroundColor: apple.fill }} />
             </View>
           </Dialog>
         ) : null

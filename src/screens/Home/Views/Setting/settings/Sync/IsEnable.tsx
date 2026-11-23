@@ -13,7 +13,7 @@ import { updateSetting } from '@/core/common'
 import { addSyncHostHistory, getSyncHost, setSyncHost } from '@/utils/data'
 import { setSyncMessage } from '@/core/sync'
 import { useSettingValue } from '@/store/setting/hook'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius, spacing } from '@/theme/apple'
 import { useStatus } from '@/store/sync/hook'
 import Text from '@/components/common/Text'
 import { SYNC_CODE } from '@/plugins/sync/constants'
@@ -67,7 +67,7 @@ export default memo(({ host, setHost }: {
   const syncStatus = useStatus()
   const isEnableSync = useSettingValue('sync.enable')
   const isUnmountedRef = useRef(true)
-  const theme = useTheme()
+  const apple = useApple()
   const [address, setAddress] = useState('')
   const [authCode, setAuthCode] = useState('')
   const confirmAlertRef = useRef<ConfirmAlertType>(null)
@@ -156,8 +156,8 @@ export default memo(({ host, setHost }: {
     <>
       <View style={styles.infoContent}>
         <CheckBoxItem disabled={!host} check={isEnableSync} label={t('setting_sync_enable')} onChange={handleSetEnableSync} />
-        <Text style={styles.textAddr} size={13}>{t('setting_sync_address', { address })}</Text>
-        <Text style={styles.text} size={13}>{t('setting_sync_status', { status })}</Text>
+        <Text style={styles.textAddr} size={13} color={apple.secondaryLabel}>{t('setting_sync_address', { address })}</Text>
+        <Text style={styles.text} size={13} color={apple.secondaryLabel}>{t('setting_sync_status', { status })}</Text>
       </View>
       <View style={styles.inputContent} >
         <HostInput setHost={handleUpdateHost} host={host} disabled={isEnableSync} />
@@ -171,9 +171,10 @@ export default memo(({ host, setHost }: {
           <Text style={styles.authCodeLabel}>{t('setting_sync_code_label')}</Text>
           <Input
             placeholder={t('setting_sync_code_input_tip')}
+            placeholderTextColor={apple.tertiaryLabel}
             value={authCode}
             onChangeText={setAuthCode}
-            style={{ ...styles.authCodeInput, backgroundColor: theme['c-primary-background'] }}
+            style={{ ...styles.authCodeInput, backgroundColor: apple.fill, color: apple.label }}
           />
         </View>
       </ConfirmAlert>
@@ -183,18 +184,17 @@ export default memo(({ host, setHost }: {
 
 
 const styles = createStyle({
-  infoContent: {
-    marginTop: 5,
-  },
+  infoContent: {},
   textAddr: {
-    marginLeft: 25,
-    marginTop: 5,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
   },
   text: {
-    marginLeft: 25,
+    marginHorizontal: spacing.lg,
+    marginTop: 2,
   },
   inputContent: {
-    marginTop: 8,
+    marginTop: spacing.xs,
   },
   authCodeContent: {
     flexGrow: 1,
@@ -202,16 +202,15 @@ const styles = createStyle({
     flexDirection: 'column',
   },
   authCodeLabel: {
-    marginBottom: 5,
+    marginBottom: 6,
   },
   authCodeInput: {
     flexGrow: 1,
     flexShrink: 1,
     minWidth: 260,
-    borderRadius: 4,
-    // paddingTop: 2,
-    // paddingBottom: 2,
-    // fontSize: 14,
+    borderRadius: radius.medium,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
   },
 
   // tagTypeList: {

@@ -6,7 +6,7 @@ import Section from '../components/Section'
 
 import { createStyle, openUrl } from '@/utils/tools'
 // import { showPactModal } from '@/navigation'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { useI18n } from '@/lang'
 import Text from '@/components/common/Text'
 import { showPactModal } from '@/core/common'
@@ -17,7 +17,7 @@ import { showPactModal } from '@/core/common'
 // const qqGroupWebUrl2 = 'https://qm.qq.com/cgi-bin/qm/qr?k=HPNJEfrZpBZ9T8szYWbe2d5JrAAeOt_l&jump_from=webapi'
 
 export default memo(() => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
   const openHomePage = () => {
     void openUrl('https://github.com/lyswhut/lx-music-mobile#readme')
@@ -55,7 +55,7 @@ export default memo(() => {
   const textLinkStyle = {
     ...styles.text,
     textDecorationLine: 'underline',
-    color: theme['c-primary-font'],
+    color: apple.accent,
     // fontSize: 14,
   } as const
 
@@ -105,7 +105,7 @@ export default memo(() => {
       </View>
       <View style={styles.part}>
         <Text style={styles.text}>你已签署本软件的</Text>
-        <TouchableOpacity onPress={openPactModal}><Text style={styles.text} color={theme['c-primary-font']}>许可协议</Text></TouchableOpacity>
+        <TouchableOpacity onPress={openPactModal}><Text style={styles.text} color={apple.accent}>许可协议</Text></TouchableOpacity>
         <Text style={styles.text}>，协议的在线版本在</Text>
         <TouchableOpacity onPress={openPartPage}><Text style={textLinkStyle}>这里</Text></TouchableOpacity>
         <Text style={styles.text}>。</Text>

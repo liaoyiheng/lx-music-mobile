@@ -2,12 +2,11 @@ import { useCallback } from 'react'
 import Text from '@/components/common/Text'
 import { View, TouchableOpacity, ScrollView } from 'react-native'
 import { confirmDialog, createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, radius } from '@/theme/apple'
 import { useI18n } from '@/lang'
 import { useUserApiList, state as userApiState } from '@/store/userApi'
 import { useSettingValue } from '@/store/setting/hook'
 import { removeUserApi, setUserApiAllowShowUpdateAlert } from '@/core/userApi'
-import { BorderRadius } from '@/theme'
 import CheckBox from '@/components/common/CheckBox'
 import { Icon } from '@/components/common/Icon'
 import settingState from '@/store/setting/state'
@@ -23,7 +22,7 @@ const ListItem = ({ item, activeId, onRemove, onChangeAllowShowUpdateAlert }: {
   onRemove: (id: string, name: string) => void
   onChangeAllowShowUpdateAlert: (id: string, enabled: boolean) => void
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
   const changeAllowShowUpdateAlert = (check: boolean) => {
     onChangeAllowShowUpdateAlert(item.id, check)
@@ -33,31 +32,31 @@ const ListItem = ({ item, activeId, onRemove, onChangeAllowShowUpdateAlert }: {
   }
 
   return (
-    <View style={{ ...styles.listItem, backgroundColor: activeId == item.id ? theme['c-primary-background-active'] : 'transparent' }}>
+    <View style={{ ...styles.listItem, backgroundColor: activeId == item.id ? apple.accentFill : 'transparent' }}>
       <View style={styles.listItemLeft}>
         <Text size={14}>
           {item.name}
           {
             item.version ? (
-              <Text size={12} color={theme['c-font-label']}>{ '   ' + formatVersionName(item.version) }</Text>
+              <Text size={12} color={apple.secondaryLabel}>{ '   ' + formatVersionName(item.version) }</Text>
             ) : null
           }
           {
             item.author ? (
-              <Text size={12} color={theme['c-font-label']}>{ '   ' + item.author }</Text>
+              <Text size={12} color={apple.secondaryLabel}>{ '   ' + item.author }</Text>
             ) : null
           }
         </Text>
         {
           item.description ? (
-            <Text size={12} color={theme['c-font-label']}>{item.description}</Text>
+            <Text size={12} color={apple.secondaryLabel}>{item.description}</Text>
           ) : null
         }
         <CheckBox check={item.allowShowUpdateAlert} label={t('user_api_allow_show_update_alert')} onChange={changeAllowShowUpdateAlert} size={0.86} />
       </View>
       <View style={styles.listItemRight}>
         <TouchableOpacity style={styles.btn} onPress={handleRemove}>
-          <Icon name="close" color={theme['c-button-font']} />
+          <Icon name="close" color={apple.secondaryLabel} />
         </TouchableOpacity>
       </View>
     </View>
@@ -76,7 +75,7 @@ export interface UserApiEditModalType {
 export default () => {
   const userApiList = useUserApiList()
   const apiSource = useSettingValue('common.apiSource')
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
 
   const handleRemove = useCallback(async(id: string, name: string) => {
@@ -115,7 +114,7 @@ export default () => {
               />
               )
             })
-            : <Text style={styles.tipText} color={theme['c-font-label']}>{t('user_api_empty')}</Text>
+            : <Text style={styles.tipText} color={apple.secondaryLabel}>{t('user_api_empty')}</Text>
         }
       </View>
     </ScrollView>
@@ -134,7 +133,7 @@ const styles = createStyle({
   },
   listItem: {
     padding: 10,
-    borderRadius: BorderRadius.normal,
+    borderRadius: radius.medium,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

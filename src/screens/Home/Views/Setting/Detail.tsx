@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
 import { useStatusbarHeight } from '@/store/common/hook'
@@ -33,7 +33,7 @@ export default memo(({ id, onBack }: {
           {onBack
             ? (
                 <TouchableOpacity style={styles.backBtn} activeOpacity={0.5} onPress={onBack}>
-                  <Icon name="chevron-left" rawSize={20} color={apple.accent} />
+                  <IonIcon name="chevron-back" rawSize={24} color={apple.accent} style={styles.backIcon} />
                   <Text size={fontSize.body} color={apple.accent} numberOfLines={1}>{t('nav_setting')}</Text>
                 </TouchableOpacity>
               )
@@ -75,6 +75,9 @@ const styles = createStyle({
     flexDirection: 'row',
     alignItems: 'center',
     paddingRight: spacing.sm,
+  },
+  backIcon: {
+    marginRight: -2,
   },
   content: {
     paddingHorizontal: pagePadding,

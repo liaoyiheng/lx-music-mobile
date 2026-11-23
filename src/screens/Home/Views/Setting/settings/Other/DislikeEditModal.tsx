@@ -3,7 +3,7 @@ import Text from '@/components/common/Text'
 import { type LayoutChangeEvent, View } from 'react-native'
 import Input, { type InputType } from '@/components/common/Input'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { useI18n } from '@/lang'
 import Dialog, { type DialogType } from '@/components/common/Dialog'
 import Button from '@/components/common/Button'
@@ -14,7 +14,7 @@ interface RuleInputType {
   focus: () => void
 }
 const RuleInput = forwardRef<RuleInputType, {}>((props, ref) => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
   const [text, setText] = useState('')
   const inputRef = useRef<InputType>(null)
@@ -45,8 +45,9 @@ const RuleInput = forwardRef<RuleInputType, {}>((props, ref) => {
         multiline
         textAlignVertical="top"
         placeholder={t('setting_dislike_list_input_tip')}
+        placeholderTextColor={apple.tertiaryLabel}
         size={13}
-        style={{ ...styles.input, height, backgroundColor: theme['c-primary-input-background'] }}
+        style={{ ...styles.input, height, backgroundColor: apple.fill, color: apple.label }}
       />
     </View>
   )
@@ -66,7 +67,7 @@ export default forwardRef<DislikeEditModalType, DislikeEditModalProps>(({ onSave
   // const sourceSelectorRef = useRef<SourceSelectorType>(null)
   const inputRef = useRef<RuleInputType>(null)
   const [visible, setVisible] = useState(false)
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
 
   const handleShow = (rules: string) => {
@@ -106,14 +107,14 @@ export default forwardRef<DislikeEditModalType, DislikeEditModalProps>(({ onSave
           <Dialog height='80%' ref={dialogRef} bgHide={false}>
             <View style={styles.content}>
               <RuleInput ref={inputRef} />
-              <Text style={styles.inputTipText} size={13} color={theme['c-600']}>{t('setting_dislike_list_tips')}</Text>
+              <Text style={styles.inputTipText} size={13} color={apple.secondaryLabel}>{t('setting_dislike_list_tips')}</Text>
             </View>
             <View style={styles.btns}>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleCancel}>
-                <Text size={14} color={theme['c-button-font']}>{t('cancel')}</Text>
+              <Button style={{ ...styles.btn, backgroundColor: apple.fill }} onPress={handleCancel}>
+                <Text size={14} color={apple.accent}>{t('cancel')}</Text>
               </Button>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleConfirm}>
-                <Text size={14} color={theme['c-button-font']}>{t('confirm')}</Text>
+              <Button style={{ ...styles.btn, backgroundColor: apple.fill }} onPress={handleConfirm}>
+                <Text size={14} color={apple.accent}>{t('confirm')}</Text>
               </Button>
             </View>
           </Dialog>
