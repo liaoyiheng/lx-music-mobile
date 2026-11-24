@@ -1,16 +1,15 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { TouchableOpacity, View } from 'react-native'
 
-import { IonIcon } from '@/components/common/Icon'
+import { GlassCapsuleButton, GlassCircleButton } from '@/components/apple/LiquidGlass'
 import { useActiveListId, useListFetching } from '@/store/list/hook'
 import { createStyle } from '@/utils/tools'
 import { getListPrevSelectId } from '@/utils/data'
 import { setActiveList } from '@/core/list'
-import Text from '@/components/common/Text'
 import Loading from '@/components/common/Loading'
 import { useHorizontalMode } from '@/utils/hooks'
 import { useI18n } from '@/lang'
-import { useApple, size, spacing } from '@/theme/apple'
+import { useApple, pagePadding, size, spacing } from '@/theme/apple'
 
 export interface ActiveListProps {
   onShowSearchBar: () => void
@@ -23,7 +22,7 @@ export interface ActiveListType {
 export const NAV_BAR_HEIGHT = size.hitTarget
 
 /**
- * 歌曲页导航栏：左侧「‹ 资料库」返回（宽屏不显示），右侧列表内搜索
+ * 歌曲页顶部液态玻璃导航栏：左侧「‹ 资料库」胶囊按钮（宽屏隐藏），右侧列表内搜索圆形玻璃按钮
  * 长按导航栏回到顶部（沿用原版）
  */
 export default forwardRef<ActiveListType, ActiveListProps>(({ onShowSearchBar, onScrollToTop }, ref) => {
@@ -51,26 +50,36 @@ export default forwardRef<ActiveListType, ActiveListProps>(({ onShowSearchBar, o
   }, [])
 
   return (
-    <TouchableOpacity
-      activeOpacity={1}
-      onLongPress={onScrollToTop}
-      style={{ ...styles.bar, opacity: visibleBar ? 1 : 0 }}
-    >
-      {
-        isWide
-          ? <View style={styles.flex} />
-          : (
-              <TouchableOpacity style={styles.back} activeOpacity={0.5} onPress={showList}>
-                <IonIcon name="chevron-back" rawSize={24} color={apple.accent} style={styles.backIcon} />
-                <Text size={17} color={apple.accent} numberOfLines={1}>{t('apple_tab_library')}</Text>
-              </TouchableOpacity>
-            )
-      }
-      {fetching ? <Loading color={apple.secondaryLabel} style={styles.loading} /> : null}
-      <TouchableOpacity style={styles.iconBtn} activeOpacity={0.5} onPress={onShowSearchBar}>
-        <IonIcon color={apple.accent} name="search" rawSize={20} />
+    <View pointerEvents={visibleBar ? 'auto' : 'none'} style={{ opacity: visibleBar ? 1 : 0 }}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onLongPress={onScrollToTop}
+        style={styles.bar}
+      >
+        {
+          isWide
+            ? <View style={styles.flex} />
+            : (
+                <GlassCapsuleButton
+                  icon="chevron-back"
+                  label={t('apple_tab_library')}
+                  onPress={showList}
+                />
+              )
+        }
+        {!isWide ? <View style={styles.flex} /> : null}
+        <View style={styles.right}>
+          {fetching ? <Loading color={apple.secondaryLabel} style={styles.loading} /> : null}
+          <GlassCircleButton
+            icon="search"
+            iconSize={16}
+            size={34}
+            onPress={onShowSearchBar}
+            accessibilityLabel={t('nav_search')}
+          />
+        </View>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   )
 })
 
@@ -79,28 +88,17 @@ const styles = createStyle({
     flexDirection: 'row',
     height: NAV_BAR_HEIGHT,
     alignItems: 'center',
-    paddingHorizontal: spacing.xs,
+    justifyContent: 'space-between',
+    paddingHorizontal: pagePadding,
   },
   flex: {
     flex: 1,
   },
-  back: {
-    flex: 1,
-    height: '100%',
+  right: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingLeft: spacing.xs,
-  },
-  backIcon: {
-    marginRight: 2,
   },
   loading: {
     marginRight: spacing.sm,
-  },
-  iconBtn: {
-    width: size.hitTarget,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 })

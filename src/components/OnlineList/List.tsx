@@ -1,18 +1,19 @@
 import { useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import { FlatList, type FlatListProps, RefreshControl, View } from 'react-native'
 
-// import { useMusicList } from '@/store/list/hook'
 import ListItem, { ITEM_HEIGHT } from './ListItem'
 import { createStyle, getRowInfo, type RowInfoType } from '@/utils/tools'
 import type { Position } from './ListMenu'
 import type { SelectMode } from './MultipleModeBar'
-import { useTheme } from '@/store/theme/hook'
 import settingState from '@/store/setting/state'
 import { MULTI_SELECT_BAR_HEIGHT } from './MultipleModeBar'
 import { useI18n } from '@/lang'
 import Text from '@/components/common/Text'
 import { handlePlay } from './listAction'
 import { useSettingValue } from '@/store/setting/hook'
+import { useIsPlay, usePlayMusicInfo } from '@/store/player/hook'
+import { useHorizontalMode } from '@/utils/hooks'
+import { useApple, fontSize, size } from '@/theme/apple'
 
 type FlatListType = FlatListProps<LX.Music.MusicInfoOnline>
 
@@ -29,6 +30,7 @@ export interface ListProps {
   onPlayList?: (index: number) => void
   progressViewOffset?: number
   ListHeaderComponent?: FlatListType['ListEmptyComponent']
+  contentContainerStyle?: FlatListType['contentContainerStyle']
   checkHomePagerIdle: boolean
   rowType?: RowInfoType
 }
@@ -53,11 +55,12 @@ const List = forwardRef<ListType, ListProps>(({
   onPlayList,
   progressViewOffset,
   ListHeaderComponent,
+  contentContainerStyle,
   checkHomePagerIdle,
   rowType,
 }, ref) => {
-  // const t = useI18n()
-  const theme = useTheme()
+  const apple = useApple()
+  const isWide = useHorizontalMode()
   const flatListRef = useRef<FlatList>(null)
   const [currentList, setList] = useState<LX.Music.MusicInfoOnline[]>([])
   const [showSource, setShowSource] = useState(false)
@@ -71,8 +74,14 @@ const List = forwardRef<ListType, ListProps>(({
   const rowInfo = useRef(getRowInfo(rowType))
   const isShowAlbumName = useSettingValue('list.isShowAlbumName')
   const isShowInterval = useSettingValue('list.isShowInterval')
-  // const currentListIdRef = useRef('')
-  // console.log('render music list')
+  const playMusicInfo = usePlayMusicInfo()
+  const isPlay = useIsPlay()
+
+  const playingId = useMemo(() => {
+    const m = playMusicInfo.musicInfo
+    if (!m) return ''
+    return 'progress' in m ? m.metadata.musicInfo.id : m.id
+  }, [playMusicInfo.musicInfo])
 
   useImperativeHandle(ref, () => ({
     setList(list, isAppend, showSource) {
@@ -160,7 +169,6 @@ const List = forwardRef<ListType, ListProps>(({
         if (settingState.setting['list.isClickPlayList'] && onPlayList != null) {
           onPlayList(index)
         } else {
-          // console.log(currentList[index])
           handlePlay(currentList[index])
         }
       }
@@ -180,31 +188,39 @@ const List = forwardRef<ListType, ListProps>(({
   }
 
 
-  const renderItem: FlatListType['renderItem'] = ({ item, index }) => (
-    <ListItem
-      item={item}
-      index={index}
-      showSource={showSource}
-      onPress={handlePress}
-      onLongPress={handleLongPress}
-      onShowMenu={onShowMenu}
-      selectedList={selectedList}
-      rowInfo={rowInfo.current}
-      isShowAlbumName={isShowAlbumName}
-      isShowInterval={isShowInterval}
-    />
-  )
+  const renderItem: FlatListType['renderItem'] = ({ item, index }) => {
+    const active = playingId === item.id
+    return (
+      <ListItem
+        item={item}
+        index={index}
+        showSource={showSource}
+        active={active}
+        isPlay={active ? isPlay : false}
+        onPress={handlePress}
+        onLongPress={handleLongPress}
+        onShowMenu={onShowMenu}
+        selectedList={selectedList}
+        rowInfo={rowInfo.current}
+        isShowAlbumName={isShowAlbumName}
+        isShowInterval={isShowInterval}
+      />
+    )
+  }
   const getkey: FlatListType['keyExtractor'] = item => item.id
   const getItemLayout: FlatListType['getItemLayout'] = (data, index) => {
     return { length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index }
   }
   const refreshControl = useMemo(() => (
     <RefreshControl
-      colors={[theme['c-primary']]}
-      // progressBackgroundColor={theme.primary}
+      colors={[apple.accent]}
+      tintColor={apple.accent}
       refreshing={status == 'refreshing'}
       onRefresh={onRefresh} />
-  ), [status, onRefresh, theme])
+  ), [status, onRefresh, apple.accent])
+
+  const defaultBottomPadding = checkHomePagerIdle && !isWide ? size.dockClearance : size.miniPlayerClearance
+
   const footerComponent = useMemo(() => {
     let label: FooterLabel
     switch (status) {
@@ -233,19 +249,18 @@ const List = forwardRef<ListType, ListProps>(({
     <FlatList
       ref={flatListRef}
       style={styles.list}
+      contentContainerStyle={contentContainerStyle ?? { paddingBottom: defaultBottomPadding }}
       data={currentList}
       numColumns={rowInfo.current.rowNum}
       horizontal={false}
       maxToRenderPerBatch={4}
-      // updateCellsBatchingPeriod={80}
       windowSize={8}
       removeClippedSubviews={true}
       initialNumToRender={12}
       renderItem={renderItem}
       keyExtractor={getkey}
+      extraData={`${playingId}_${isPlay ? '1' : '0'}`}
       getItemLayout={getItemLayout}
-      // onRefresh={onRefresh}
-      // refreshing={refreshing}
       onEndReachedThreshold={0.5}
       onEndReached={handleLoadMore}
       progressViewOffset={progressViewOffset}
@@ -261,7 +276,7 @@ const Footer = ({ label, onLoadMore }: {
   label: FooterLabel
   onLoadMore: () => void
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
   const handlePress = () => {
     if (label != 'list_error') return
@@ -271,7 +286,14 @@ const Footer = ({ label, onLoadMore }: {
     label
       ? (
           <View>
-            <Text onPress={handlePress} style={styles.footer} color={theme['c-font-label']}>{t(label)}</Text>
+            <Text
+              onPress={handlePress}
+              style={styles.footer}
+              size={fontSize.footnote}
+              color={label == 'list_error' ? apple.accent : apple.tertiaryLabel}
+            >
+              {t(label)}
+            </Text>
           </View>
         )
       : null
@@ -288,7 +310,7 @@ const styles = createStyle({
   },
   footer: {
     textAlign: 'center',
-    padding: 10,
+    padding: 12,
   },
 })
 

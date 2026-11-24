@@ -7,7 +7,7 @@ import { type Comment } from '../utils'
 import { useI18n } from '@/lang'
 import Text from '@/components/common/Text'
 import Loading from '@/components/common/Loading'
-import { useApple, fontSize, pagePadding, spacing } from '@/theme/apple'
+import { useApple, fontSize, spacing } from '@/theme/apple'
 
 type FlatListType = FlatListProps<Comment>
 
@@ -49,7 +49,9 @@ const List = forwardRef<ListType, ListProps>(({
     onLoadMore()
   }
 
-  const renderItem: FlatListType['renderItem'] = ({ item }) => <CommentFloor comment={item} />
+  const renderItem: FlatListType['renderItem'] = ({ item, index }) => (
+    <CommentFloor comment={item} isLast={index === currentList.length - 1} />
+  )
   const getkey: FlatListType['keyExtractor'] = item => item.id
 
   const refreshControl = useMemo(() => (
@@ -133,8 +135,7 @@ const styles = createStyle({
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: pagePadding,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.xxl,
   },
   footer: {
     flexDirection: 'row',

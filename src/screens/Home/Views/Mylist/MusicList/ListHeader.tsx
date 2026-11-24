@@ -1,6 +1,6 @@
-import { memo, useMemo } from 'react'
-import { TouchableOpacity, View } from 'react-native'
-import { IonIcon } from '@/components/common/Icon'
+import { memo, useEffect, useMemo, useState } from 'react'
+import { View } from 'react-native'
+import ActionButton from '@/components/apple/ActionButton'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
 import { LIST_IDS } from '@/config/constant'
@@ -9,12 +9,12 @@ import { useActiveListId, useMyList } from '@/store/list/hook'
 import { useSettingValue } from '@/store/setting/hook'
 import { getListMusics, setTempList } from '@/core/list'
 import { playList } from '@/core/player/player'
-import { useApple, fontSize, fontWeight, pagePadding, radius, spacing } from '@/theme/apple'
+import { useApple, fontSize, fontWeight, pagePadding, size, spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 import { shuffleList } from '@/utils/shuffle'
 
 /** 头部固定高度（列表的 getItemLayout 依赖这个值） */
-export const LIST_HEADER_HEIGHT = 124
+export const LIST_HEADER_HEIGHT = 140
 
 /**
  * 播放 = 从第一首顺序播放；
@@ -33,18 +33,8 @@ const handlePlay = async(shuffle: boolean) => {
   }
 }
 
-const ActionBtn = ({ icon, label, onPress }: { icon: string, label: string, onPress: () => void }) => {
-  const apple = useApple()
-  return (
-    <TouchableOpacity style={{ ...styles.btn, backgroundColor: apple.fill }} activeOpacity={0.6} onPress={onPress}>
-      <IonIcon name={icon} rawSize={17} color={apple.accent} />
-      <Text style={styles.btnText} size={fontSize.callout} color={apple.accent}>{label}</Text>
-    </TouchableOpacity>
-  )
-}
-
 /**
- * 歌曲页头部：当前列表名（大标题）+ 播放 / 随机播放
+ * 歌曲页头部：居中清晰歌单名 + 歌曲数 + 并排等宽播放 / 随机播放 ActionButton
  */
 export default memo(() => {
   const apple = useApple()
@@ -52,6 +42,30 @@ export default memo(() => {
   const activeListId = useActiveListId()
   const allList = useMyList()
   const langId = useSettingValue('common.langId')
+  const [songCount, setSongCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    const updateCount = () => {
+      if (!activeListId) {
+        setSongCount(0)
+        return
+      }
+      void getListMusics(activeListId).then((list) => {
+        if (!cancelled) setSongCount(list.length)
+      })
+    }
+    updateCount()
+
+    const handleUpdate = (ids: string[]) => {
+      if (ids.includes(activeListId)) updateCount()
+    }
+    global.app_event.on('myListMusicUpdate', handleUpdate)
+    return () => {
+      cancelled = true
+      global.app_event.off('myListMusicUpdate', handleUpdate)
+    }
+  }, [activeListId])
 
   const name = useMemo(() => {
     switch (activeListId) {
@@ -65,11 +79,16 @@ export default memo(() => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title} size={fontSize.title1} color={apple.label} numberOfLines={1}>{name}</Text>
+      <Text style={styles.title} size={fontSize.title1} color={apple.label} numberOfLines={1}>
+        {name}
+      </Text>
+      <Text style={styles.count} size={fontSize.footnote} color={apple.secondaryLabel} numberOfLines={1}>
+        {t('apple_library_songs_count', { num: songCount })}
+      </Text>
       <View style={styles.btns}>
-        <ActionBtn icon="play" label={t('apple_play')} onPress={() => { void handlePlay(false) }} />
+        <ActionButton icon="play" ionIcon="play" label={t('apple_play')} onPress={() => { void handlePlay(false) }} />
         <View style={styles.gap} />
-        <ActionBtn icon="shuffle" label={t('apple_shuffle')} onPress={() => { void handlePlay(true) }} />
+        <ActionButton icon="list-random" ionIcon="shuffle" label={t('apple_shuffle')} onPress={() => { void handlePlay(true) }} />
       </View>
     </View>
   )
@@ -80,26 +99,24 @@ const styles = createStyle({
     height: LIST_HEADER_HEIGHT,
     paddingHorizontal: pagePadding,
     paddingTop: spacing.xs,
+    alignItems: 'center',
     overflow: 'hidden',
   },
   title: {
     fontWeight: fontWeight.bold,
+    letterSpacing: -0.45,
+    textAlign: 'center',
+  },
+  count: {
+    marginTop: 4,
+    textAlign: 'center',
+    fontWeight: fontWeight.medium,
   },
   btns: {
     flexDirection: 'row',
     marginTop: spacing.lg,
-  },
-  btn: {
-    flex: 1,
-    height: 44,
-    borderRadius: radius.medium,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnText: {
-    marginLeft: spacing.sm,
-    fontWeight: fontWeight.semibold,
+    width: '100%',
+    maxWidth: size.actionBarMaxWidth,
   },
   gap: {
     width: spacing.md,

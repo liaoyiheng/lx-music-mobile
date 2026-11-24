@@ -3,18 +3,19 @@ import { Animated, View, TouchableOpacity } from 'react-native'
 
 import Text from '@/components/common/Text'
 import Input, { type InputType } from '@/components/common/Input'
-
-import { useTheme } from '@/store/theme/hook'
+import { GlassSurface } from '@/components/apple/LiquidGlass'
+import { IonIcon } from '@/components/common/Icon'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
-import { BorderWidths } from '@/theme'
+import { useApple, fontSize, fontWeight, pagePadding, radius, spacing } from '@/theme/apple'
 
 interface SearchInputProps {
   onSearch: (keywork: string) => void
+  placeholder: string
 }
 type SearchInputType = InputType
 
-const SearchInput = forwardRef<SearchInputType, SearchInputProps>(({ onSearch }, ref) => {
+const SearchInput = forwardRef<SearchInputType, SearchInputProps>(({ onSearch, placeholder }, ref) => {
   const [text, setText] = useState('')
 
   const handleChangeText = (text: string) => {
@@ -25,10 +26,9 @@ const SearchInput = forwardRef<SearchInputType, SearchInputProps>(({ onSearch },
   return (
     <Input
       onChangeText={handleChangeText}
-      placeholder="Search for something..."
+      placeholder={placeholder}
       value={text}
       style={styles.input}
-      // onFocus={showTipList}
       clearBtn
       ref={ref}
     />
@@ -47,14 +47,12 @@ export interface ListSearchBarType {
 
 export default forwardRef<ListSearchBarType, ListSearchBarProps>(({ onSearch, onExitSearch }, ref) => {
   const t = useI18n()
-  // const isGetDetailFailedRef = useRef(false)
+  const apple = useApple()
   const [visible, setVisible] = useState(false)
   const [animatePlayed, setAnimatPlayed] = useState(true)
   const animFade = useRef(new Animated.Value(0)).current
   const animTranslateY = useRef(new Animated.Value(0)).current
   const searchInputRef = useRef<SearchInputType>(null)
-
-  const theme = useTheme()
 
   useImperativeHandle(ref, () => ({
     show() {
@@ -70,15 +68,14 @@ export default forwardRef<ListSearchBarType, ListSearchBarProps>(({ onSearch, on
 
 
   const handleShow = useCallback(() => {
-    // console.log('show List')
     setVisible(true)
     setAnimatPlayed(false)
     requestAnimationFrame(() => {
-      animTranslateY.setValue(-20)
+      animTranslateY.setValue(-16)
 
       Animated.parallel([
         Animated.timing(animFade, {
-          toValue: 0.92,
+          toValue: 1,
           duration: 200,
           useNativeDriver: true,
         }),
@@ -102,7 +99,7 @@ export default forwardRef<ListSearchBarType, ListSearchBarProps>(({ onSearch, on
         useNativeDriver: true,
       }),
       Animated.timing(animTranslateY, {
-        toValue: -20,
+        toValue: -16,
         duration: 200,
         useNativeDriver: true,
       }),
@@ -116,41 +113,55 @@ export default forwardRef<ListSearchBarType, ListSearchBarProps>(({ onSearch, on
 
   const animaStyle = useMemo(() => ({
     ...styles.container,
-    // backgroundColor: theme['c-content-background'],
-    borderBottomColor: theme['c-border-background'],
-    opacity: animFade, // Bind opacity to animated value
+    opacity: animFade,
     transform: [
       { translateY: animTranslateY },
     ],
-  }), [animFade, animTranslateY, theme])
+  }), [animFade, animTranslateY])
 
   const component = useMemo(() => {
     return (
       <Animated.View style={animaStyle}>
-        <View style={styles.content}>
-          <SearchInput ref={searchInputRef} onSearch={onSearch} />
-        </View>
-        <TouchableOpacity onPress={onExitSearch} style={styles.btn}>
-          <Text color={theme['c-button-font']}>{t('list_select_cancel')}</Text>
+        <GlassSurface dense borderRadius={radius.pill} style={styles.glassWrap} innerStyle={styles.glassInner}>
+          <IonIcon name="search" rawSize={16} color={apple.secondaryLabel} style={styles.searchIcon} />
+          <View style={styles.content}>
+            <SearchInput ref={searchInputRef} onSearch={onSearch} placeholder={t('apple_search_placeholder')} />
+          </View>
+        </GlassSurface>
+        <TouchableOpacity onPress={onExitSearch} activeOpacity={0.68} style={styles.btn}>
+          <Text size={fontSize.callout} color={apple.accent} style={styles.btnText}>
+            {t('apple_cancel')}
+          </Text>
         </TouchableOpacity>
       </Animated.View>
     )
-  }, [animaStyle, onSearch, onExitSearch, theme, t])
+  }, [animaStyle, apple, onSearch, onExitSearch, t])
 
   return !visible && animatePlayed ? null : component
 })
 
 const styles = createStyle({
   container: {
-    flex: 1,
     position: 'absolute',
-    left: 0,
-    top: 0,
-    width: '100%',
-    height: '100%',
+    left: pagePadding,
+    right: pagePadding,
+    top: 2,
+    bottom: 2,
     flexDirection: 'row',
-    paddingLeft: 10,
-    borderBottomWidth: BorderWidths.normal,
+    alignItems: 'center',
+  },
+  glassWrap: {
+    flex: 1,
+  },
+  glassInner: {
+    height: 38,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 12,
+    paddingRight: 4,
+  },
+  searchIcon: {
+    marginRight: 2,
   },
   content: {
     flexDirection: 'row',
@@ -158,12 +169,17 @@ const styles = createStyle({
   },
   input: {
     height: '100%',
+    backgroundColor: 'transparent',
+    paddingLeft: 4,
   },
   btn: {
-    // flex: 1,
-    paddingLeft: 15,
-    paddingRight: 15,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.xs,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  btnText: {
+    fontWeight: fontWeight.medium,
   },
 })

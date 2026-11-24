@@ -1,12 +1,13 @@
 import { useRef, forwardRef, useImperativeHandle } from 'react'
 import { View } from 'react-native'
-// import LoadingMask, { LoadingMaskType } from '@/components/common/LoadingMask'
 import List, { type ListProps, type ListType, type Status, type RowInfoType } from './List'
 import ListMenu, { type ListMenuType, type Position, type SelectInfo } from './ListMenu'
 import ListMusicMultiAdd, { type MusicMultiAddModalType as ListAddMultiType } from '@/components/MusicMultiAddModal'
 import ListMusicAdd, { type MusicAddModalType as ListMusicAddType } from '@/components/MusicAddModal'
 import MultipleModeBar, { type MultipleModeBarType, type SelectMode } from './MultipleModeBar'
 import { clearMusicUrl, handleDislikeMusic, handlePlay, handlePlayLater, handleShare, handleShowMusicSourceDetail } from './listAction'
+import { useHorizontalMode } from '@/utils/hooks'
+import { size } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
 export interface OnlineListProps {
@@ -15,6 +16,7 @@ export interface OnlineListProps {
   onPlayList?: ListProps['onPlayList']
   progressViewOffset?: ListProps['progressViewOffset']
   ListHeaderComponent?: ListProps['ListHeaderComponent']
+  contentContainerStyle?: ListProps['contentContainerStyle']
   checkHomePagerIdle?: boolean
   rowType?: RowInfoType
 }
@@ -29,15 +31,16 @@ export default forwardRef<OnlineListType, OnlineListProps>(({
   onPlayList,
   progressViewOffset,
   ListHeaderComponent,
+  contentContainerStyle,
   checkHomePagerIdle = false,
   rowType,
 }, ref) => {
+  const isWide = useHorizontalMode()
   const listRef = useRef<ListType>(null)
   const multipleModeBarRef = useRef<MultipleModeBarType>(null)
   const listMusicAddRef = useRef<ListMusicAddType>(null)
   const listMusicMultiAddRef = useRef<ListAddMultiType>(null)
   const listMenuRef = useRef<ListMenuType>(null)
-  // const loadingMaskRef = useRef<LoadingMaskType>(null)
 
   useImperativeHandle(ref, () => ({
     setList(list, isAppend = false, showSource = false) {
@@ -78,6 +81,8 @@ export default forwardRef<OnlineListType, OnlineListProps>(({
     }
   }
 
+  const multiBarBottom = checkHomePagerIdle && !isWide ? size.dockClearance - 12 : size.miniPlayerClearance - 8
+
   return (
     <View style={styles.container}>
       <View style={{ flex: 1 }}>
@@ -91,11 +96,13 @@ export default forwardRef<OnlineListType, OnlineListProps>(({
           onPlayList={onPlayList}
           progressViewOffset={progressViewOffset}
           ListHeaderComponent={ListHeaderComponent}
+          contentContainerStyle={contentContainerStyle}
           checkHomePagerIdle={checkHomePagerIdle}
           rowType={rowType}
         />
         <MultipleModeBar
           ref={multipleModeBarRef}
+          bottomOffset={multiBarBottom}
           onSwitchMode={hancelSwitchSelectMode}
           onSelectAll={isAll => listRef.current?.selectAll(isAll)}
           onExitSelectMode={hancelExitSelect}
@@ -113,7 +120,6 @@ export default forwardRef<OnlineListType, OnlineListProps>(({
         onRemoveCache={info => { void clearMusicUrl(info.musicInfo) }}
         onDislikeMusic={info => { void handleDislikeMusic(info.musicInfo) }}
       />
-      {/* <LoadingMask ref={loadingMaskRef} /> */}
     </View>
   )
 })
@@ -124,11 +130,4 @@ const styles = createStyle({
     flex: 1,
     overflow: 'hidden',
   },
-  list: {
-    flex: 1,
-  },
-  exitMultipleModeBtn: {
-    height: 40,
-  },
 })
-

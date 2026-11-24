@@ -8,9 +8,9 @@ const TEXT_LIMIT = 160
 const SUB_TEXT_LIMIT = TEXT_LIMIT * 1.2
 
 /**
- * 评论正文：超长时折叠，点击「展开 / 收起」切换
+ * 评论正文：15pt 行高 22，超长时折叠，点击「展开 / 收起」切换
  */
-export default memo(({ text, size = appleFontSize.callout }: { text: string, size?: number }) => {
+export default memo(({ text, size = appleFontSize.subhead }: { text: string, size?: number }) => {
   const [show, setShow] = useState(false)
   const apple = useApple()
 
@@ -33,7 +33,8 @@ export default memo(({ text, size = appleFontSize.callout }: { text: string, siz
     return 0
   }, [text])
 
-  const textStyle = { ...styles.text, lineHeight: Math.round(size * 1.35) }
+  const lineHeight = size === 15 ? 22 : Math.round(size * 1.45)
+  const textStyle = { ...styles.text, lineHeight }
 
   return (
     length ? (
@@ -44,7 +45,7 @@ export default memo(({ text, size = appleFontSize.callout }: { text: string, siz
             : <Text selectable style={textStyle} size={size} color={apple.label}>{text.substring(0, length)} <Text size={size} color={apple.secondaryLabel}>……</Text></Text>
         }
         <TouchableOpacity style={styles.toggle} activeOpacity={0.5} onPress={() => { setShow(!show) }}>
-          <Text size={appleFontSize.subhead} color={apple.accent} style={styles.toggleText}>{show ? global.i18n.t('comment_hide_text') : global.i18n.t('comment_show_text')}</Text>
+          <Text size={appleFontSize.footnote} color={apple.accent} style={styles.toggleText}>{show ? global.i18n.t('comment_hide_text') : global.i18n.t('comment_show_text')}</Text>
         </TouchableOpacity>
       </View>
     ) : <Text selectable style={textStyle} size={size} color={apple.label}>{text}</Text>

@@ -2,6 +2,8 @@ import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'rea
 import OnlineList, { type OnlineListType, type OnlineListProps } from '@/components/OnlineList'
 import { clearListDetail, getListDetail, setListDetail, setListDetailInfo } from '@/core/songlist'
 import songlistState from '@/store/songlist/state'
+import { useStatusbarHeight } from '@/store/common/hook'
+import { size } from '@/theme/apple'
 import { handlePlay } from './listAction'
 import Header, { type HeaderType } from './Header'
 import { useListInfo } from './state'
@@ -19,6 +21,7 @@ export default forwardRef<MusicListType, MusicListProps>(({ componentId }, ref) 
   const headerRef = useRef<HeaderType>(null)
   const isUnmountedRef = useRef(false)
   const info = useListInfo()
+  const statusBarHeight = useStatusbarHeight()
 
   useImperativeHandle(ref, () => ({
     async loadList(source, id) {
@@ -79,7 +82,6 @@ export default forwardRef<MusicListType, MusicListProps>(({ componentId }, ref) 
 
   const handlePlayList: OnlineListProps['onPlayList'] = (index) => {
     const listDetailInfo = songlistState.listDetailInfo
-    // console.log(songlistState.listDetailInfo)
     void handlePlay(listDetailInfo.id, listDetailInfo.source, listDetailInfo.list, index)
   }
   const handleRefresh: OnlineListProps['onRefresh'] = () => {
@@ -118,7 +120,7 @@ export default forwardRef<MusicListType, MusicListProps>(({ componentId }, ref) 
     onRefresh={handleRefresh}
     onLoadMore={handleLoadMore}
     ListHeaderComponent={header}
-    // progressViewOffset={}
+    progressViewOffset={statusBarHeight + 52}
+    contentContainerStyle={{ paddingBottom: size.miniPlayerClearance }}
    />
 })
-

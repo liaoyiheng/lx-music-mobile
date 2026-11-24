@@ -5,16 +5,17 @@ import { FlatList, type NativeScrollEvent, type NativeSyntheticEvent, type FlatL
 import listState from '@/store/list/state'
 import playerState from '@/store/player/state'
 import { getListPosition, getListPrevSelectId, saveListPosition } from '@/utils/data'
-// import { useMusicList } from '@/store/list/hook'
 import { getListMusics, setActiveList } from '@/core/list'
 import ListItem, { ITEM_HEIGHT } from './ListItem'
 import ListHeader, { LIST_HEADER_HEIGHT } from './ListHeader'
 import { createStyle, getRowInfo } from '@/utils/tools'
-import { usePlayInfo, usePlayMusicInfo } from '@/store/player/hook'
+import { useIsPlay, usePlayInfo, usePlayMusicInfo } from '@/store/player/hook'
 import type { Position } from './ListMenu'
 import type { SelectMode } from './MultipleModeBar'
 import { useActiveListId } from '@/store/list/hook'
 import { useSettingValue } from '@/store/setting/hook'
+import { useHorizontalMode } from '@/utils/hooks'
+import { size } from '@/theme/apple'
 
 type FlatListType = FlatListProps<LX.Music.MusicInfo>
 
@@ -46,7 +47,7 @@ const usePlayIndex = () => {
 
 
 const List = forwardRef<ListType, ListProps>(({ onShowMenu, onMuiltSelectMode, onSelectAll }, ref) => {
-  // const t = useI18n()
+  const isWide = useHorizontalMode()
   const flatListRef = useRef<FlatList>(null)
   const [currentList, setList] = useState<LX.List.ListMusics>([])
   const listFirstScrollRef = useRef(false)
@@ -60,7 +61,7 @@ const List = forwardRef<ListType, ListProps>(({ onShowMenu, onMuiltSelectMode, o
   const rowInfo = useRef(getRowInfo())
   const isShowAlbumName = useSettingValue('list.isShowAlbumName')
   const isShowInterval = useSettingValue('list.isShowInterval')
-  // console.log('render music list')
+  const isPlay = useIsPlay()
 
   useImperativeHandle(ref, () => ({
     setIsMultiSelectMode(isMultiSelectMode) {
@@ -141,23 +142,20 @@ const List = forwardRef<ListType, ListProps>(({ onShowMenu, onMuiltSelectMode, o
         setList([...list])
       })
     }
-
     const handleJumpPosition = () => {
-      requestAnimationFrame(() => {
-        const listId = playerState.playMusicInfo.listId
-        if (!listId) return
-        if (listId != listState.activeListId) {
-          setActiveList(listId)
-          if (currentListIdRef.current != listId) waitJumpListPositionRef.current = true
-        } else if (playerState.playInfo.playIndex > -1) {
-          if (isUpdateingList) waitJumpListPositionRef.current = true
-          else {
-            try {
-              flatListRef.current?.scrollToIndex({ index: Math.floor(playerState.playInfo.playIndex / (rowInfo.current.rowNum ?? 1)), viewPosition: 0.3, animated: true })
-            } catch {}
-          }
+      const listId = playerState.playMusicInfo.listId
+      if (!listId) return
+      if (listId != listState.activeListId) {
+        setActiveList(listId)
+        if (currentListIdRef.current != listId) waitJumpListPositionRef.current = true
+      } else if (playerState.playInfo.playIndex > -1) {
+        if (isUpdateingList) waitJumpListPositionRef.current = true
+        else {
+          try {
+            flatListRef.current?.scrollToIndex({ index: Math.floor(playerState.playInfo.playIndex / (rowInfo.current.rowNum ?? 1)), viewPosition: 0.3, animated: true })
+          } catch {}
         }
-      })
+      }
     }
     if (global.lx.jumpMyListPosition) {
       global.lx.jumpMyListPosition = false
@@ -222,9 +220,7 @@ const List = forwardRef<ListType, ListProps>(({ onShowMenu, onMuiltSelectMode, o
   }
 
   const handlePress = (item: LX.Music.MusicInfo, index: number) => {
-    // console.log(global.lx.homePagerIdle)
     requestAnimationFrame(() => {
-      // console.log(global.lx.homePagerIdle)
       if (!global.lx.homePagerIdle) return
       if (isMultiSelectModeRef.current) {
         handleSelect(item, index)
@@ -255,6 +251,7 @@ const List = forwardRef<ListType, ListProps>(({ onShowMenu, onMuiltSelectMode, o
       item={item}
       index={index}
       activeIndex={activeIndex}
+      isPlay={activeIndex == index ? isPlay : false}
       onPress={handlePress}
       onLongPress={handleLongPress}
       onShowMenu={onShowMenu}
@@ -274,17 +271,19 @@ const List = forwardRef<ListType, ListProps>(({ onShowMenu, onMuiltSelectMode, o
       ref={flatListRef}
       onScroll={handleScroll}
       style={styles.list}
+      contentContainerStyle={{
+        paddingBottom: isWide ? size.miniPlayerClearance : size.dockClearance,
+      }}
       data={currentList}
       maxToRenderPerBatch={4}
       numColumns={rowInfo.current.rowNum}
       horizontal={false}
-      // updateCellsBatchingPeriod={80}
       windowSize={8}
       removeClippedSubviews={true}
       initialNumToRender={12}
       renderItem={renderItem}
       keyExtractor={getkey}
-      extraData={activeIndex}
+      extraData={`${activeIndex}_${isPlay ? '1' : '0'}`}
       getItemLayout={getItemLayout}
       ListHeaderComponent={ListHeader}
     />
@@ -292,9 +291,6 @@ const List = forwardRef<ListType, ListProps>(({ onShowMenu, onMuiltSelectMode, o
 })
 
 const styles = createStyle({
-  container: {
-    flex: 1,
-  },
   list: {
     flexGrow: 1,
     flexShrink: 1,

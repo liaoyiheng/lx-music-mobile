@@ -142,7 +142,11 @@ export default memo(({ componentId }: {
           ? null
           : (
               <View style={{ ...styles.container, backgroundColor: apple.background }}>
-                <Header musicInfo={musicInfo} onRefresh={isLocal ? undefined : refreshComment} />
+                <Header
+                  musicInfo={musicInfo}
+                  totalCount={activeId == 'hot' ? total.hot : total.new}
+                  onRefresh={isLocal ? undefined : refreshComment}
+                />
                 <View style={isWide ? styles.wideContent : styles.container}>
                   {
                     isLocal

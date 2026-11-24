@@ -1,11 +1,10 @@
 import { useState, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react'
-import { Animated, View, TouchableOpacity } from 'react-native'
+import { Animated, StyleSheet, View, TouchableOpacity } from 'react-native'
 
 import Text from '@/components/common/Text'
-import Button from '@/components/common/Button'
-import { useTheme } from '@/store/theme/hook'
+import { GlassSurface } from '@/components/apple/LiquidGlass'
+import { useApple, fontSize, fontWeight, pagePadding, radius, spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
-import { BorderWidths } from '@/theme'
 
 export type SelectMode = 'single' | 'range'
 
@@ -23,7 +22,6 @@ export interface MultipleModeBarType {
 }
 
 export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelectAll, onSwitchMode, onExitSelectMode }, ref) => {
-  // const isGetDetailFailedRef = useRef(false)
   const [visible, setVisible] = useState(false)
   const [animatePlayed, setAnimatPlayed] = useState(true)
   const animFade = useRef(new Animated.Value(0)).current
@@ -31,7 +29,7 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
   const [selectMode, setSelectMode] = useState<SelectMode>('single')
   const [isSelectAll, setIsSelectAll] = useState(false)
   const [visibleBar, setVisibleBar] = useState(true)
-  const theme = useTheme()
+  const apple = useApple()
 
   useImperativeHandle(ref, () => ({
     show() {
@@ -52,15 +50,14 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
   }))
 
   const handleShow = useCallback(() => {
-    // console.log('show List')
     setVisible(true)
     setAnimatPlayed(false)
     requestAnimationFrame(() => {
-      animTranslateY.setValue(-20)
+      animTranslateY.setValue(-16)
 
       Animated.parallel([
         Animated.timing(animFade, {
-          toValue: 0.92,
+          toValue: 1,
           duration: 200,
           useNativeDriver: true,
         }),
@@ -84,7 +81,7 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
         useNativeDriver: true,
       }),
       Animated.timing(animTranslateY, {
-        toValue: -20,
+        toValue: -16,
         duration: 200,
         useNativeDriver: true,
       }),
@@ -95,16 +92,13 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
     })
   }, [animFade, animTranslateY])
 
-
   const animaStyle = useMemo(() => ({
     ...styles.container,
-    // backgroundColor: theme['c-content-background'],
-    borderBottomColor: theme['c-border-background'],
-    opacity: visibleBar ? animFade : 0, // Bind opacity to animated value
+    opacity: visibleBar ? animFade : 0,
     transform: [
       { translateY: animTranslateY },
     ],
-  }), [animFade, animTranslateY, theme, visibleBar])
+  }), [animFade, animTranslateY, visibleBar])
 
   const handleSelectAll = useCallback(() => {
     const selectAll = !isSelectAll
@@ -114,48 +108,114 @@ export default forwardRef<MultipleModeBarType, MultipleModeBarProps>(({ onSelect
 
   const component = useMemo(() => {
     return (
-      <Animated.View style={animaStyle}>
-        <View style={styles.switchBtn}>
-          <Button onPress={() => { onSwitchMode('single') }} style={{ ...styles.btn, backgroundColor: selectMode == 'single' ? theme['c-button-background'] : 'rgba(0,0,0,0)' }}>
-            <Text color={theme['c-button-font']}>{global.i18n.t('list_select_single')}</Text>
-          </Button>
-          <Button onPress={() => { onSwitchMode('range') }} style={{ ...styles.btn, backgroundColor: selectMode == 'range' ? theme['c-button-background'] : 'rgba(0,0,0,0)' }}>
-            <Text color={theme['c-button-font']}>{global.i18n.t('list_select_range')}</Text>
-          </Button>
-        </View>
-        <TouchableOpacity onPress={handleSelectAll} style={styles.btn}>
-          <Text color={theme['c-button-font']}>{global.i18n.t(isSelectAll ? 'list_select_unall' : 'list_select_all')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onExitSelectMode} style={styles.btn}>
-          <Text color={theme['c-button-font']}>{global.i18n.t('list_select_cancel')}</Text>
-        </TouchableOpacity>
+      <Animated.View style={animaStyle} pointerEvents={visibleBar ? 'box-none' : 'none'}>
+        <GlassSurface dense borderRadius={radius.pill} innerStyle={styles.glassInner}>
+          <View style={[styles.switchGroup, { backgroundColor: apple.fill }]}>
+            <TouchableOpacity
+              activeOpacity={0.72}
+              onPress={() => { onSwitchMode('single') }}
+              style={[
+                styles.switchItem,
+                selectMode == 'single' && {
+                  ...styles.switchActive,
+                  backgroundColor: apple.glassPillBg,
+                  borderColor: apple.glassPillBorder,
+                },
+              ]}
+            >
+              <Text
+                size={fontSize.footnote}
+                color={selectMode == 'single' ? apple.label : apple.secondaryLabel}
+                style={{ fontWeight: selectMode == 'single' ? fontWeight.semibold : fontWeight.medium }}
+              >
+                {global.i18n.t('list_select_single')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.72}
+              onPress={() => { onSwitchMode('range') }}
+              style={[
+                styles.switchItem,
+                selectMode == 'range' && {
+                  ...styles.switchActive,
+                  backgroundColor: apple.glassPillBg,
+                  borderColor: apple.glassPillBorder,
+                },
+              ]}
+            >
+              <Text
+                size={fontSize.footnote}
+                color={selectMode == 'range' ? apple.label : apple.secondaryLabel}
+                style={{ fontWeight: selectMode == 'range' ? fontWeight.semibold : fontWeight.medium }}
+              >
+                {global.i18n.t('list_select_range')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.actions}>
+            <TouchableOpacity onPress={handleSelectAll} activeOpacity={0.68} style={styles.actionBtn}>
+              <Text size={fontSize.subhead} color={apple.accent} style={styles.actionText}>
+                {global.i18n.t(isSelectAll ? 'list_select_unall' : 'list_select_all')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onExitSelectMode} activeOpacity={0.68} style={styles.actionBtn}>
+              <Text size={fontSize.subhead} color={apple.accent} style={styles.actionText}>
+                {global.i18n.t('list_select_cancel')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </GlassSurface>
       </Animated.View>
     )
-  }, [animaStyle, selectMode, theme, handleSelectAll, isSelectAll, onExitSelectMode, onSwitchMode])
+  }, [animaStyle, visibleBar, apple, selectMode, handleSelectAll, isSelectAll, onExitSelectMode, onSwitchMode])
 
   return !visible && animatePlayed ? null : component
 })
 
 const styles = createStyle({
   container: {
-    flex: 1,
     position: 'absolute',
-    left: 0,
-    top: 0,
-    width: '100%',
-    height: '100%',
-    flexDirection: 'row',
-    borderBottomWidth: BorderWidths.normal,
+    left: pagePadding,
+    right: pagePadding,
+    top: 2,
+    bottom: 2,
+    justifyContent: 'center',
   },
-  switchBtn: {
+  glassInner: {
+    height: 40,
+    paddingHorizontal: 6,
     flexDirection: 'row',
-    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  btn: {
-    // flex: 1,
-    paddingLeft: 18,
-    paddingRight: 18,
+  switchGroup: {
+    flexDirection: 'row',
+    padding: 2,
+    borderRadius: radius.pill,
+    height: 30,
+  },
+  switchItem: {
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  switchActive: {
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  actionBtn: {
+    paddingHorizontal: spacing.sm,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionText: {
+    fontWeight: fontWeight.semibold,
   },
 })
