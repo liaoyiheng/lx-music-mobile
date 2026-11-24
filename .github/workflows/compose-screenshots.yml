@@ -71,7 +71,20 @@ jobs:
           if [[ -n "$TEST_FILTER" ]]; then
             args+=(--tests "$TEST_FILTER")
           fi
-          timeout --signal=TERM --kill-after=15s 6m bash gradlew :app:recordRoborazziDebug "${args[@]}" --no-daemon --console=plain --info --stacktrace
+          diagnostics="app/build/ci-diagnostics"
+          mkdir -p "$diagnostics"
+          (
+            for elapsed in 45 120; do
+              sleep "$elapsed"
+              jcmd -l > "$diagnostics/processes.txt"
+              while read -r pid _; do
+                timeout 10s jcmd "$pid" Thread.print -l > "$diagnostics/threads-$elapsed-$pid.txt" 2>&1 || true
+              done < <(rg '^[0-9]+ .*GradleWorkerMain' "$diagnostics/processes.txt")
+            done
+          ) &
+          diagnostics_pid=$!
+          trap 'kill "$diagnostics_pid" 2>/dev/null || true' EXIT
+          timeout --signal=TERM --kill-after=15s 3m bash gradlew :app:recordRoborazziDebug "${args[@]}" --no-daemon --console=plain --info --stacktrace
 
       - name: Build Light & Dark Contact Sheets
         shell: bash
@@ -165,4 +178,6 @@ jobs:
           path: |
             native-android/app/build/reports/tests/**
             native-android/app/build/reports/roborazzi/**
+            native-android/app/build/ci-diagnostics/**
+            native-android/app/build/outputs/roborazzi/**/*.png
           if-no-files-found: ignore
