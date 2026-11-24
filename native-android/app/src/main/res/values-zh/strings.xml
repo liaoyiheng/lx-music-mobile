@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">洛雪音乐</string>
+    <string name="notification_channel_playback">音乐播放控制</string>
+</resources>

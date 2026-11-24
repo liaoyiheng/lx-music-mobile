@@ -1,0 +1,196 @@
+name: Build Native Liquid Glass APK
+
+on:
+  push:
+    branches:
+      - kotlin-native
+      - apple-style
+    paths:
+      - 'native-android/**'
+      - '.github/workflows/native-build.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（如 2.0.0-liquid，留空使用默认 2.0.0-liquid）'
+        required: false
+        default: '2.0.0-liquid'
+        type: string
+      version_code:
+        description: '数字版本码（默认 20001）'
+        required: false
+        default: '20001'
+        type: string
+      release:
+        description: '打包成功后创建 GitHub Release 并上传 APK（仅手动触发有效）'
+        required: false
+        default: true
+        type: boolean
+      prerelease:
+        description: 'Release 标记为预发布'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Native Android APK
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      signing: ${{ steps.build.outputs.signing }}
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v4
+
+      - name: Resolve build metadata
+        id: meta
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          VERSION="${INPUT_VERSION#v}"
+          if [ -z "$VERSION" ]; then
+            VERSION="2.0.0-liquid"
+          fi
+          VERSION_CODE="${INPUT_VERSION_CODE:-20001}"
+          if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+            echo "::error::version_code 必须为纯数字：$VERSION_CODE"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "Build version: $VERSION ($VERSION_CODE)"
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Release APK
+        id: build
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          VERSION_CODE: ${{ steps.meta.outputs.version_code }}
+          KS_B64: ${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}
+          KS_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KS_KEY_PASS: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          cd native-android
+          chmod +x gradlew
+          if [ -n "$KS_B64" ]; then
+            if [ -z "$KS_ALIAS" ] || [ -z "$KS_PASS" ] || [ -z "$KS_KEY_PASS" ]; then
+              echo "::error::已配置 KEYSTORE_STORE_FILE_BASE64，但 KEYSTORE_KEY_ALIAS / KEYSTORE_PASSWORD / KEYSTORE_KEY_PASSWORD 不完整"
+              exit 1
+            fi
+            echo "使用仓库 Secrets 中的自有发布签名"
+            echo "signing=release" >> "$GITHUB_OUTPUT"
+            echo "$KS_B64" | base64 --decode > app/release.keystore
+            trap 'rm -f app/release.keystore' EXIT
+            ./gradlew assembleRelease --no-daemon \
+              -PAPP_VERSION_NAME="$VERSION" \
+              -PAPP_VERSION_CODE="$VERSION_CODE" \
+              -PMYAPP_UPLOAD_STORE_FILE=release.keystore \
+              -PMYAPP_UPLOAD_KEY_ALIAS="$KS_ALIAS" \
+              -PMYAPP_UPLOAD_STORE_PASSWORD="$KS_PASS" \
+              -PMYAPP_UPLOAD_KEY_PASSWORD="$KS_KEY_PASS"
+          else
+            echo "::warning::未配置签名 Secrets，使用 native-android/app/debug.keystore 签名（仅供个人安装测试）"
+            echo "signing=debug" >> "$GITHUB_OUTPUT"
+            ./gradlew assembleRelease --no-daemon \
+              -PAPP_VERSION_NAME="$VERSION" \
+              -PAPP_VERSION_CODE="$VERSION_CODE" \
+              -PMYAPP_UPLOAD_STORE_FILE=debug.keystore \
+              -PMYAPP_UPLOAD_KEY_ALIAS=androiddebugkey \
+              -PMYAPP_UPLOAD_STORE_PASSWORD=android \
+              -PMYAPP_UPLOAD_KEY_PASSWORD=android
+          fi
+
+      - name: Collect APKs and MD5
+        shell: bash
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          mkdir -p dist
+          cd native-android/app/build/outputs/apk/release
+          ls -lh *.apk
+          for f in *.apk; do
+            abi=$(echo "$f" | sed -E 's/^app-(.*)-release\.apk$/\1/')
+            cp "$f" "$GITHUB_WORKSPACE/dist/lx-music-liquid-v${VERSION}-${abi}.apk"
+          done
+          cd "$GITHUB_WORKSPACE/dist"
+          md5sum *.apk | tee md5.txt
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lx-music-liquid-v${{ steps.meta.outputs.version }}
+          path: |
+            dist/*.apk
+            dist/md5.txt
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: [build]
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+      SIGNING: ${{ needs.build.outputs.signing }}
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lx-music-liquid-v${{ env.VERSION }}
+          path: dist
+
+      - name: Generate release notes
+        shell: bash
+        run: |
+          {
+            echo "LX Music 纯 Kotlin + Jetpack Compose 原生液态玻璃版 v${VERSION}"
+            echo
+            echo "- 包名 \`cn.toside.music.liquid\`，可与旧版洛雪并行安装"
+            echo "- 构建提交：${GITHUB_SHA}"
+            echo "- 一般手机推荐下载 \`arm64-v8a\`，不确定架构请下载 \`universal\`"
+            echo
+            if [ "$SIGNING" = "debug" ]; then
+              echo "> ⚠️ 本版本使用仓库内置 debug 签名（未配置签名 Secrets），仅供个人使用；后续切换正式签名需先卸载旧版。"
+            else
+              echo "签名：仓库自有发布签名。"
+            fi
+            echo
+            echo "### File MD5"
+            echo '```'
+            cat dist/md5.txt
+            echo '```'
+          } > release-notes.md
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: liquid-native-v${{ env.VERSION }}
+          name: LX Music Liquid Native v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ inputs.prerelease }}
+          fail_on_unmatched_files: true
+          files: dist/*.apk
