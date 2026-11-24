@@ -20,6 +20,7 @@ cpSync(path.join(repoRoot, 'src/utils/index.ts'), path.join(stageDir, 'src/utils
 cpSync(path.join(repoRoot, 'src/utils/common.ts'), path.join(stageDir, 'src/utils/common.ts'))
 cpSync(path.join(repoRoot, 'src/utils/message.ts'), path.join(stageDir, 'src/utils/message.ts'))
 cpSync(path.join(__dirname, 'shims/request.js'), path.join(stageDir, 'src/utils/request.js'))
+cpSync(path.join(__dirname, 'polyfills.js'), path.join(stageDir, 'native-android/sdk-bundler/polyfills.js'))
 cpSync(path.join(__dirname, 'entry.js'), path.join(stageDir, 'native-android/sdk-bundler/entry.js'))
 
 // Fix import path inside staged request.js (originally relative to shims/)

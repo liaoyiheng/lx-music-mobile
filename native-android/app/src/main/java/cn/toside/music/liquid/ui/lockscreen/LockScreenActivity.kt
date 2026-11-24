@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.core.view.WindowCompat
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -73,6 +74,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -159,6 +161,13 @@ class LockScreenActivity : ComponentActivity() {
             val settings by app.settingsStore.settings.collectAsState()
             val playerState by app.playerController.state.collectAsState()
             val hazeState = remember { HazeState() }
+
+            SideEffect {
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = false
+                    isAppearanceLightNavigationBars = false
+                }
+            }
 
             // If playback was cleared completely while in real lockscreen mode, close cleanly.
             LaunchedEffect(playerState.currentTrack, isPreviewMode) {

@@ -58,6 +58,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -94,7 +95,10 @@ import cn.toside.music.liquid.ui.components.LiquidPlaybackScrubber
 import cn.toside.music.liquid.ui.components.PlayingEqualizer
 import cn.toside.music.liquid.ui.components.bouncyClick
 import cn.toside.music.liquid.ui.components.formatMillis
+import cn.toside.music.liquid.ui.theme.LocalHazeState
 import cn.toside.music.liquid.ui.theme.LocalLiquidColors
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
 import kotlin.math.roundToInt
 
 private const val PLAYER_VIEW_COVER = 0
@@ -137,12 +141,17 @@ fun PlayerOverlay(
             }
             .clip(RoundedCornerShape(topStart = topCornerRadius, topEnd = topCornerRadius)),
     ) {
+        val playerHazeState = remember { HazeState() }
+
         // 1. Hardware-Accelerated 4-Pole Fluid Mesh Background (Zero Blackout!)
         FluidMeshBackground(
             colors = playerState.meshColors,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .haze(state = playerHazeState),
         )
 
+        CompositionLocalProvider(LocalHazeState provides playerHazeState) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -348,6 +357,7 @@ fun PlayerOverlay(
                     },
                 )
             }
+        }
         }
     }
 }

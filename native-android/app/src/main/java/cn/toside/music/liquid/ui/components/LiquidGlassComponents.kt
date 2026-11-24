@@ -49,6 +49,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -145,16 +146,23 @@ fun LiquidGlassSurface(
     val hazeState = LocalHazeState.current
     val isDark = darkOverride ?: colors.isDark
 
+    val canUseRealBlur = useBlur && hazeState != null && styleMode != MaterialStyle.SOLID_MATTE
+
     val tintColor = when (styleMode) {
         MaterialStyle.LIQUID_GLASS -> when {
-            isDark && dense -> Color(0xB8191924)
-            isDark -> Color(0x7A1C1C28)
-            dense -> Color(0xCCFFFFFF)
-            else -> Color(0x9EFFFFFF)
+            canUseRealBlur && isDark && dense -> Color(0xB8191924)
+            canUseRealBlur && isDark -> Color(0x7A1C1C28)
+            canUseRealBlur && dense -> Color(0xCCFFFFFF)
+            canUseRealBlur -> Color(0xA4FFFFFF)
+            // In-page translucent glass cards (not floating over a Haze source)
+            isDark && dense -> Color(0xD41B1B26)
+            isDark -> Color(0xB4191924)
+            dense -> Color(0xF2FFFFFF)
+            else -> Color(0xE2FFFFFF)
         }
         MaterialStyle.CLASSIC_FROST -> when {
             isDark -> Color(0xCC181822)
-            else -> Color(0xE0FFFFFF)
+            else -> Color(0xECFFFFFF)
         }
         MaterialStyle.SOLID_MATTE -> when {
             isDark -> Color(0xFF1A1A24)
@@ -162,9 +170,17 @@ fun LiquidGlassSurface(
         }
     }
 
-    val rimTop = if (isDark) Color(0x52FFFFFF) else Color(0xF0FFFFFF)
-    val rimBottom = if (isDark) Color(0x16FFFFFF) else Color(0x36D0D4E0)
-    val specularBrush = remember(isDark) {
+    val rimTop = if (isDark) {
+        if (canUseRealBlur) Color(0x52FFFFFF) else Color(0x36FFFFFF)
+    } else {
+        if (canUseRealBlur) Color(0xF0FFFFFF) else Color(0xFFFFFFFF)
+    }
+    val rimBottom = if (isDark) {
+        Color(0x18FFFFFF)
+    } else {
+        if (canUseRealBlur) Color(0x36D0D4E0) else Color(0x26B8BED0)
+    }
+    val specularBrush = remember(isDark, canUseRealBlur) {
         Brush.verticalGradient(
             0f to rimTop,
             0.35f to rimTop.copy(alpha = rimTop.alpha * 0.45f),
@@ -190,7 +206,6 @@ fun LiquidGlassSurface(
         }
     }
 
-    val canUseRealBlur = useBlur && hazeState != null && styleMode != MaterialStyle.SOLID_MATTE
     val effectiveBlur = if (styleMode == MaterialStyle.LIQUID_GLASS) blurRadius else 14.dp
 
     val baseMod = modifier
@@ -216,7 +231,15 @@ fun LiquidGlassSurface(
         .background(innerSheen)
         .border(width = borderWidth, brush = specularBrush, shape = shape)
 
-    Box(modifier = baseMod, content = content)
+    Box(modifier = baseMod) {
+        if (canUseRealBlur) {
+            CompositionLocalProvider(LocalHazeState provides null) {
+                content()
+            }
+        } else {
+            content()
+        }
+    }
 }
 
 /**

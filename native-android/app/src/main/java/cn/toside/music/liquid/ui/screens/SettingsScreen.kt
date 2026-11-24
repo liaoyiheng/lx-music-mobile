@@ -112,6 +112,7 @@ import java.util.Locale
 @Composable
 fun SettingsScreen(
     vm: MainViewModel,
+    bottomClearanceDp: Float = 170f,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalLiquidColors.current
@@ -174,7 +175,7 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .background(colors.background),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 170.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = bottomClearanceDp.dp),
     ) {
         // 1. 顶部苹果风大标题 + 副标题
         item {

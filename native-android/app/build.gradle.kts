@@ -7,7 +7,7 @@ plugins {
 }
 
 val appVersionName: String = (project.findProperty("APP_VERSION_NAME") as String?) ?: "2.0.0-liquid"
-val appVersionCode: Int = ((project.findProperty("APP_VERSION_CODE") as String?)?.toIntOrNull()) ?: 20001
+val appVersionCode: Int = ((project.findProperty("APP_VERSION_CODE") as String?)?.toIntOrNull()) ?: 20002
 
 android {
     namespace = "cn.toside.music.liquid"

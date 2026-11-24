@@ -47,7 +47,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,10 +58,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import cn.toside.music.liquid.data.model.ThemeMode
 import cn.toside.music.liquid.ui.DetailRoute
 import cn.toside.music.liquid.ui.MainViewModel
@@ -74,6 +78,7 @@ import cn.toside.music.liquid.ui.screens.PlayerOverlay
 import cn.toside.music.liquid.ui.screens.PlaylistDetailScreen
 import cn.toside.music.liquid.ui.screens.SearchScreen
 import cn.toside.music.liquid.ui.screens.SettingsScreen
+import cn.toside.music.liquid.ui.theme.LocalHazeState
 import cn.toside.music.liquid.ui.theme.LocalLiquidColors
 import cn.toside.music.liquid.ui.theme.LxLiquidTheme
 import dev.chrisbanes.haze.HazeState
@@ -87,7 +92,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isStatusBarContrastEnforced = false
+            window.isNavigationBarContrastEnforced = false
+        }
         handleLaunchIntent(intent)
 
         setContent {
@@ -101,6 +113,10 @@ class MainActivity : ComponentActivity() {
                     statusBarStyle = barStyle,
                     navigationBarStyle = barStyle,
                 )
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = !useDarkBars
+                    isAppearanceLightNavigationBars = !useDarkBars
+                }
             }
         }
     }
@@ -146,8 +162,16 @@ private fun LxLiquidRoot(
 
     // Entering full-screen dark fluid player forces white status/nav bar icons.
     val useDarkBars = isDark || playerExpanded
-    LaunchedEffect(useDarkBars) {
+    val view = LocalView.current
+    SideEffect {
         onSystemBarStyleChange(useDarkBars)
+        val activity = view.context as? ComponentActivity
+        activity?.window?.let { w ->
+            WindowCompat.getInsetsController(w, view).apply {
+                isAppearanceLightStatusBars = !useDarkBars
+                isAppearanceLightNavigationBars = !useDarkBars
+            }
+        }
     }
 
     // Optional lightweight Android 13+ notification permission request for media playback controls.
@@ -224,11 +248,14 @@ private fun LxLiquidRoot(
                 .background(colors.background),
         ) {
             // Underlying content container feeds HazeState so LiquidFloatingDock blurs it in real time.
+            // Clear LocalHazeState inside the haze source subtree so in-page LiquidGlassSurface cards
+            // never attach Modifier.hazeChild as a descendant of Modifier.haze (which Haze 1.1.1 forbids).
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .haze(state = hazeState),
             ) {
+                CompositionLocalProvider(LocalHazeState provides null) {
                 AnimatedContent(
                     targetState = activeTab,
                     transitionSpec = {
@@ -253,6 +280,7 @@ private fun LxLiquidRoot(
                         )
                         MainTab.SETTINGS -> SettingsScreen(
                             vm = vm,
+                            bottomClearanceDp = bottomClearanceDp,
                             modifier = Modifier.fillMaxSize(),
                         )
                         MainTab.SEARCH -> SearchScreen(
@@ -281,6 +309,7 @@ private fun LxLiquidRoot(
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
+                }
                 }
             }
 
