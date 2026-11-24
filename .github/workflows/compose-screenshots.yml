@@ -77,9 +77,10 @@ jobs:
             for elapsed in 45 120; do
               sleep "$elapsed"
               jcmd -l > "$diagnostics/processes.txt"
-              while read -r pid _; do
+              while read -r pid main_class _; do
+                [[ "$main_class" == *GradleWorkerMain ]] || continue
                 timeout 10s jcmd "$pid" Thread.print -l > "$diagnostics/threads-$elapsed-$pid.txt" 2>&1 || true
-              done < <(rg '^[0-9]+ .*GradleWorkerMain' "$diagnostics/processes.txt")
+              done < "$diagnostics/processes.txt"
             done
           ) &
           diagnostics_pid=$!
