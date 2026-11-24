@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 import Content from './Content'
 import TagList from './TagList'
 import Text from '@/components/common/Text'
+import { GlassCapsuleButton } from '@/components/apple/LiquidGlass'
 import { useI18n } from '@/lang'
 import commonState from '@/store/common/state'
+import { useStatusbarHeight } from '@/store/common/hook'
 import { useBackHandler } from '@/utils/hooks/useBackHandler'
-import { useApple, fontSize, fontWeight, hairline, pagePadding, size } from '@/theme/apple'
+import { useApple, fontSize, fontWeight, pagePadding, size } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
 /**
  * 歌单广场
- * 原版的标签侧边抽屉改为覆盖在内容上的「标签」页（带完成按钮，返回键关闭）
+ * 液态玻璃质感标签弹层（带状态栏留白、完成胶囊按钮、返回键关闭）
  */
 export default () => {
   const apple = useApple()
   const t = useI18n()
+  const statusBarHeight = useStatusbarHeight()
   const [tagVisible, setTagVisible] = useState(false)
   const tagVisibleRef = useRef(false)
   tagVisibleRef.current = tagVisible
@@ -48,14 +51,22 @@ export default () => {
     <View style={styles.container}>
       <Content />
       <View
-        style={tagVisible ? { ...styles.overlay, backgroundColor: apple.background } : styles.hidden}
+        style={tagVisible ? { ...styles.overlay, backgroundColor: apple.glassBgDense } : styles.hidden}
         pointerEvents={tagVisible ? 'auto' : 'none'}
       >
-        <View style={{ ...styles.tagHeader, borderBottomColor: apple.separator }}>
+        <View
+          style={{
+            ...styles.tagHeader,
+            paddingTop: statusBarHeight,
+            height: size.hitTarget + statusBarHeight + 6,
+            borderBottomColor: apple.separator,
+            backgroundColor: apple.glassBg,
+          }}
+        >
           <Text style={styles.tagTitle} size={fontSize.headline} color={apple.label}>{t('apple_tags')}</Text>
-          <TouchableOpacity style={styles.doneBtn} activeOpacity={0.5} onPress={() => { setTagVisible(false) }}>
-            <Text size={fontSize.body} color={apple.accent} style={styles.doneText}>{t('apple_done')}</Text>
-          </TouchableOpacity>
+          <View style={styles.doneBtn}>
+            <GlassCapsuleButton label={t('apple_done')} onPress={() => { setTagVisible(false) }} />
+          </View>
         </View>
         <View style={styles.container}>
           <TagList />
@@ -81,23 +92,17 @@ const styles = createStyle({
     display: 'none',
   },
   tagHeader: {
-    height: size.hitTarget,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderBottomWidth: hairline,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   tagTitle: {
     fontWeight: fontWeight.semibold,
   },
   doneBtn: {
     position: 'absolute',
-    right: pagePadding - 4,
-    height: '100%',
-    paddingHorizontal: 4,
-    justifyContent: 'center',
-  },
-  doneText: {
-    fontWeight: fontWeight.semibold,
+    right: pagePadding,
+    bottom: 9,
   },
 })

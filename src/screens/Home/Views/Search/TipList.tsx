@@ -3,7 +3,7 @@ import { TouchableHighlight, View } from 'react-native'
 import SearchTipList, { type SearchTipListProps as _SearchTipListProps, type SearchTipListType as _SearchTipListType } from '@/components/SearchTipList'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import musicSdk from '@/utils/musicSdk'
 import searchState, { type InitState as SearchState } from '@/store/search/state'
 import { setSearchText, setTipList, setTipListInfo } from '@/core/search/search'
@@ -100,8 +100,9 @@ export default forwardRef<TipListType, TipListProps>(({ onSearch }, ref) => {
     return (
       <TouchableHighlight underlayColor={apple.highlight} onPress={() => { onSearch(item) }} key={index}>
         <View style={styles.item}>
-          <Icon name="search-2" size={14} color={apple.secondaryLabel} />
-          <Text style={styles.text} size={fontSize.body} color={apple.label} numberOfLines={1}>{item}</Text>
+          <IonIcon name="search" rawSize={15} color={apple.secondaryLabel} />
+          <Text style={styles.text} size={fontSize.callout} color={apple.label} numberOfLines={1}>{item}</Text>
+          <IonIcon name="arrow-up-back" rawSize={15} color={apple.tertiaryLabel} style={styles.fillIcon} />
           <View pointerEvents="none" style={{ ...styles.separator, backgroundColor: apple.separator }} />
         </View>
       </TouchableHighlight>
@@ -117,7 +118,10 @@ export default forwardRef<TipListType, TipListProps>(({ onSearch }, ref) => {
       ? <SearchTipList
           ref={searchTipListRef}
           renderItem={renderItem}
-          onPressBg={() => searchTipListRef.current?.setList([])}
+          onPressBg={() => {
+            visibleListRef.current = false
+            searchTipListRef.current?.setList([])
+          }}
           keyExtractor={getkey}
           getItemLayout={getItemLayout}
         />
@@ -136,9 +140,13 @@ const styles = createStyle({
     flex: 1,
     marginLeft: spacing.md,
   },
+  fillIcon: {
+    marginLeft: spacing.sm,
+    transform: [{ rotate: '45deg' }],
+  },
   separator: {
     position: 'absolute',
-    left: pagePadding + 26,
+    left: pagePadding + 27,
     right: 0,
     bottom: 0,
     height: hairline,

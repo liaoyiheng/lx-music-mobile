@@ -1,26 +1,32 @@
-import { useRef, useState, useMemo, forwardRef, useImperativeHandle } from 'react'
-import { FlatList, View, RefreshControl, type FlatListProps } from 'react-native'
+import { useRef, useState, useMemo, forwardRef, useImperativeHandle, memo, type ReactNode } from 'react'
+import { FlatList, View, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, type FlatListProps } from 'react-native'
 
 import ListItem, { CARD_GAP } from './ListItem'
-// import { navigations } from '@/navigation'
 import { type ListInfoItem } from '@/store/songlist/state'
-import { useLayout } from '@/utils/hooks'
-import { useApple, pagePadding } from '@/theme/apple'
+import { useHorizontalMode, useLayout } from '@/utils/hooks'
+import { useApple, fontSize, fontWeight, pagePadding, radius, size, spacing } from '@/theme/apple'
 import { useI18n } from '@/lang'
 import { scaleSizeW } from '@/utils/pixelRatio'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
+import { IonIcon } from '@/components/common/Icon'
+import { CoverArt } from '@/components/apple/LiquidGlass'
+import { NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
 
 type FlatListType = FlatListProps<ListInfoItem>
 
-// const MAX_WIDTH = scaleSizeW(110)
 const MIN_WIDTH = scaleSizeW(140)
 const LIST_PADDING = pagePadding - CARD_GAP / 2
+const EDITORIAL_GAP = 14
+const EDITORIAL_COUNT = 4
 
 export interface ListProps {
   onRefresh: () => void
   onLoadMore: () => void
   onOpenDetail: (item: ListInfoItem, index: number) => void
+  enableEditorial?: boolean
+  filterComponent?: ReactNode
+  listHeaderTitle?: string
 }
 export type Status = 'loading' | 'refreshing' | 'end' | 'error' | 'idle'
 
@@ -29,18 +35,108 @@ export interface ListType {
   setStatus: (val: Status) => void
 }
 
-export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenDetail }, ref) => {
+const SectionHead = memo(({ title }: { title: string }) => {
+  const apple = useApple()
+  return (
+    <View style={styles.sectionHead}>
+      <Text size={fontSize.title2} color={apple.label} style={styles.sectionTitle}>{title}</Text>
+      <IonIcon name="chevron-forward" rawSize={18} color={apple.tertiaryLabel} style={styles.sectionChev} />
+    </View>
+  )
+})
+
+const EditorialCard = memo(({
+  item,
+  index,
+  cardWidth,
+  posterHeight,
+  isLast,
+  onPress,
+}: {
+  item: ListInfoItem
+  index: number
+  cardWidth: number
+  posterHeight: number
+  isLast: boolean
+  onPress: (item: ListInfoItem, index: number) => void
+}) => {
+  const apple = useApple()
+  const t = useI18n()
+  const subtitle = item.author
+    ? (item.play_count ? `${item.author} · ${item.play_count}` : item.author)
+    : (item.play_count ?? '')
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.82}
+      onPress={() => { onPress(item, index) }}
+      style={{
+        width: cardWidth,
+        marginRight: isLast ? 0 : EDITORIAL_GAP,
+      }}
+    >
+      <Text size={fontSize.caption2} color={apple.secondaryLabel} style={styles.edEyebrow} numberOfLines={1}>
+        {`${t('apple_browse_featured')} · ${item.source.toUpperCase()}`}
+      </Text>
+      <Text size={19} color={apple.label} style={styles.edTitle} numberOfLines={1}>{item.name}</Text>
+      <Text size={fontSize.subhead} color={apple.secondaryLabel} style={styles.edSub} numberOfLines={1}>
+        {subtitle || ' '}
+      </Text>
+      <CoverArt
+        uri={item.img}
+        borderRadius={radius.alert}
+        nativeID={`${NAV_SHEAR_NATIVE_IDS.songlistDetail_pic}_from_${item.id}`}
+        style={{ width: cardWidth, height: posterHeight, ...styles.edPoster }}
+      >
+        <View pointerEvents="none" style={styles.edScrimWrap}>
+          <View style={styles.edScrimTop} />
+          <View style={styles.edScrimMid} />
+          <View style={styles.edScrimBottom} />
+        </View>
+        <View style={styles.edFooter}>
+          <View style={styles.edBadgeRow}>
+            {item.play_count ? (
+              <View style={styles.edBadge}>
+                <IonIcon name="play" rawSize={10} color="#FFFFFF" />
+                <Text size={10.5} color="#FFFFFF" style={styles.edBadgeText}>{item.play_count}</Text>
+              </View>
+            ) : null}
+            {item.total ? (
+              <View style={styles.edBadge}>
+                <Text size={10.5} color="#FFFFFF" style={styles.edBadgeText}>{t('apple_library_songs_count', { num: item.total })}</Text>
+              </View>
+            ) : null}
+          </View>
+          {item.desc ? (
+            <Text size={12.5} color="rgba(255,255,255,0.88)" style={styles.edDesc} numberOfLines={2}>
+              {item.desc}
+            </Text>
+          ) : null}
+        </View>
+      </CoverArt>
+    </TouchableOpacity>
+  )
+})
+
+export default forwardRef<ListType, ListProps>(({
+  onRefresh,
+  onLoadMore,
+  onOpenDetail,
+  enableEditorial = false,
+  filterComponent,
+  listHeaderTitle,
+}, ref) => {
   const flatListRef = useRef<FlatList>(null)
   const [currentList, setList] = useState<ListInfoItem[]>([])
   const [showSource, setShowSource] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
   const { onLayout, width } = useLayout()
+  const isWide = useHorizontalMode()
   const apple = useApple()
-  // console.log('render songlist')
+  const t = useI18n()
 
   useImperativeHandle(ref, () => ({
     setList(list, showSource = false) {
-      // rawListRef.current = list
       setList(list)
       setShowSource(showSource)
     },
@@ -54,26 +150,109 @@ export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenD
     onLoadMore()
   }
 
+  const featuredList = useMemo(() => {
+    return enableEditorial && currentList.length > 0 ? currentList.slice(0, EDITORIAL_COUNT) : []
+  }, [enableEditorial, currentList])
+
+  const gridSourceList = useMemo(() => {
+    return enableEditorial && currentList.length > 0 ? currentList.slice(EDITORIAL_COUNT) : currentList
+  }, [enableEditorial, currentList])
+
+  const rowInfo = useMemo(() => {
+    const available = width - LIST_PADDING * 2
+    const num = Math.min(Math.max(Math.floor(available / (MIN_WIDTH + CARD_GAP)), 2), 10)
+    return {
+      num,
+      width: available / num,
+    }
+  }, [width])
+
+  const edCardWidth = useMemo(() => {
+    if (!width) return 320
+    return isWide ? 326 : Math.min(Math.max(width - pagePadding * 2 - 24, 260), 336)
+  }, [width, isWide])
+  const edPosterHeight = Math.round((edCardWidth * 10) / 16)
+
+  const list = useMemo(() => {
+    const items = [...gridSourceList]
+    let whiteItemNum = items.length % rowInfo.num
+    if (whiteItemNum > 0) whiteItemNum = rowInfo.num - whiteItemNum
+    for (let i = 0; i < whiteItemNum; i++) {
+      items.push({
+        id: `white__${i}`,
+        play_count: '',
+        author: '',
+        name: '',
+        img: '',
+        desc: '',
+        // @ts-expect-error filler placeholder
+        source: '',
+      })
+    }
+    return items
+  }, [gridSourceList, rowInfo.num])
+
   const renderItem: FlatListType['renderItem'] = ({ item, index }) => (
     <ListItem
       item={item}
-      index={index}
+      index={enableEditorial ? index + EDITORIAL_COUNT : index}
       width={rowInfo.width}
       showSource={showSource}
       onPress={onOpenDetail}
     />
   )
   const getkey: FlatListType['keyExtractor'] = item => item.id
-  // const getItemLayout: FlatListType['getItemLayout'] = (data, index) => {
-  //   return { length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index }
-  // }
+
   const refreshControl = useMemo(() => (
     <RefreshControl
       colors={[apple.accent]}
-      // progressBackgroundColor={theme.primary}
       refreshing={status == 'refreshing'}
-      onRefresh={onRefresh} />
+      onRefresh={onRefresh}
+    />
   ), [status, onRefresh, apple])
+
+  const headerComponent = useMemo(() => {
+    if (!featuredList.length && !filterComponent && !(listHeaderTitle && gridSourceList.length)) return null
+    return (
+      <View>
+        {featuredList.length > 0 ? (
+          <View>
+            <SectionHead title={t('apple_browse_featured')} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={edCardWidth + EDITORIAL_GAP}
+              decelerationRate="fast"
+              contentContainerStyle={styles.edScroller}
+            >
+              {featuredList.map((item, idx) => (
+                <EditorialCard
+                  key={item.id}
+                  item={item}
+                  index={idx}
+                  cardWidth={edCardWidth}
+                  posterHeight={edPosterHeight}
+                  isLast={idx == featuredList.length - 1}
+                  onPress={onOpenDetail}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {filterComponent ?? null}
+
+        {gridSourceList.length > 0 && enableEditorial ? (
+          <SectionHead title={t('apple_browse_hot_playlists')} />
+        ) : null}
+
+        {!enableEditorial && listHeaderTitle && gridSourceList.length > 0 ? (
+          <SectionHead title={listHeaderTitle} />
+        ) : null}
+      </View>
+    )
+  }, [featuredList, filterComponent, listHeaderTitle, gridSourceList.length, enableEditorial, t, edCardWidth, edPosterHeight, onOpenDetail])
+
   const footerComponent = useMemo(() => {
     let label: FooterLabel
     switch (status) {
@@ -98,47 +277,7 @@ export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenD
     )
   }, [onLoadMore, status])
 
-
-  // const itemWidth = useMemo(() => {
-  //   let itemWidth = Math.max(Math.trunc(width * 0.125), MAX_WIDTH)
-  //   // if (itemWidth < )
-  // }, [width])
-  // const computedItemWidth = useMemo(() => {
-  //   let w = width - GAP
-  //   let n = width / (MIN_WIDTH + GAP)
-  //   if (n > 10) n = 10
-  //   return Math.floor(w / n)
-  // }, [width])
-  // console.log(Math.trunc(width * 0.125), itemWidth)
-  // console.log(itemWidth, MIN_WIDTH, GAP, width)
-  const rowInfo = useMemo(() => {
-    const available = width - LIST_PADDING * 2
-    const num = Math.min(Math.max(Math.floor(available / (MIN_WIDTH + CARD_GAP)), 2), 10)
-    return {
-      num,
-      width: available / num,
-    }
-  }, [width])
-  // console.log(rowNum)
-  const list = useMemo(() => {
-    const list = [...currentList]
-    let whiteItemNum = (list.length % rowInfo.num)
-    if (whiteItemNum > 0) whiteItemNum = rowInfo.num - whiteItemNum
-    for (let i = 0; i < whiteItemNum; i++) {
-      list.push({
-        id: `white__${i}`,
-        play_count: '',
-        author: '',
-        name: '',
-        img: '',
-        desc: '',
-        // @ts-expect-error
-        source: '',
-      })
-    }
-    return list
-  }, [currentList, rowInfo])
-  // console.log(listInfo.list.map((item) => item.id))
+  const bottomPadding = isWide ? size.miniPlayerClearance : size.dockClearance
 
   return (
     <View style={styles.container} onLayout={onLayout}>
@@ -150,22 +289,19 @@ export default forwardRef<ListType, ListProps>(({ onRefresh, onLoadMore, onOpenD
                 key={String(rowInfo.num)}
                 ref={flatListRef}
                 style={styles.list}
-                columnWrapperStyle={{ justifyContent: 'flex-start' }}
+                contentContainerStyle={{ paddingBottom: bottomPadding }}
+                columnWrapperStyle={{ justifyContent: 'flex-start', paddingHorizontal: LIST_PADDING }}
                 numColumns={rowInfo.num}
                 data={list}
                 maxToRenderPerBatch={4}
-                // updateCellsBatchingPeriod={80}
                 windowSize={8}
                 removeClippedSubviews={true}
-                // initialNumToRender={12}
                 renderItem={renderItem}
                 keyExtractor={getkey}
-                // getItemLayout={getItemLayout}
-                // onRefresh={onRefresh}
-                // refreshing={refreshing}
                 onEndReachedThreshold={0.6}
                 onEndReached={handleLoadMore}
                 refreshControl={refreshControl}
+                ListHeaderComponent={headerComponent}
                 ListFooterComponent={footerComponent}
               />
             )
@@ -196,7 +332,6 @@ const Footer = ({ label, onLoadMore }: {
   )
 }
 
-
 const styles = createStyle({
   container: {
     flex: 1,
@@ -204,11 +339,100 @@ const styles = createStyle({
   },
   list: {
     flex: 1,
-    paddingHorizontal: LIST_PADDING,
-    paddingTop: 4,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: pagePadding,
+    paddingTop: spacing.md + 2,
+    paddingBottom: spacing.sm + 2,
+    gap: 2,
+  },
+  sectionTitle: {
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.35,
+  },
+  sectionChev: {
+    marginTop: 1,
+  },
+  edScroller: {
+    paddingHorizontal: pagePadding,
+    paddingTop: 2,
+    paddingBottom: spacing.xs,
+  },
+  edEyebrow: {
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  edTitle: {
+    fontWeight: fontWeight.semibold,
+    letterSpacing: -0.3,
+  },
+  edSub: {
+    marginBottom: spacing.sm,
+  },
+  edPoster: {
+    shadowColor: '#000',
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
+  },
+  edScrimWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 108,
+  },
+  edScrimTop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+  },
+  edScrimMid: {
+    flex: 1.2,
+    backgroundColor: 'rgba(0, 0, 0, 0.36)',
+  },
+  edScrimBottom: {
+    flex: 1.6,
+    backgroundColor: 'rgba(0, 0, 0, 0.70)',
+  },
+  edFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    gap: 6,
+  },
+  edBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  edBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.34)',
+  },
+  edBadgeText: {
+    fontWeight: fontWeight.bold,
+    letterSpacing: 0.2,
+  },
+  edDesc: {
+    lineHeight: 17,
   },
   footer: {
     textAlign: 'center',
-    padding: 10,
+    padding: 12,
   },
 })

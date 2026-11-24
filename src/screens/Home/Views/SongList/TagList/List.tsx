@@ -6,8 +6,9 @@ import TagGroup, { type TagGroupProps } from './TagGroup'
 import { useI18n } from '@/lang'
 import { type TagInfo, type Source } from '@/store/songlist/state'
 import { getTags } from '@/core/songlist'
+import { useHorizontalMode } from '@/utils/hooks'
+import { useApple, fontSize, pagePadding, size, spacing } from '@/theme/apple'
 import Text from '@/components/common/Text'
-// import { BorderWidths } from '@/theme'
 
 export interface ListProps {
   onTagChange: TagGroupProps['onTagChange']
@@ -18,7 +19,8 @@ export interface ListType {
 }
 
 export default forwardRef<ListType, ListProps>(({ onTagChange }, ref) => {
-  // const theme = useTheme()
+  const apple = useApple()
+  const isWide = useHorizontalMode()
   const [activeId, setActiveId] = useState('')
   const [list, setList] = useState<TagInfo['tags']>([])
   const t = useI18n()
@@ -44,16 +46,22 @@ export default forwardRef<ListType, ListProps>(({ onTagChange }, ref) => {
             { name: '', list: [{ name: t('songlist_tag_default'), id: '', parent_id: '', parent_name: '', source }] },
             { name: t('songlist_tag_hot'), list: [...tagInfo.hotTag] },
             ...tagInfo.tags,
-          ].filter(t => t.list.length))
+          ].filter(item => item.list.length))
         })
       }
     },
   }))
 
-
   return (
-    <ScrollView style={{ flexShrink: 1, flexGrow: 0 }} keyboardShouldPersistTaps={'always'}>
-      <View style={styles.tagContainer} onStartShouldSetResponder={() => true}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={{
+        ...styles.tagContainer,
+        paddingBottom: isWide ? size.miniPlayerClearance : size.dockClearance,
+      }}
+      keyboardShouldPersistTaps="always"
+    >
+      <View onStartShouldSetResponder={() => true}>
         {
           list.map((type, index) => (
             <TagGroup
@@ -69,7 +77,7 @@ export default forwardRef<ListType, ListProps>(({ onTagChange }, ref) => {
           list.length == 1
             ? (
                 <View style={styles.blankView}>
-                  <Text>{t('list_loading')}</Text>
+                  <Text size={fontSize.subhead} color={apple.secondaryLabel}>{t('list_loading')}</Text>
                 </View>
               )
             : null
@@ -79,12 +87,13 @@ export default forwardRef<ListType, ListProps>(({ onTagChange }, ref) => {
   )
 })
 
-
 const styles = createStyle({
+  scroll: {
+    flex: 1,
+  },
   tagContainer: {
-    paddingTop: 15,
-    paddingLeft: 15,
-    paddingBottom: 15,
+    paddingTop: spacing.lg,
+    paddingHorizontal: pagePadding,
   },
   blankView: {
     paddingTop: '15%',

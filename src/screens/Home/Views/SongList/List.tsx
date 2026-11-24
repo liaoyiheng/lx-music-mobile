@@ -1,15 +1,18 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, type ReactNode } from 'react'
 import Songlist, { type SonglistProps, type SonglistType } from './components/Songlist'
 import { clearList, getList, setList, setListInfo } from '@/core/songlist'
-import songlistState from '@/store/songlist/state'
-import { type Source } from '@/store/songlist/state'
+import songlistState, { type Source } from '@/store/songlist/state'
 
 
 export interface ListType {
   loadList: (source: Source, sortId: string, tagId: string) => void
 }
 
-export default forwardRef<ListType, {}>((props, ref) => {
+export interface ListProps {
+  filterComponent?: ReactNode
+}
+
+export default forwardRef<ListType, ListProps>(({ filterComponent }, ref) => {
   const listRef = useRef<SonglistType>(null)
   const isUnmountedRef = useRef(false)
   useImperativeHandle(ref, () => ({
@@ -74,10 +77,13 @@ export default forwardRef<ListType, {}>((props, ref) => {
     })
   }
 
-  return <Songlist
-    ref={listRef}
-    onRefresh={handleRefresh}
-    onLoadMore={handleLoadMore}
-   />
+  return (
+    <Songlist
+      ref={listRef}
+      enableEditorial
+      filterComponent={filterComponent}
+      onRefresh={handleRefresh}
+      onLoadMore={handleLoadMore}
+    />
+  )
 })
-

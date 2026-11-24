@@ -1,10 +1,10 @@
-import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { ScrollView, TouchableOpacity } from 'react-native'
+import { forwardRef, useImperativeHandle, useMemo, useState } from 'react'
+import { TouchableOpacity, View } from 'react-native'
 import songlistState, { type SortInfo, type Source } from '@/store/songlist/state'
 import { useI18n } from '@/lang'
 import Text from '@/components/common/Text'
 import { createStyle } from '@/utils/tools'
-import { useApple, fontSize, fontWeight, radius, spacing } from '@/theme/apple'
+import { useApple, fontWeight, radius, spacing } from '@/theme/apple'
 
 export interface SortTabProps {
   onSortChange: (id: string) => void
@@ -19,11 +19,9 @@ export default forwardRef<SortTabType, SortTabProps>(({ onSortChange }, ref) => 
   const [activeId, setActiveId] = useState<SortInfo['id']>('')
   const t = useI18n()
   const apple = useApple()
-  const scrollViewRef = useRef<ScrollView>(null)
 
   useImperativeHandle(ref, () => ({
     setSource(source, activeTab) {
-      scrollViewRef.current?.scrollTo({ x: 0 })
       setSortList(songlistState.sortList[source]!)
       setActiveId(activeTab)
     },
@@ -39,44 +37,39 @@ export default forwardRef<SortTabType, SortTabProps>(({ onSortChange }, ref) => 
   }
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      keyboardShouldPersistTaps={'always'}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.content}
-    >
+    <View style={styles.row}>
       {
         sorts.map(s => {
           const active = activeId == s.id
           return (
             <TouchableOpacity
               key={s.id}
-              activeOpacity={0.6}
+              activeOpacity={0.68}
               style={{ ...styles.chip, backgroundColor: active ? apple.accent : apple.fill }}
               onPress={() => { if (!active) handleSortChange(s.id) }}
             >
               <Text
-                size={fontSize.footnote}
-                color={active ? apple.onAccent : apple.secondaryLabel}
+                size={13.5}
+                color={active ? apple.onAccent : apple.label}
                 style={{ fontWeight: active ? fontWeight.semibold : fontWeight.medium }}
               >{s.label}</Text>
             </TouchableOpacity>
           )
         })
       }
-    </ScrollView>
+    </View>
   )
 })
 
 const styles = createStyle({
-  content: {
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   chip: {
-    height: 28,
-    paddingHorizontal: 10,
-    marginRight: spacing.xs + 2,
+    height: 30,
+    paddingHorizontal: 13,
+    marginRight: spacing.sm,
     borderRadius: radius.pill,
     justifyContent: 'center',
   },
