@@ -26,7 +26,7 @@ export const SETTING_SCREENS = [
 
 export type SettingScreenIds = typeof SETTING_SCREENS[number]
 
-/** 分组（iOS 设置的一张张圆角卡片） */
+/** 分组（iOS 26 设置的一张张圆角卡片） */
 export const SETTING_GROUPS: SettingScreenIds[][] = [
   ['basic', 'player', 'lyric_desktop'],
   ['search', 'list'],
@@ -35,18 +35,18 @@ export const SETTING_GROUPS: SettingScreenIds[][] = [
   ['version', 'about'],
 ]
 
-/** 每个分类左侧的彩色圆角图标（Ionicons） */
+/** 每个分类左侧的高饱和 iOS 风格彩色圆角图标（Ionicons） */
 export const SETTING_ICONS: Record<SettingScreenIds, { icon: string, color: string }> = {
-  basic: { icon: 'settings-outline', color: '#8E8E93' },
-  player: { icon: 'play-circle-outline', color: '#FA2D48' },
+  basic: { icon: 'settings-outline', color: '#007AFF' },
+  player: { icon: 'play', color: '#FA243C' },
   lyric_desktop: { icon: 'chatbox-ellipses-outline', color: '#AF52DE' },
-  search: { icon: 'search-outline', color: '#007AFF' },
+  search: { icon: 'search-outline', color: '#34C759' },
   list: { icon: 'musical-notes-outline', color: '#FF9500' },
   sync: { icon: 'sync-outline', color: '#34C759' },
-  backup: { icon: 'cloud-upload-outline', color: '#30B0C7' },
-  other: { icon: 'ellipsis-horizontal-circle-outline', color: '#8E8E93' },
+  backup: { icon: 'cloud-upload-outline', color: '#5856D6' },
+  other: { icon: 'ellipsis-horizontal', color: '#8E8E93' },
   version: { icon: 'arrow-up-circle-outline', color: '#007AFF' },
-  about: { icon: 'information-circle-outline', color: '#5856D6' },
+  about: { icon: 'information-circle-outline', color: '#8E8E93' },
 }
 
 export const SettingContent = memo(({ id }: { id: SettingScreenIds }) => {

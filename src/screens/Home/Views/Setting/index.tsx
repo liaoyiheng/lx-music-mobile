@@ -18,7 +18,7 @@ const LIST_PANE_WIDTH = 320
 
 /**
  * 设置
- * 竖屏：首页是 iOS 分组列表，点某一项进入二级页面，返回键 / 左上角「‹ 设置」回到列表
+ * 竖屏：首页是 iOS 26 分组卡片列表，点某一项进入二级页面，返回键 / 悬浮胶囊「‹ 设置」回到列表
  * 宽屏：左边分类列表，右边当前分类的内容
  * 所有设置项的读写沿用原版组件（settings/ 目录）
  */
@@ -56,7 +56,7 @@ export default () => {
     return (
       <View style={styles.row}>
         <View style={{ ...styles.listPane, borderRightColor: apple.separator, backgroundColor: apple.groupedBackground }}>
-          <LargeTitle title={t('nav_setting')} />
+          <LargeTitle title={t('nav_setting')} backgroundColor={apple.groupedBackground} />
           <CategoryList activeId={activeId} onSelect={handleSelect} />
         </View>
         <View style={styles.detailPane}>
@@ -72,7 +72,7 @@ export default () => {
         ? <Detail id={detailId} onBack={handleBack} />
         : (
             <>
-              <LargeTitle title={t('nav_setting')} />
+              <LargeTitle title={t('nav_setting')} backgroundColor={apple.groupedBackground} />
               <CategoryList onSelect={handleSelect} />
             </>
           )}

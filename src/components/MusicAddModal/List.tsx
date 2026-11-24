@@ -1,45 +1,73 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, TouchableOpacity, View } from 'react-native'
-
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useMyList } from '@/store/list/hook'
 import ListItem, { styles as listStyles } from './ListItem'
 import CreateUserList from './CreateUserList'
-import { useWindowSize } from '@/utils/hooks'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, fontWeight, radius } from '@/theme/apple'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
-import { scaleSizeW } from '@/utils/pixelRatio'
 
 const styles = createStyle({
+  scroll: {
+    flexGrow: 0,
+    maxHeight: 360,
+  },
   list: {
-    paddingLeft: 15,
-    paddingRight: 2,
-    paddingBottom: 5,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    gap: 8,
+  },
+  createWrap: {
+    position: 'relative',
+  },
+  createRow: {
+    minHeight: 52,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.large,
+    borderWidth: 1,
+    borderStyle: 'dashed',
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    // backgroundColor: 'rgba(0,0,0,0.2)'
-    // justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  createText: {
+    flex: 1,
+    fontWeight: fontWeight.semibold,
   },
 })
-const MIN_WIDTH = scaleSizeW(150)
-const PADDING = styles.list.paddingLeft + styles.list.paddingRight
 
-
-const EditListItem = ({ itemWidth }: {
-  itemWidth: number
-}) => {
+const EditListItem = () => {
   const [isEdit, setEdit] = useState(false)
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
 
   return (
-    <View style={{ ...listStyles.listItem, width: itemWidth }}>
+    <View style={styles.createWrap}>
       <TouchableOpacity
-        style={{ ...listStyles.button, borderColor: theme['c-primary-light-200-alpha-700'], borderStyle: 'dashed' }}
+        activeOpacity={0.65}
+        style={[
+          styles.createRow,
+          {
+            backgroundColor: apple.accentFill,
+            borderColor: apple.separator,
+          },
+        ]}
         onPress={() => { setEdit(true) }}
       >
-        <Text style={{ opacity: isEdit ? 0 : 1 }} numberOfLines={1} size={14} color={theme['c-button-font']}>{t('list_create')}</Text>
+        <View style={[listStyles.iconBox, { backgroundColor: apple.secondaryBackground, borderColor: apple.coverRing }]}>
+          <IonIcon name="add" rawSize={20} color={apple.accent} />
+        </View>
+        <Text
+          style={[styles.createText, { opacity: isEdit ? 0 : 1 }]}
+          numberOfLines={1}
+          size={15}
+          color={apple.accent}
+        >
+          {t('list_create')}
+        </Text>
       </TouchableOpacity>
       {
         isEdit
@@ -54,20 +82,15 @@ export default ({ musicInfo, onPress }: {
   musicInfo: LX.Music.MusicInfo
   onPress: (listInfo: LX.List.MyListInfo) => void
 }) => {
-  const windowSize = useWindowSize()
   const allList = useMyList()
-  const itemWidth = useMemo(() => {
-    let w = Math.floor(windowSize.width * 0.9 - PADDING)
-    let n = Math.floor(w / MIN_WIDTH)
-    if (n > 10) n = 10
-    return Math.floor((w - 1) / n)
-  }, [windowSize])
 
   return (
-    <ScrollView style={{ flexGrow: 0 }}>
+    <ScrollView style={styles.scroll} keyboardShouldPersistTaps="always">
       <View style={styles.list} onStartShouldSetResponder={() => true}>
-        { allList.map(info => <ListItem key={info.id} listInfo={info} musicInfo={musicInfo} onPress={onPress} width={itemWidth} />) }
-        <EditListItem itemWidth={itemWidth} />
+        {allList.map(info => (
+          <ListItem key={info.id} listInfo={info} musicInfo={musicInfo} onPress={onPress} />
+        ))}
+        <EditListItem />
       </View>
     </ScrollView>
   )

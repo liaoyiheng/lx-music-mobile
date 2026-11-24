@@ -63,8 +63,8 @@ export default memo(() => {
     <>
       <SubTitle title={t('setting_other_log')} showSeparator={false}>
         <View style={styles.checkBox}>
-          <CheckBoxItem check={isEnableSyncErrorLog} label={t('setting_other_log_sync_log')} onChange={handleSetEnableSyncErrorLog} />
-          <CheckBoxItem check={isEnableUserApiLog} label={t('setting_other_log_user_api_log')} onChange={handleSetEnableUserApiLog} showSeparator={false} />
+          <CheckBoxItem check={isEnableSyncErrorLog} label={t('setting_other_log_sync_log')} onChange={handleSetEnableSyncErrorLog} horizontalPadding={0} />
+          <CheckBoxItem check={isEnableUserApiLog} label={t('setting_other_log_user_api_log')} onChange={handleSetEnableUserApiLog} showSeparator={false} horizontalPadding={0} />
         </View>
         <View style={styles.btn}>
           <Button onPress={openLogModal}>{t('setting_other_log_btn_show')}</Button>
@@ -92,9 +92,7 @@ export default memo(() => {
 
 const styles = createStyle({
   checkBox: {
-    // paddingTop: 10,
-    paddingBottom: 15,
-    marginLeft: -25,
+    paddingBottom: 12,
   },
   btn: {
     flexDirection: 'row',
