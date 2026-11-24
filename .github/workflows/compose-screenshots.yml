@@ -55,18 +55,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends fonts-noto-cjk python3-pil
 
+      - name: Compile app and screenshot tests
+        working-directory: native-android
+        timeout-minutes: 10
+        run: bash gradlew :app:compileDebugUnitTestKotlin --no-daemon --console=plain --stacktrace
+
       - name: Record Compose Screenshots via Roborazzi
+        working-directory: native-android
+        timeout-minutes: 8
         shell: bash
         env:
           TEST_FILTER: ${{ inputs.test_filter }}
         run: |
-          cd native-android
-          chmod +x gradlew
-          if [ -n "$TEST_FILTER" ]; then
-            ./gradlew :app:recordRoborazziDebug --no-daemon --stacktrace --tests "$TEST_FILTER"
-          else
-            ./gradlew :app:recordRoborazziDebug --no-daemon --stacktrace
+          args=()
+          if [[ -n "$TEST_FILTER" ]]; then
+            args+=(--tests "$TEST_FILTER")
           fi
+          timeout --signal=TERM --kill-after=15s 6m bash gradlew :app:recordRoborazziDebug "${args[@]}" --no-daemon --console=plain --info --stacktrace
 
       - name: Build Light & Dark Contact Sheets
         shell: bash

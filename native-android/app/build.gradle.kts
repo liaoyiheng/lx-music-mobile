@@ -87,6 +87,11 @@ android {
             all { test ->
                 test.systemProperty("robolectric.graphicsMode", "NATIVE")
                 test.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+                test.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
+                test.testLogging {
+                    events("started", "failed", "passed", "skipped")
+                    showStandardStreams = true
+                }
                 test.systemProperty(
                     "roborazzi.record.filePathStrategy",
                     "relativePathFromRoborazziContextOutputDirectory",
