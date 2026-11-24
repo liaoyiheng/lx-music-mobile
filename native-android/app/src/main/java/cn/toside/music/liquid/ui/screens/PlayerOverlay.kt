@@ -476,7 +476,7 @@ private fun PlayerArtwork(player: PlayerUiState, coverUrl: String?, size: Dp) {
     val shape = RoundedCornerShape(corners)
     CoverArt(
         url = coverUrl,
-        contentDescription = player.currentTrack?.name?.let { "$it的封面" },
+        contentDescription = player.currentTrack?.name?.let { "${it}的封面" },
         cornerRadius = corners,
         modifier = Modifier
             .size(size)
