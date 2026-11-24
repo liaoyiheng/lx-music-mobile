@@ -1,4 +1,4 @@
-// Added for Apple Music style UI (based on lyswhut/lx-music-mobile, Apache-2.0)
+// Added for Apple Music iOS 26 Liquid Glass UI (based on lyswhut/lx-music-mobile, Apache-2.0)
 import { memo } from 'react'
 import { View } from 'react-native'
 import Progress, { ProgressPlain } from '@/components/player/Progress'
@@ -8,13 +8,11 @@ import { useSettingValue } from '@/store/setting/hook'
 import { spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
-/** 进度线粗细 */
 const LINE_HEIGHT = spacing.xxs
-/** 线上方的可拖动区域 */
 const HIT_PADDING = spacing.sm
-const BAR_RADIUS = 14
+const PILL_INSET = 24
 
-/** 卡片底部的细进度线；开启「允许拖动进度条」时可拖动调整进度 */
+/** 药丸底部的细进度线；左右缩进 24dp 贴合全圆角药丸曲率 */
 export default memo(({ autoUpdate }: { autoUpdate: boolean }) => {
   const { progress, maxPlayTime } = useProgress(autoUpdate)
   const buffered = useBufferProgress()
@@ -34,8 +32,8 @@ export default memo(({ autoUpdate }: { autoUpdate: boolean }) => {
 const styles = createStyle({
   container: {
     position: 'absolute',
-    left: BAR_RADIUS,
-    right: BAR_RADIUS,
+    left: PILL_INSET,
+    right: PILL_INSET,
     bottom: 0,
     height: LINE_HEIGHT + HIT_PADDING,
   },

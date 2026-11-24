@@ -1,18 +1,17 @@
-import { useTheme } from '@/store/theme/hook'
+import { useApple } from '@/theme/apple'
 import { BorderRadius } from '@/theme'
 import { createStyle } from '@/utils/tools'
 import { type ComponentProps, memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { View, type ViewProps, StyleSheet, Image as FastImage } from 'react-native'
-// import FastImage, { type FastImageProps } from 'react-native-fast-image'
-import Text from './Text'
+import { IonIcon } from './Icon'
 import { useLayout } from '@/utils/hooks'
-// export type { OnLoadEvent } from 'react-native-fast-image'
 
 export interface ImageProps extends ViewProps {
   style: ComponentProps<typeof FastImage>['style']
   url?: string | number | null
   cache?: boolean
   resizeMode?: ComponentProps<typeof FastImage>['resizeMode']
+  blurRadius?: number
   onError?: (url: string | number) => void
 }
 
@@ -22,19 +21,25 @@ export const defaultHeaders = {
 }
 
 const EmptyPic = memo(({ style, nativeID }: { style: ImageProps['style'], nativeID: ImageProps['nativeID'] }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const { onLayout, width } = useLayout()
-  const size = width * 0.36
+  const iconSize = Math.max(16, Math.min(48, Math.round((width || 48) * 0.42)))
 
   return (
-    <View style={StyleSheet.compose({ ...styles.emptyPic, backgroundColor: theme['c-primary-light-900-alpha-200'], gap: size * 0.1 }, style)} onLayout={onLayout} nativeID={nativeID}>
-      <Text size={size} color={theme['c-primary-light-400-alpha-200']}>L</Text>
-      <Text size={size} color={theme['c-primary-light-400-alpha-200']} style={styles.text}>X</Text>
+    <View
+      style={StyleSheet.compose({
+        ...styles.emptyPic,
+        backgroundColor: apple.isDark ? '#2C2C2E' : '#E5E5EA',
+      }, style)}
+      onLayout={onLayout}
+      nativeID={nativeID}
+    >
+      <IonIcon name="musical-notes" rawSize={iconSize} color={apple.isDark ? 'rgba(235,235,245,0.34)' : 'rgba(60,60,67,0.32)'} />
     </View>
   )
 })
 
-const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID }: ImageProps) => {
+const Image = memo(({ url, cache, resizeMode = 'cover', blurRadius, style, onError, nativeID }: ImageProps) => {
   const [isError, setError] = useState(false)
   const handleError = useCallback(() => {
     setError(true)
@@ -43,7 +48,7 @@ const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID
   useEffect(() => {
     setError(false)
   }, [url])
-  let uri = typeof url == 'number'
+  const uri = typeof url == 'number'
     ? FastImage.resolveAssetSource(url).uri
     : url?.startsWith('/')
       ? 'file://' + url
@@ -58,9 +63,8 @@ const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID
               uri: uri!,
               headers: defaultHeaders,
               cache: cache === false ? 'reload' : 'force-cache',
-              // priority: FastImage.priority.normal,
-              // cache: cache === false ? 'web' : 'immutable',
             }}
+            blurRadius={blurRadius}
             onError={handleError}
             resizeMode={resizeMode}
             nativeID={nativeID}
@@ -70,6 +74,7 @@ const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID
 }, (prevProps, nextProps) => {
   return prevProps.url == nextProps.url &&
     prevProps.style == nextProps.style &&
+    prevProps.blurRadius == nextProps.blurRadius &&
     prevProps.nativeID == nextProps.nativeID
 })
 
@@ -77,18 +82,14 @@ export const getSize = (uri: string, success: (width: number, height: number) =>
   FastImage.getSize(uri, success, failure)
 }
 export const clearMemoryCache = async() => {
-  // return Promise.all([FastImage.clearMemoryCache(), FastImage.clearDiskCache()])
+  // noop
 }
 export default Image
 
 const styles = createStyle({
   emptyPic: {
     borderRadius: BorderRadius.normal,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  text: {
-    paddingLeft: 2,
   },
 })

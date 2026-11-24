@@ -1,9 +1,10 @@
 import { View } from 'react-native'
 import StatusBar from '@/components/common/StatusBar'
 import PlayerBar from '@/components/player/PlayerBar'
+import { BottomDockScrim } from '@/components/apple/LiquidGlass'
 import { useNavActiveId } from '@/store/common/hook'
-import { useHorizontalMode } from '@/utils/hooks'
-import { useApple } from '@/theme/apple'
+import { useHorizontalMode, useKeyboard } from '@/utils/hooks'
+import { useApple, size } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 import KeepAlive from './KeepAlive'
 import TabBar from './TabBar'
@@ -12,14 +13,15 @@ import { LibraryPage, BrowsePage, SearchPage, SettingPage } from './Pages'
 import { getTabId, isBrowseId, rememberBrowseId, getLastBrowseId } from './tabs'
 
 /**
- * Apple Music 风格根布局
- * 竖屏：页面 + 迷你播放条 + 底部标签栏
- * 宽屏 / 横屏：左侧边栏 + 页面 + 迷你播放条
+ * Apple Music iOS 26 液态玻璃根布局
+ * 竖屏：全屏内容 + 底部渐隐遮罩 + 悬浮液态玻璃 Dock（药丸 MiniPlayer + 胶囊 TabBar）
+ * 宽屏 / 横屏：左侧边栏 + 全屏内容 + 悬浮药丸 MiniPlayer
  */
 export default () => {
   const apple = useApple()
   const navId = useNavActiveId()
   const isWide = useHorizontalMode()
+  const { keyboardShown } = useKeyboard()
   const tabId = getTabId(navId)
   if (isBrowseId(navId)) rememberBrowseId(navId)
   const browseId = getLastBrowseId()
@@ -36,8 +38,19 @@ export default () => {
             <KeepAlive active={tabId == 'search'}><SearchPage /></KeepAlive>
             <KeepAlive active={tabId == 'setting'}><SettingPage /></KeepAlive>
           </View>
-          <PlayerBar isHome />
-          {isWide ? null : <TabBar />}
+
+          {!keyboardShown ? <BottomDockScrim height={isWide ? 96 : 148} /> : null}
+
+          <View
+            pointerEvents="box-none"
+            style={[
+              styles.dock,
+              isWide && styles.dockWide,
+            ]}
+          >
+            <PlayerBar isHome />
+            {isWide || keyboardShown ? null : <TabBar />}
+          </View>
         </View>
       </View>
     </View>
@@ -59,8 +72,22 @@ const styles = createStyle({
   content: {
     flex: 1,
     overflow: 'hidden',
+    position: 'relative',
   },
   pages: {
     flex: 1,
+  },
+  dock: {
+    position: 'absolute',
+    left: size.dockMarginX,
+    right: size.dockMarginX,
+    bottom: size.dockMarginBottom,
+    gap: size.dockGap,
+    zIndex: 35,
+  },
+  dockWide: {
+    left: 24,
+    right: 24,
+    bottom: 16,
   },
 })
