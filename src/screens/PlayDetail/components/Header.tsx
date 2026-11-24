@@ -1,31 +1,34 @@
-// Added for Apple Music style UI (based on lyswhut/lx-music-mobile, Apache-2.0)
+// Modified for Apple Music iOS 26 Liquid Glass UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
 import { memo } from 'react'
 import { TouchableOpacity, View, type GestureResponderHandlers } from 'react-native'
-import { IonIcon } from '@/components/common/Icon'
 import { NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
-import { radius, size, spacing } from '@/theme/apple'
+import { useI18n } from '@/lang'
+import { radius } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
-export const HEADER_HEIGHT = size.hitTarget
+export const HEADER_HEIGHT = 28
 
-const ICON_COLOR = 'rgba(255, 255, 255, 0.85)'
-
-/** 顶部：左侧向下收起，中间下拉抓手条，右侧设置弹层；整条区域可下拉关闭 */
-export default memo(({ onClose, onShowSetting, panHandlers }: {
+/** 极简顶部下拉把手：居中 38×5dp 半透明圆角条，点击或下滑即可收起播放页 */
+export default memo(({ onClose, panHandlers }: {
   onClose: () => void
-  onShowSetting: () => void
   panHandlers?: GestureResponderHandlers
 }) => {
+  const t = useI18n()
+
   return (
-    <View style={styles.container} nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_header} {...panHandlers}>
-      <TouchableOpacity style={styles.btn} activeOpacity={0.5} onPress={onClose} accessibilityRole="button">
-        <IonIcon name="chevron-down" color={ICON_COLOR} size={24} />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.grabberArea} activeOpacity={0.6} onPress={onClose}>
+    <View
+      style={styles.container}
+      nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_header}
+      {...panHandlers}
+    >
+      <TouchableOpacity
+        style={styles.grabberArea}
+        activeOpacity={0.65}
+        onPress={onClose}
+        accessibilityRole="button"
+        accessibilityLabel={t('close')}
+      >
         <View style={styles.grabber} />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.btn} activeOpacity={0.5} onPress={onShowSetting} accessibilityRole="button">
-        <IonIcon name="ellipsis-horizontal-circle-outline" color={ICON_COLOR} size={22} />
       </TouchableOpacity>
     </View>
   )
@@ -34,26 +37,19 @@ export default memo(({ onClose, onShowSetting, panHandlers }: {
 const styles = createStyle({
   container: {
     height: HEADER_HEIGHT,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.sm,
-  },
-  btn: {
-    width: size.hitTarget,
-    height: size.hitTarget,
     justifyContent: 'center',
     alignItems: 'center',
   },
   grabberArea: {
-    flex: 1,
-    height: '100%',
+    width: 96,
+    height: HEADER_HEIGHT,
     justifyContent: 'center',
     alignItems: 'center',
   },
   grabber: {
-    width: 36,
+    width: 38,
     height: 5,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+    backgroundColor: 'rgba(255, 255, 255, 0.34)',
   },
 })

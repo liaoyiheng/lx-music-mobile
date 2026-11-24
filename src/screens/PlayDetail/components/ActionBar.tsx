@@ -1,177 +1,90 @@
-// Added for Apple Music style UI (based on lyswhut/lx-music-mobile, Apache-2.0)
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+// Modified for Apple Music iOS 26 Liquid Glass UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
+import { memo } from 'react'
 import { TouchableOpacity, View } from 'react-native'
 import { IonIcon } from '@/components/common/Icon'
-import DesktopLyricEnable, { type DesktopLyricEnableType } from '@/components/DesktopLyricEnable'
-import TimeoutExitEditModal, { type TimeoutExitEditModalType, useTimeInfo } from '@/components/TimeoutExitEditModal'
-import { LIST_IDS, MUSIC_TOGGLE_MODE_LIST, MUSIC_TOGGLE_MODE } from '@/config/constant'
-import { useSettingValue } from '@/store/setting/hook'
-import { usePlayerMusicInfo } from '@/store/player/hook'
-import settingState from '@/store/setting/state'
-import commonState from '@/store/common/state'
-import playerState from '@/store/player/state'
-import { updateSetting } from '@/core/common'
-import { addListMusics, getListMusics, removeListMusics } from '@/core/list'
-import { toggleDesktopLyricLock } from '@/core/desktopLyric'
-import { navigations } from '@/navigation'
+import { useTimeInfo } from '@/components/TimeoutExitEditModal'
 import { useI18n } from '@/lang'
 import { spacing } from '@/theme/apple'
-import { createStyle, toast } from '@/utils/tools'
+import { createStyle } from '@/utils/tools'
 
-const ICON_INACTIVE = 'rgba(255, 255, 255, 0.68)'
-const ICON_ACTIVE = '#FFFFFF'
-const LOVE_ACTIVE = '#FF375F'
+export type PlayerViewMode = 'cover' | 'lyric' | 'queue'
 
-const Btn = ({ icon, active = false, activeColor = ICON_ACTIVE, pillBg = false, onPress, onLongPress }: {
+const ICON_INACTIVE = 'rgba(255, 255, 255, 0.72)'
+const ICON_ACTIVE_DARK = '#16161C'
+
+const FootButton = memo(({
+  icon,
+  active = false,
+  badgeDot = false,
+  accessibilityLabel,
+  onPress,
+}: {
   icon: string
   active?: boolean
-  activeColor?: string
-  pillBg?: boolean
+  badgeDot?: boolean
+  accessibilityLabel?: string
   onPress: () => void
-  onLongPress?: () => void
 }) => {
   return (
     <TouchableOpacity
-      style={[styles.btn, pillBg && active ? styles.btnPillActive : null]}
-      activeOpacity={0.5}
+      style={[styles.btn, active ? styles.btnActiveLight : null]}
+      activeOpacity={0.65}
       onPress={onPress}
-      onLongPress={onLongPress}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
     >
-      <IonIcon name={icon} color={active ? activeColor : ICON_INACTIVE} size={22} />
+      <IonIcon
+        name={icon}
+        rawSize={21}
+        color={active ? ICON_ACTIVE_DARK : ICON_INACTIVE}
+      />
+      {badgeDot ? <View style={styles.badgeDot} /> : null}
     </TouchableOpacity>
   )
-}
-
-/** 桌面歌词：点击开关，长按锁定 / 解锁 */
-const DesktopLyricBtn = memo(() => {
-  const enabledLyric = useSettingValue('desktopLyric.enable')
-  const desktopLyricEnableRef = useRef<DesktopLyricEnableType>(null)
-  const update = () => {
-    desktopLyricEnableRef.current?.setEnabled(!enabledLyric)
-  }
-  const updateLock = () => {
-    const isLock = !settingState.setting['desktopLyric.isLock']
-    void toggleDesktopLyricLock(isLock).then(() => {
-      updateSetting({ 'desktopLyric.isLock': isLock })
-    })
-  }
-  return (
-    <>
-      <Btn icon={enabledLyric ? 'reader' : 'reader-outline'} active={enabledLyric} onPress={update} onLongPress={updateLock} />
-      <DesktopLyricEnable ref={desktopLyricEnableRef} />
-    </>
-  )
 })
 
-const MODE_INFO = {
-  [MUSIC_TOGGLE_MODE.listLoop]: { icon: 'repeat', name: 'play_list_loop' },
-  [MUSIC_TOGGLE_MODE.random]: { icon: 'shuffle', name: 'play_list_random' },
-  [MUSIC_TOGGLE_MODE.list]: { icon: 'reorder-three-outline', name: 'play_list_order' },
-  [MUSIC_TOGGLE_MODE.singleLoop]: { icon: 'repeat-outline', name: 'play_single_loop' },
-} as const
-const DEFAULT_MODE_INFO = { icon: 'repeat-outline', name: 'play_single' } as const
-const getModeInfo = (mode: string) => MODE_INFO[mode as keyof typeof MODE_INFO] ?? DEFAULT_MODE_INFO
-
-/** 播放模式：依次切换并提示 */
-const PlayModeBtn = memo(() => {
-  const togglePlayMethod = useSettingValue('player.togglePlayMethod')
-  const t = useI18n()
-  const icon = useMemo(() => getModeInfo(togglePlayMethod).icon, [togglePlayMethod])
-  const isSpecial = togglePlayMethod == MUSIC_TOGGLE_MODE.random || togglePlayMethod == MUSIC_TOGGLE_MODE.singleLoop
-
-  const toggleNextPlayMode = () => {
-    let index = MUSIC_TOGGLE_MODE_LIST.indexOf(togglePlayMethod)
-    if (++index >= MUSIC_TOGGLE_MODE_LIST.length) index = 0
-    const mode = MUSIC_TOGGLE_MODE_LIST[index]
-    updateSetting({ 'player.togglePlayMethod': mode })
-    toast(t(getModeInfo(mode).name))
-  }
-
-  return <Btn icon={icon} active={isSpecial} onPress={toggleNextPlayMode} />
-})
-
-/** 定时停止播放 */
-const TimeoutExitBtn = memo(() => {
-  const modalRef = useRef<TimeoutExitEditModalType>(null)
-  const timeInfo = useTimeInfo()
-  const handleShow = () => {
-    modalRef.current?.show()
-  }
-  return (
-    <>
-      <Btn icon="timer-outline" active={timeInfo.active} onPress={handleShow} />
-      <TimeoutExitEditModal ref={modalRef} timeInfo={timeInfo} />
-    </>
-  )
-})
-
-/** 收藏到「我喜欢的音乐」 */
-const LoveBtn = memo(() => {
-  const musicInfo = usePlayerMusicInfo()
-  const [isLoved, setIsLoved] = useState(false)
-
-  const syncLoveState = useCallback(() => {
-    if (!musicInfo.id) {
-      setIsLoved(false)
-      return
-    }
-    void getListMusics(LIST_IDS.LOVE).then(list => {
-      setIsLoved(list.some(m => m.id == musicInfo.id))
-    })
-  }, [musicInfo.id])
-
-  useEffect(() => {
-    syncLoveState()
-    const handleUpdate = (ids: string[]) => {
-      if (ids.includes(LIST_IDS.LOVE)) syncLoveState()
-    }
-    global.app_event.on('myListMusicUpdate', handleUpdate)
-    return () => {
-      global.app_event.off('myListMusicUpdate', handleUpdate)
-    }
-  }, [syncLoveState])
-
-  const handleToggle = () => {
-    const rawInfo = playerState.playMusicInfo.musicInfo
-    if (!rawInfo) return
-    const targetInfo = 'progress' in rawInfo ? rawInfo.metadata.musicInfo : rawInfo
-    if (isLoved) {
-      void removeListMusics(LIST_IDS.LOVE, [targetInfo.id])
-      setIsLoved(false)
-    } else {
-      void addListMusics(LIST_IDS.LOVE, [targetInfo], settingState.setting['list.addMusicLocationType'])
-      setIsLoved(true)
-    }
-  }
-
-  return <Btn icon={isLoved ? 'heart' : 'heart-outline'} active={isLoved} activeColor={LOVE_ACTIVE} onPress={handleToggle} />
-})
-
-const handleShowCommentScreen = () => {
-  navigations.pushCommentScreen(commonState.componentIds.playDetail!)
-}
-
-/** 底部功能行：歌词切换（竖屏）、桌面歌词、播放模式、定时停止、评论、收藏 */
-export default memo(({ lyricActive = false, onToggleLyric }: {
-  lyricActive?: boolean
-  onToggleLyric?: () => void
+/**
+ * 底部三键直达切换栏（对齐 part3-player-settings.html `.player-bottom-bar`）：
+ * - 左侧歌词键（chatbubble-ellipses-outline / chatbubble-ellipses，激活态白底反色圆角方块）
+ * - 中间更多/功能键（ellipsis-horizontal-circle-outline，弹出 SettingPopup）
+ * - 右侧待播清单键（list，激活态白底反色圆角方块）
+ */
+export default memo(({
+  activeView,
+  onToggleLyric,
+  onShowSetting,
+  onToggleQueue,
+}: {
+  activeView: PlayerViewMode
+  onToggleLyric: () => void
+  onShowSetting: () => void
+  onToggleQueue: () => void
 }) => {
+  const t = useI18n()
+  const timeInfo = useTimeInfo()
+  const lyricActive = activeView === 'lyric'
+  const queueActive = activeView === 'queue'
+
   return (
     <View style={styles.container}>
-      {onToggleLyric ? (
-        <Btn
-          icon={lyricActive ? 'chatbox-ellipses' : 'chatbox-ellipses-outline'}
-          active={lyricActive}
-          pillBg
-          onPress={onToggleLyric}
-        />
-      ) : null}
-      <DesktopLyricBtn />
-      <PlayModeBtn />
-      <TimeoutExitBtn />
-      <Btn icon="chatbubble-outline" onPress={handleShowCommentScreen} />
-      <LoveBtn />
+      <FootButton
+        icon={lyricActive ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
+        active={lyricActive}
+        accessibilityLabel={t('apple_player_lyrics')}
+        onPress={onToggleLyric}
+      />
+      <FootButton
+        icon="ellipsis-horizontal-circle-outline"
+        badgeDot={timeInfo.active}
+        accessibilityLabel={t('play_detail_setting_title')}
+        onPress={onShowSetting}
+      />
+      <FootButton
+        icon="list"
+        active={queueActive}
+        accessibilityLabel={t('apple_player_up_next')}
+        onPress={onToggleQueue}
+      />
     </View>
   )
 })
@@ -180,17 +93,34 @@ const styles = createStyle({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
     paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
   },
   btn: {
-    width: 40,
+    width: 42,
     height: 36,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
-  btnPillActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+  btnActiveLight: {
+    backgroundColor: 'rgba(255, 255, 255, 0.90)',
+    shadowColor: '#000000',
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: 5,
+    right: 6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FF375F',
   },
 })
