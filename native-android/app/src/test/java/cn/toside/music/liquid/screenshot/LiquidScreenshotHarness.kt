@@ -75,7 +75,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import org.robolectric.shadows.ShadowLooper
+import org.robolectric.annotation.LooperMode
+import org.robolectric.shadows.ShadowChoreographer
+import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 
@@ -632,6 +634,7 @@ object LiquidMockFixtures {
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
+@LooperMode(LooperMode.Mode.PAUSED)
 @Config(
     sdk = [34],
     application = Application::class,
@@ -650,6 +653,8 @@ abstract class ScreenshotTestBase {
 
     @Before
     fun installOfflineImageLoader() {
+        ShadowChoreographer.setFrameDelay(Duration.ofMillis(16))
+        ShadowChoreographer.setPaused(true)
         FakeCoilImageLoader.install(ApplicationProvider.getApplicationContext())
     }
 
@@ -740,9 +745,9 @@ abstract class ScreenshotTestBase {
 
     private class SettleAsyncRenderOption : RoborazziComposeCaptureOption {
         override fun beforeCapture() {
-            ShadowLooper.idleMainLooper()
-            Thread.sleep(90L)
-            ShadowLooper.idleMainLooper()
+            // Advance simulated time in bounded steps so perpetual animations can render.
+            val mainLooper = org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper())
+            repeat(20) { mainLooper.idleFor(Duration.ofMillis(16)) }
         }
 
         override fun afterCapture() = Unit
