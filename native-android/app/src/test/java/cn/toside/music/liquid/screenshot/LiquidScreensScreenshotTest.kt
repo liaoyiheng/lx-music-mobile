@@ -172,7 +172,7 @@ class LiquidScreensScreenshotTest : ScreenshotTestBase() {
 
     /*
      * ============================================================================
-     * TODO(Wave-2): 待第二波将 ui/screens/* 重构为无 ViewModel 依赖的纯状态 *Content Composable 后，
+     * TODO(Wave-2): 待业务页面提供无 ViewModel 依赖的 Content Composable 后，
      * 直接替换上面各 Showcase 内部实现为真实生产页面，例如：
      * - LibraryScreenContent(playlists = LiquidMockFixtures.sampleUserPlaylists, ...)
      * - DiscoverScreenContent(state = LiquidMockFixtures.sampleDiscoverState, ...)
