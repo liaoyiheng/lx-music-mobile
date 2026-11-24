@@ -1,6 +1,7 @@
 import { memo } from 'react'
 
 import Section from '../../components/Section'
+import MaterialStyle from './MaterialStyle'
 import Source from './Source'
 import SourceName from './SourceName'
 import Language from './Language'
@@ -20,23 +21,25 @@ import { useI18n } from '@/lang/i18n'
 export default memo(() => {
   const t = useI18n()
 
-
   return (
-    <Section title={t('setting_basic')}>
-      <IsStartupAutoPlay />
-      <IsStartupPushPlayDetailScreen />
-      <IsShowBackBtn />
-      <IsShowExitBtn />
-      <IsAutoHidePlayBar />
-      <IsHomePageScroll />
-      <IsAllowProgressBarSeek />
-      <IsUseSystemFileSelector />
-      <IsAlwaysKeepStatusbarHeight />
-      <Language />
-      <FontSize />
-      <ShareType />
-      <Source />
-      <SourceName />
-    </Section>
+    <>
+      <MaterialStyle />
+      <Section title={t('setting_basic')}>
+        <IsStartupAutoPlay />
+        <IsStartupPushPlayDetailScreen />
+        <IsShowBackBtn />
+        <IsShowExitBtn />
+        <IsAutoHidePlayBar />
+        <IsHomePageScroll />
+        <IsAllowProgressBarSeek />
+        <IsUseSystemFileSelector />
+        <IsAlwaysKeepStatusbarHeight />
+        <Language />
+        <FontSize />
+        <ShareType />
+        <Source />
+        <SourceName />
+      </Section>
+    </>
   )
 })

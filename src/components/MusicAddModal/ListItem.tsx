@@ -1,18 +1,26 @@
-import { View } from 'react-native'
-import Button from '@/components/common/Button'
+import { TouchableOpacity, View } from 'react-native'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
-import { BorderWidths } from '@/theme'
+import { LIST_IDS } from '@/config/constant'
 import { createStyle, toast } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, fontWeight, hairline, radius } from '@/theme/apple'
 import { useMusicExistsList } from '@/store/list/hook'
 
-export default ({ listInfo, onPress, musicInfo, width }: {
+const getListIcon = (id: string) => {
+  switch (id) {
+    case LIST_IDS.LOVE: return 'heart'
+    case LIST_IDS.DEFAULT: return 'musical-notes'
+    default: return 'albums'
+  }
+}
+
+export default ({ listInfo, onPress, musicInfo }: {
   listInfo: LX.List.MyListInfo
   onPress: (listInfo: LX.List.MyListInfo) => void
   musicInfo: LX.Music.MusicInfo
-  width: number
+  width?: number
 }) => {
-  const theme = useTheme()
+  const apple = useApple()
   const isExists = useMusicExistsList(listInfo, musicInfo)
 
   const handlePress = () => {
@@ -24,33 +32,60 @@ export default ({ listInfo, onPress, musicInfo, width }: {
   }
 
   return (
-    <View style={{ ...styles.listItem, width }}>
-      <Button
-        style={{ ...styles.button, backgroundColor: theme['c-button-background'], borderColor: theme['c-primary-light-400-alpha-300'], opacity: isExists ? 0.4 : 1 }}
-        onPress={handlePress}
+    <TouchableOpacity
+      activeOpacity={0.65}
+      style={[
+        styles.row,
+        {
+          backgroundColor: apple.fill,
+          opacity: isExists ? 0.5 : 1,
+        },
+      ]}
+      onPress={handlePress}
+    >
+      <View
+        style={[
+          styles.iconBox,
+          {
+            backgroundColor: apple.accentFill,
+            borderColor: apple.coverRing,
+          },
+        ]}
       >
-        <Text numberOfLines={1} size={14} color={theme['c-button-font']}>{listInfo.name}</Text>
-      </Button>
-    </View>
+        <IonIcon name={getListIcon(listInfo.id)} rawSize={18} color={apple.accent} />
+      </View>
+      <Text style={styles.name} numberOfLines={1} size={15} color={apple.label}>
+        {listInfo.name}
+      </Text>
+      <IonIcon
+        name={isExists ? 'checkmark-circle' : 'add-circle-outline'}
+        rawSize={20}
+        color={isExists ? apple.accent : apple.secondaryLabel}
+      />
+    </TouchableOpacity>
   )
 }
 
 export const styles = createStyle({
-  listItem: {
-    // width: '50%',
-    paddingRight: 13,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
+  row: {
+    minHeight: 54,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: radius.large,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  button: {
+  iconBox: {
+    width: 36,
     height: 36,
-    paddingLeft: 10,
-    paddingRight: 10,
-    marginRight: 10,
-    marginBottom: 10,
-    borderRadius: 4,
-    width: '100%',
+    borderRadius: 9,
+    borderWidth: hairline,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: BorderWidths.normal1,
+  },
+  name: {
+    flex: 1,
+    fontWeight: fontWeight.medium,
   },
 })

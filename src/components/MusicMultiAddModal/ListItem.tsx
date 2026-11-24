@@ -1,48 +1,70 @@
-import { View } from 'react-native'
-import Button from '@/components/common/Button'
+import { TouchableOpacity, View } from 'react-native'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
-import { BorderWidths } from '@/theme'
+import { LIST_IDS } from '@/config/constant'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, fontWeight, hairline, radius } from '@/theme/apple'
 
-export default ({ listInfo, onPress, width }: {
+const getListIcon = (id: string) => {
+  switch (id) {
+    case LIST_IDS.LOVE: return 'heart'
+    case LIST_IDS.DEFAULT: return 'musical-notes'
+    default: return 'albums'
+  }
+}
+
+export default ({ listInfo, onPress }: {
   listInfo: LX.List.MyListInfo
   onPress: (listInfo: LX.List.MyListInfo) => void
-  width: number
+  width?: number
 }) => {
-  const theme = useTheme()
-
-  const handlePress = () => {
-    onPress(listInfo)
-  }
+  const apple = useApple()
 
   return (
-    <View style={{ ...styles.listItem, width }}>
-      <Button
-        style={{ ...styles.button, backgroundColor: theme['c-button-background'], borderColor: theme['c-primary-light-200-alpha-700'] }}
-        onPress={handlePress}
+    <TouchableOpacity
+      activeOpacity={0.65}
+      style={[styles.row, { backgroundColor: apple.fill }]}
+      onPress={() => { onPress(listInfo) }}
+    >
+      <View
+        style={[
+          styles.iconBox,
+          {
+            backgroundColor: apple.accentFill,
+            borderColor: apple.coverRing,
+          },
+        ]}
       >
-        <Text numberOfLines={1} size={14} color={theme['c-button-font']}>{listInfo.name}</Text>
-      </Button>
-    </View>
+        <IonIcon name={getListIcon(listInfo.id)} rawSize={18} color={apple.accent} />
+      </View>
+      <Text style={styles.name} numberOfLines={1} size={15} color={apple.label}>
+        {listInfo.name}
+      </Text>
+      <IonIcon name="add-circle-outline" rawSize={20} color={apple.secondaryLabel} />
+    </TouchableOpacity>
   )
 }
 
 export const styles = createStyle({
-  listItem: {
-    // width: '50%',
-    paddingRight: 13,
+  row: {
+    minHeight: 54,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: radius.large,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  button: {
+  iconBox: {
+    width: 36,
     height: 36,
-    paddingLeft: 10,
-    paddingRight: 10,
-    marginRight: 10,
-    marginBottom: 10,
-    borderRadius: 4,
-    width: '100%',
+    borderRadius: 9,
+    borderWidth: hairline,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: BorderWidths.normal1,
+  },
+  name: {
+    flex: 1,
+    fontWeight: fontWeight.medium,
   },
 })

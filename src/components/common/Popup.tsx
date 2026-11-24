@@ -2,59 +2,73 @@ import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react'
 import { View, TouchableOpacity } from 'react-native'
 
 import Modal, { type ModalType } from './Modal'
-import { Icon } from '@/components/common/Icon'
+import { GlassSurface } from '@/components/apple/LiquidGlass'
+import { IonIcon } from '@/components/common/Icon'
 import { useKeyboard } from '@/utils/hooks'
 import { createStyle } from '@/utils/tools'
-import { useApple, radius } from '@/theme/apple'
+import { useApple, fontWeight, hairline, radius } from '@/theme/apple'
 import Text from './Text'
 import { useStatusbarHeight } from '@/store/common/hook'
 
 const styles = createStyle({
   centeredView: {
     flex: 1,
-    // justifyContent: 'flex-end',
-    // alignItems: 'center',
   },
   modalView: {
-    elevation: 0,
-    overflow: 'hidden',
     flexGrow: 0,
     flexShrink: 1,
+  },
+  sideFill: {
+    flex: 1,
   },
   header: {
     flex: 0,
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   grabber: {
     position: 'absolute',
-    top: 6,
+    top: 8,
     left: 0,
     right: 0,
     alignItems: 'center',
   },
+  grabberBar: {
+    width: 36,
+    height: 5,
+    borderRadius: 3,
+  },
   title: {
     flex: 1,
     textAlign: 'center',
-    fontWeight: '600',
-    paddingLeft: 44,
-    paddingRight: 44,
-    paddingTop: 18,
-    paddingBottom: 10,
-    // lineHeight: 20,
+    fontWeight: fontWeight.semibold,
+    paddingLeft: 52,
+    paddingRight: 52,
+    paddingTop: 22,
+    paddingBottom: 12,
+    letterSpacing: -0.2,
   },
   closeBtn: {
     position: 'absolute',
-    // borderTopRightRadius: 8,
     flexGrow: 0,
     flexShrink: 0,
-    top: 10,
-    right: 10,
+    top: 13,
+    right: 14,
     height: 30,
     width: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    // backgroundColor: '#eee',
+  },
+  closeCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerDivider: {
+    height: hairline,
   },
 })
 
@@ -94,14 +108,14 @@ export default forwardRef<PopupType, PopupProps>(({
   }))
 
   const closeBtnComponent = useMemo(() => closeBtn
-    ? <TouchableOpacity style={styles.closeBtn} onPress={() => modalRef.current?.setVisible(false)}>
-        <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: apple.fill, alignItems: 'center', justifyContent: 'center' }}>
-          <Icon name="close" color={apple.secondaryLabel} size={9} />
+    ? <TouchableOpacity style={styles.closeBtn} activeOpacity={0.65} onPress={() => modalRef.current?.setVisible(false)}>
+        <View style={[styles.closeCircle, { backgroundColor: apple.fill }]}>
+          <IonIcon name="close" color={apple.secondaryLabel} rawSize={17} />
         </View>
       </TouchableOpacity>
-    : null, [closeBtn, apple])
+    : null, [closeBtn, apple.fill, apple.secondaryLabel])
 
-  const [centeredViewStyle, modalViewStyle] = useMemo(() => {
+  const [centeredViewStyle, modalViewStyle, glassRadius, edgeRadiusStyle] = useMemo(() => {
     switch (position) {
       case 'top':
         return [
@@ -117,7 +131,11 @@ export default forwardRef<PopupType, PopupProps>(({
             width: '100%',
             maxHeight: '78%',
             minHeight: '20%',
-            // backgroundColor: 'white',
+          },
+          radius.glassSheet,
+          {
+            borderTopLeftRadius: 0,
+            borderTopRightRadius: 0,
           },
         ] as const
       case 'left':
@@ -135,8 +153,10 @@ export default forwardRef<PopupType, PopupProps>(({
             minWidth: '45%',
             maxWidth: '78%',
             height: '100%',
+          },
+          0,
+          {
             paddingTop: statusBarHeight,
-            // backgroundColor: 'white',
           },
         ] as const
       case 'right':
@@ -154,8 +174,10 @@ export default forwardRef<PopupType, PopupProps>(({
             minWidth: '45%',
             maxWidth: '78%',
             height: '100%',
+          },
+          0,
+          {
             paddingTop: statusBarHeight,
-            // backgroundColor: 'white',
           },
         ] as const
       case 'bottom':
@@ -173,26 +195,38 @@ export default forwardRef<PopupType, PopupProps>(({
             width: '100%',
             maxHeight: '78%',
             minHeight: '20%',
-            // backgroundColor: 'white',
-            borderTopLeftRadius: radius.sheet,
-            borderTopRightRadius: radius.sheet,
+          },
+          radius.glassSheet,
+          {
+            borderBottomLeftRadius: 0,
+            borderBottomRightRadius: 0,
           },
         ] as const
     }
   }, [position, statusBarHeight])
 
+  const isSide = position == 'left' || position == 'right'
+
   return (
     <Modal onHide={onHide} keyHide={keyHide} bgHide={bgHide} bgColor={apple.mask} ref={modalRef}>
       <View style={{ ...styles.centeredView, ...centeredViewStyle, paddingBottom: keyboardShown ? keyboardHeight : 0 }}>
-        <View style={{ ...styles.modalView, ...modalViewStyle, backgroundColor: apple.sheetBackground }} onStartShouldSetResponder={() => true}>
-          <View style={styles.header}>
-            {position == 'bottom'
-              ? <View style={styles.grabber} pointerEvents="none"><View style={{ width: 36, height: 5, borderRadius: 3, backgroundColor: apple.tertiaryLabel }} /></View>
-              : null}
-            <Text size={17} color={apple.label} style={styles.title} numberOfLines={1}>{title}</Text>
-            {closeBtnComponent}
-          </View>
-          {children}
+        <View style={[styles.modalView, modalViewStyle]} onStartShouldSetResponder={() => true}>
+          <GlassSurface
+            dense
+            borderRadius={glassRadius}
+            style={[isSide ? styles.sideFill : undefined, edgeRadiusStyle]}
+            innerStyle={[isSide ? styles.sideFill : undefined, edgeRadiusStyle]}
+          >
+            <View style={styles.header}>
+              {position == 'bottom'
+                ? <View style={styles.grabber} pointerEvents="none"><View style={[styles.grabberBar, { backgroundColor: apple.tertiaryLabel }]} /></View>
+                : null}
+              <Text size={17} color={apple.label} style={styles.title} numberOfLines={1}>{title}</Text>
+              {closeBtnComponent}
+            </View>
+            {title ? <View style={[styles.headerDivider, { backgroundColor: apple.separator }]} /> : null}
+            {children}
+          </GlassSurface>
         </View>
       </View>
     </Modal>

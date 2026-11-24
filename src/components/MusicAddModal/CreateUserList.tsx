@@ -5,6 +5,7 @@ import { confirmDialog, createStyle } from '@/utils/tools'
 import { useI18n } from '@/lang'
 import { createUserList } from '@/core/list'
 import listState from '@/store/list/state'
+import { useApple, radius } from '@/theme/apple'
 
 export default ({ isEdit, onHide }: {
   isEdit: boolean
@@ -12,6 +13,7 @@ export default ({ isEdit, onHide }: {
 }) => {
   const [text, setText] = useState('')
   const inputRef = useRef<InputType>(null)
+  const apple = useApple()
   const t = useI18n()
 
   useEffect(() => {
@@ -34,15 +36,24 @@ export default ({ isEdit, onHide }: {
 
   return isEdit
     ? (
-      <View style={styles.imputContainer}>
+      <View style={styles.inputContainer}>
         <Input
           placeholder={t('list_create_input_placeholder')}
+          placeholderTextColor={apple.tertiaryLabel}
+          selectionColor={apple.accent}
           value={text}
           onChangeText={setText}
           ref={inputRef}
           onBlur={handleSubmitEditing}
           onSubmitEditing={handleSubmitEditing}
-          style={styles.input}
+          style={[
+            styles.input,
+            {
+              backgroundColor: apple.secondaryBackground,
+              color: apple.label,
+              borderColor: apple.accent,
+            },
+          ]}
         />
       </View>
       )
@@ -50,20 +61,20 @@ export default ({ isEdit, onHide }: {
 }
 
 const styles = createStyle({
-  imputContainer: {
+  inputContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
-    paddingBottom: 10,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
+    right: 0,
+    bottom: 0,
   },
   input: {
     flex: 1,
-    fontSize: 14,
-    borderRadius: 4,
-    textAlign: 'center',
+    fontSize: 15,
+    borderRadius: radius.large,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    textAlign: 'left',
     height: '100%',
   },
 })
