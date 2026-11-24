@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { View } from 'react-native'
 
 import ListMenu, { type ListMenuType } from './ListMenu'
 import ListNameEdit, { type ListNameEditType } from './ListNameEdit'
@@ -9,15 +9,13 @@ import { handleRemove, handleSync } from './listAction'
 import ListMusicSort, { type ListMusicSortType } from './ListMusicSort'
 import DuplicateMusic, { type DuplicateMusicType } from './DuplicateMusic'
 import LargeTitle from '@/components/apple/LargeTitle'
-import { IonIcon } from '@/components/common/Icon'
+import { GlassCircleButton } from '@/components/apple/LiquidGlass'
 import { useI18n } from '@/lang'
 import listState from '@/store/list/state'
-import { useApple, size } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
 export default () => {
   const t = useI18n()
-  const apple = useApple()
   const listMenuRef = useRef<ListMenuType>(null)
   const listNameEditRef = useRef<ListNameEditType>(null)
   const listMusicSortRef = useRef<ListMusicSortType>(null)
@@ -25,15 +23,13 @@ export default () => {
   const listImportExportRef = useRef<ListImportExportType>(null)
 
   const createBtn = (
-    <TouchableOpacity
-      style={styles.btn}
-      activeOpacity={0.6}
+    <GlassCircleButton
+      icon="add"
+      size={32}
+      iconSize={18}
       onPress={() => listNameEditRef.current?.showCreate(listState.userList.length)}
-    >
-      <View style={{ ...styles.btnCircle, backgroundColor: apple.fill }}>
-        <IonIcon name="add" rawSize={22} color={apple.accent} />
-      </View>
-    </TouchableOpacity>
+      accessibilityLabel={t('list_create')}
+    />
   )
 
   return (
@@ -63,18 +59,5 @@ export default () => {
 const styles = createStyle({
   container: {
     flex: 1,
-  },
-  btn: {
-    width: size.hitTarget,
-    height: size.hitTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 })

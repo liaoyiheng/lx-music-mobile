@@ -1,9 +1,10 @@
 import { memo, type ComponentProps } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+import { View } from 'react-native'
 import { Icon } from '@/components/common/Icon'
+import { GlassCapsuleButton } from '@/components/apple/LiquidGlass'
 import Text from '@/components/common/Text'
 import Loading from '@/components/common/Loading'
-import { useApple, fontSize, fontWeight, radius, spacing } from '@/theme/apple'
+import { useApple, fontSize, spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
 interface Props {
@@ -15,7 +16,7 @@ interface Props {
 }
 
 /**
- * 评论页的空状态 / 加载中 / 加载失败占位视图（居中图标 + 说明文字 + 可选操作按钮）
+ * 评论页的空状态 / 加载中 / 加载失败占位视图（居中图标 + 说明文字 + 液态玻璃胶囊重试按钮）
  */
 export default memo(({ icon, title, loading, actionLabel, onAction }: Props) => {
   const apple = useApple()
@@ -33,9 +34,12 @@ export default memo(({ icon, title, loading, actionLabel, onAction }: Props) => 
       {
         actionLabel && onAction
           ? (
-              <TouchableOpacity style={{ ...styles.action, backgroundColor: apple.fill }} activeOpacity={0.6} onPress={onAction}>
-                <Text size={fontSize.subhead} color={apple.accent} style={styles.actionText}>{actionLabel}</Text>
-              </TouchableOpacity>
+              <GlassCapsuleButton
+                label={actionLabel}
+                icon="refresh"
+                onPress={onAction}
+                style={styles.action}
+              />
             )
           : null
       }
@@ -57,11 +61,5 @@ const styles = createStyle({
   },
   action: {
     marginTop: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-  },
-  actionText: {
-    fontWeight: fontWeight.semibold,
   },
 })

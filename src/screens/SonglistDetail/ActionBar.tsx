@@ -28,9 +28,9 @@ export default memo(({ style }: { style?: StyleProp<ViewStyle> }) => {
 
   return (
     <View style={[styles.container, style]}>
-      <ActionButton icon="play" label={t('apple_play')} onPress={handlePlayAll} />
+      <ActionButton icon="play" ionIcon="play" label={t('apple_play')} onPress={handlePlayAll} />
       <View style={styles.gap} />
-      <ActionButton icon="list-random" label={t('apple_shuffle')} onPress={handleShuffle} />
+      <ActionButton icon="list-random" ionIcon="shuffle" label={t('apple_shuffle')} onPress={handleShuffle} />
     </View>
   )
 })

@@ -5,11 +5,12 @@ import MusicList, { type MusicListType } from './MusicList'
 import NavBar from './NavBar'
 import PageContent from '@/components/PageContent'
 import StatusBar from '@/components/common/StatusBar'
+import { BottomDockScrim } from '@/components/apple/LiquidGlass'
 import { setComponentId } from '@/core/common'
 import { COMPONENT_IDS } from '@/config/constant'
 import { type ListInfoItem } from '@/store/songlist/state'
 import PlayerBar from '@/components/player/PlayerBar'
-import { useApple } from '@/theme/apple'
+import { useApple, size } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 import { ListInfoContext } from './state'
 
@@ -39,11 +40,14 @@ export default ({ componentId, info }: { componentId: string, info: ListInfoItem
       <StatusBar />
       <ListInfoContext.Provider value={info}>
         <View style={{ ...styles.container, backgroundColor: apple.background }}>
-          <NavBar />
           <MusicList ref={musicListRef} componentId={componentId} />
+          <NavBar />
+          <BottomDockScrim height={96} />
+          <View pointerEvents="box-none" style={styles.playerDock}>
+            <PlayerBar />
+          </View>
         </View>
       </ListInfoContext.Provider>
-      <PlayerBar />
     </PageContent>
   )
 }
@@ -51,6 +55,13 @@ export default ({ componentId, info }: { componentId: string, info: ListInfoItem
 const styles = createStyle({
   container: {
     flex: 1,
-    flexDirection: 'column',
+    position: 'relative',
+  },
+  playerDock: {
+    position: 'absolute',
+    left: size.dockMarginX,
+    right: size.dockMarginX,
+    bottom: size.dockMarginBottom,
+    zIndex: 35,
   },
 })

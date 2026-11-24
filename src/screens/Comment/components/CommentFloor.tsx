@@ -1,6 +1,6 @@
 import { memo, useState, useMemo, useCallback } from 'react'
 import { StyleSheet, View } from 'react-native'
-import { Icon } from '@/components/common/Icon'
+import { IonIcon } from '@/components/common/Icon'
 import { createStyle } from '@/utils/tools'
 import { type Comment } from '../utils'
 import Text from '@/components/common/Text'
@@ -13,15 +13,16 @@ import { useApple, fontSize, fontWeight, hairline, radius, spacing } from '@/the
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const defaultUser = require('@/resources/images/defaultUser.jpg')
 
-/** 顶层评论头像（圆形） */
-const AVATAR_SIZE = spacing.xxxl + spacing.xs
+/** 顶层评论头像（36×36 圆形） */
+const AVATAR_SIZE = 36
 /** 回复内头像（圆形，更小） */
-const REPLY_AVATAR_SIZE = spacing.xxl
+const REPLY_AVATAR_SIZE = 24
 const AVATAR_GAP = spacing.md
+const HORIZONTAL_PAD = spacing.lg
 
 /**
- * 单条评论：圆形头像 + 昵称 / 时间 / 归属地 + 点赞数 + 正文 + 图片
- * 回复（楼中楼）放在正文下方的浅色圆角块中，按头像宽度缩进
+ * 单条评论：36×36 圆形头像 + 昵称 / 时间 / 归属地 + 点赞数 + 15pt 正文 + 图片
+ * 回复（楼中楼）放在正文下方的圆角 12 柔和 apple.fill 块中，底部 64dp 左缩进 hairline 分割线
  */
 const CommentFloor = memo(({ comment, isReply, isLast }: {
   comment: Comment
@@ -51,17 +52,17 @@ const CommentFloor = memo(({ comment, isReply, isLast }: {
         }
       </View>
     )
-  }, [comment.id, comment.reply, apple])
+  }, [comment.id, comment.reply, apple.fill])
 
   const likedCount = useMemo(() => {
     if (comment.likedCount == null) return null
     return (
       <View style={styles.like}>
-        <Icon name="thumbs-up" color={apple.secondaryLabel} size={fontSize.caption1} />
+        <IonIcon name="thumbs-up-outline" color={apple.secondaryLabel} rawSize={13} />
         <Text style={styles.likedCount} size={fontSize.caption1} color={apple.secondaryLabel}>{comment.likedCount}</Text>
       </View>
     )
-  }, [comment.likedCount, apple])
+  }, [comment.likedCount, apple.secondaryLabel])
 
   const showSeparator = !isLast
   const containerStyle = isReply
@@ -71,14 +72,28 @@ const CommentFloor = memo(({ comment, isReply, isLast }: {
   return (
     <View style={containerStyle}>
       <View style={styles.comment}>
-        <Image
-          url={comment.avatar && !isAvatarError ? comment.avatar : defaultUser}
-          onError={handleAvatarError}
-          style={isReply ? stylesRaw.replyAvatar : stylesRaw.avatar} />
+        <View style={isReply ? stylesRaw.replyAvatarWrap : stylesRaw.avatarWrap}>
+          <Image
+            url={comment.avatar && !isAvatarError ? comment.avatar : defaultUser}
+            onError={handleAvatarError}
+            style={isReply ? stylesRaw.replyAvatar : stylesRaw.avatar}
+          />
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFillObject,
+              {
+                borderRadius: avatarSize / 2,
+                borderWidth: hairline,
+                borderColor: apple.coverRing,
+              },
+            ]}
+          />
+        </View>
         <View style={{ ...styles.right, paddingLeft: isReply ? spacing.sm : AVATAR_GAP }}>
           <View style={styles.info}>
             <View style={styles.infoLeft}>
-              <Text selectable numberOfLines={1} size={isReply ? fontSize.footnote : fontSize.subhead} color={apple.label} style={styles.userName}>
+              <Text selectable numberOfLines={1} size={isReply ? fontSize.footnote : 14.5} color={apple.label} style={styles.userName}>
                 {comment.userName}
               </Text>
               <View style={styles.metaInfo}>
@@ -88,7 +103,7 @@ const CommentFloor = memo(({ comment, isReply, isLast }: {
             </View>
             {likedCount}
           </View>
-          <CommentText text={comment.text} size={isReply ? fontSize.subhead : fontSize.callout} />
+          <CommentText text={comment.text} size={isReply ? 13.5 : fontSize.subhead} />
           {
             comment.images?.length
               ? (
@@ -109,7 +124,7 @@ const CommentFloor = memo(({ comment, isReply, isLast }: {
       }
       {
         !isReply && showSeparator
-          ? <View style={{ ...styles.separator, marginLeft: AVATAR_SIZE + AVATAR_GAP, backgroundColor: apple.separator }} />
+          ? <View style={{ ...styles.separator, backgroundColor: apple.separator }} />
           : null
       }
     </View>
@@ -118,7 +133,8 @@ const CommentFloor = memo(({ comment, isReply, isLast }: {
 
 const styles = createStyle({
   container: {
-    paddingTop: spacing.md,
+    paddingTop: 15,
+    paddingHorizontal: HORIZONTAL_PAD,
   },
   replyContainer: {
     paddingVertical: spacing.sm,
@@ -140,6 +156,7 @@ const styles = createStyle({
   },
   userName: {
     fontWeight: fontWeight.semibold,
+    letterSpacing: -0.15,
   },
   metaInfo: {
     marginTop: spacing.xxs,
@@ -153,9 +170,11 @@ const styles = createStyle({
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: spacing.xxs,
+    gap: 4,
   },
   likedCount: {
-    marginLeft: spacing.xs,
+    fontWeight: fontWeight.medium,
+    fontVariant: ['tabular-nums'],
   },
   images: {
     paddingTop: spacing.sm,
@@ -166,19 +185,32 @@ const styles = createStyle({
     marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radius.medium,
+    borderRadius: radius.large,
   },
   separator: {
     height: hairline,
-    marginTop: spacing.md,
+    marginTop: 15,
+    marginLeft: AVATAR_SIZE + AVATAR_GAP,
   },
 })
 
 const stylesRaw = StyleSheet.create({
+  avatarWrap: {
+    height: AVATAR_SIZE,
+    width: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    overflow: 'hidden',
+  },
   avatar: {
     height: AVATAR_SIZE,
     width: AVATAR_SIZE,
     borderRadius: AVATAR_SIZE / 2,
+  },
+  replyAvatarWrap: {
+    height: REPLY_AVATAR_SIZE,
+    width: REPLY_AVATAR_SIZE,
+    borderRadius: REPLY_AVATAR_SIZE / 2,
+    overflow: 'hidden',
   },
   replyAvatar: {
     height: REPLY_AVATAR_SIZE,

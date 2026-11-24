@@ -1,25 +1,30 @@
-import { memo } from 'react'
-import { TouchableOpacity, View } from 'react-native'
-import { IonIcon } from '@/components/common/Icon'
-import Text from '@/components/common/Text'
+import { memo, useMemo } from 'react'
+import { View } from 'react-native'
+import { GlassCircleButton } from '@/components/apple/LiquidGlass'
 import { pop } from '@/navigation'
 import commonState from '@/store/common/state'
 import songlistState from '@/store/songlist/state'
 import { useStatusbarHeight } from '@/store/common/hook'
+import { useMyList } from '@/store/list/hook'
 import { useI18n } from '@/lang'
-import { useApple, fontSize, fontWeight, size, spacing } from '@/theme/apple'
+import { spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 import { handleCollect } from './listAction'
 import { useListInfo } from './state'
 
 /**
- * 歌单详情导航栏：左侧「‹ 返回」，右侧「收藏歌单」
+ * 歌单详情悬浮液态玻璃导航栏：透明覆盖在头图上，左侧返回、右侧收藏操作按钮
  */
 export default memo(() => {
-  const apple = useApple()
   const t = useI18n()
   const info = useListInfo()
   const statusBarHeight = useStatusbarHeight()
+  const lists = useMyList()
+
+  const isCollected = useMemo(() => {
+    const compositeId = `${info.source}__${info.id}`
+    return lists.some(l => 'sourceListId' in l && (l.sourceListId == info.id || l.sourceListId == compositeId))
+  }, [info.id, info.source, lists])
 
   const back = () => {
     void pop(commonState.componentIds.songlistDetail!)
@@ -31,42 +36,43 @@ export default memo(() => {
   }
 
   return (
-    <View style={{ ...styles.bar, paddingTop: statusBarHeight, backgroundColor: apple.background }}>
-      <TouchableOpacity style={styles.back} activeOpacity={0.5} onPress={back}>
-        <IonIcon name="chevron-back" rawSize={24} color={apple.accent} style={styles.backIcon} />
-        <Text size={17} color={apple.accent} numberOfLines={1}>{t('back')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.textBtn} activeOpacity={0.5} onPress={handleCollection}>
-        <Text style={styles.textBtnLabel} size={fontSize.body} color={apple.accent} numberOfLines={1}>{t('collect_songlist')}</Text>
-      </TouchableOpacity>
+    <View
+      pointerEvents="box-none"
+      style={{
+        ...styles.bar,
+        paddingTop: statusBarHeight + 6,
+      }}
+    >
+      <GlassCircleButton
+        icon="chevron-back"
+        iconSize={18}
+        size={36}
+        onPress={back}
+        accessibilityLabel={t('back')}
+      />
+      <GlassCircleButton
+        icon={isCollected ? 'heart' : 'heart-outline'}
+        iconSize={18}
+        size={36}
+        active={isCollected}
+        onPress={handleCollection}
+        accessibilityLabel={t('collect_songlist')}
+      />
     </View>
   )
 })
 
 const styles = createStyle({
   bar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 33,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xs,
-    flexGrow: 0,
-    flexShrink: 0,
-  },
-  back: {
-    flex: 1,
-    height: size.hitTarget,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: spacing.xs,
-  },
-  backIcon: {
-    marginRight: 2,
-  },
-  textBtn: {
-    height: size.hitTarget,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-  },
-  textBtnLabel: {
-    fontWeight: fontWeight.semibold,
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xs,
   },
 })
