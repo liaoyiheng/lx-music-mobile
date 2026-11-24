@@ -28,6 +28,42 @@ import { readFileSync, writeFileSync } from 'node:fs'
 const reqPath = path.join(stageDir, 'src/utils/request.js')
 writeFileSync(reqPath, readFileSync(reqPath, 'utf8').replace('../../../src/utils/musicSdk/options', './musicSdk/options'))
 
+// Patch staged wy/utils/crypto.js so weapi secretKey is ALWAYS exact 16 ASCII bytes
+// (prevents ~10% InvalidKeyException when String(Math.random()).substring(2, 18) is < 16 chars or uses scientific notation)
+const wyCryptoPath = path.join(stageDir, 'src/utils/musicSdk/wy/utils/crypto.js')
+const wyCryptoOrig = readFileSync(wyCryptoPath, 'utf8')
+const wyCryptoPatched = wyCryptoOrig.replace(
+  'const secretKey = String(Math.random()).substring(2, 18)',
+  "const secretKey = Array.from({ length: 16 }, () => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[Math.floor(Math.random() * 62)]).join('')"
+)
+if (wyCryptoPatched === wyCryptoOrig) {
+  throw new Error('Failed to patch secretKey generation in staged wy/utils/crypto.js')
+}
+writeFileSync(wyCryptoPath, wyCryptoPatched)
+
+// Patch upstream typo in staged wy/songList.js getHotTag() retry (called this.getTag instead of this.getHotTag, aborting concurrent getTag())
+const wySongListPath = path.join(stageDir, 'src/utils/musicSdk/wy/songList.js')
+const wySongListOrig = readFileSync(wySongListPath, 'utf8')
+const wySongListPatched = wySongListOrig.replace(
+  /getHotTag\(tryNum = 0\) \{[\s\S]*?return this\.getTag\(\+\+tryNum\)/,
+  (m) => m.replace('return this.getTag(++tryNum)', 'return this.getHotTag(++tryNum)')
+)
+if (wySongListPatched === wySongListOrig) {
+  throw new Error('Failed to patch getHotTag retry in staged wy/songList.js')
+}
+writeFileSync(wySongListPath, wySongListPatched)
+
+// Patch upstream bug in staged mg/musicInfo.js (Promise.all wrapped around Promise from createGetMusicInfosTask)
+const mgMusicInfoPath = path.join(stageDir, 'src/utils/musicSdk/mg/musicInfo.js')
+const mgMusicInfoOrig = readFileSync(mgMusicInfoPath, 'utf8')
+const mgMusicInfoPatched = mgMusicInfoOrig.replace(
+  'await Promise.all(createGetMusicInfosTask(copyrightIds))',
+  'await createGetMusicInfosTask(copyrightIds)'
+)
+if (mgMusicInfoPatched !== mgMusicInfoOrig) {
+  writeFileSync(mgMusicInfoPath, mgMusicInfoPatched)
+}
+
 // Link node_modules into stageDir so esbuild resolves buffer/pako/he
 import { symlinkSync } from 'node:fs'
 symlinkSync(path.join(repoRoot, 'node_modules'), path.join(stageDir, 'node_modules'))

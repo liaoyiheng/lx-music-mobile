@@ -4,14 +4,57 @@ import android.content.Context
 import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import okhttp3.Cookie
+import okhttp3.CookieJar
+import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 object HttpClientProvider {
     const val DESKTOP_UA =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+
+    private val sessionCookieJar = object : CookieJar {
+        private val store = ConcurrentHashMap<String, MutableMap<String, Cookie>>()
+
+        override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+            if (cookies.isEmpty()) return
+            val now = System.currentTimeMillis()
+            for (cookie in cookies) {
+                val domainKey = cookie.domain.lowercase()
+                val bucket = store.computeIfAbsent(domainKey) { ConcurrentHashMap() }
+                val key = "${cookie.name}|${cookie.path}"
+                if (cookie.expiresAt < now || cookie.value.isEmpty()) {
+                    bucket.remove(key)
+                } else {
+                    if (bucket.size > 64) {
+                        bucket.entries.removeIf { it.value.expiresAt < now }
+                    }
+                    bucket[key] = cookie
+                }
+            }
+        }
+
+        override fun loadForRequest(url: HttpUrl): List<Cookie> {
+            val now = System.currentTimeMillis()
+            val matched = ArrayList<Cookie>()
+            for ((_, bucket) in store) {
+                val it = bucket.entries.iterator()
+                while (it.hasNext()) {
+                    val cookie = it.next().value
+                    if (cookie.expiresAt < now) {
+                        it.remove()
+                    } else if (cookie.matches(url)) {
+                        matched.add(cookie)
+                    }
+                }
+            }
+            return matched
+        }
+    }
 
     private val platformHeaderInterceptor = Interceptor { chain ->
         val orig = chain.request()
@@ -40,6 +83,7 @@ object HttpClientProvider {
 
     val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
+            .cookieJar(sessionCookieJar)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(25, TimeUnit.SECONDS)
             .writeTimeout(25, TimeUnit.SECONDS)

@@ -33,32 +33,44 @@ object CryptoUtils {
         return String(bytes, StandardCharsets.ISO_8859_1)
     }
 
+    private fun normalizeIv(ivB64: String): ByteArray {
+        val raw = Base64.decode(ivB64, Base64.DEFAULT)
+        val finalIv = ByteArray(16)
+        System.arraycopy(raw, 0, finalIv, 0, minOf(raw.size, 16))
+        return finalIv
+    }
+
+    private fun isEcbMode(mode: String): Boolean =
+        mode.equals("AES", ignoreCase = true) || mode.contains("ECB", ignoreCase = true)
+
     fun aesEncrypt(dataB64: String, keyB64: String, ivB64: String, mode: String): String {
         val data = Base64.decode(dataB64, Base64.DEFAULT)
         val key = Base64.decode(keyB64, Base64.DEFAULT)
         val secretKey = SecretKeySpec(key, "AES")
         val cipher = Cipher.getInstance(resolveAesTransformation(mode))
-        if (ivB64.isNotEmpty() && !mode.equals("AES", ignoreCase = true) && !mode.contains("ECB", ignoreCase = true)) {
-            val iv = Base64.decode(ivB64, Base64.DEFAULT)
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, IvParameterSpec(iv))
+        if (ivB64.isNotEmpty() && !isEcbMode(mode)) {
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, IvParameterSpec(normalizeIv(ivB64)))
         } else {
             cipher.init(Cipher.ENCRYPT_MODE, secretKey)
         }
         return Base64.encodeToString(cipher.doFinal(data), Base64.NO_WRAP)
     }
 
-    fun aesDecrypt(dataB64: String, keyB64: String, ivB64: String, mode: String): String {
+    fun aesDecryptBytes(dataB64: String, keyB64: String, ivB64: String, mode: String): ByteArray {
         val data = Base64.decode(dataB64, Base64.DEFAULT)
         val key = Base64.decode(keyB64, Base64.DEFAULT)
         val secretKey = SecretKeySpec(key, "AES")
         val cipher = Cipher.getInstance(resolveAesTransformation(mode))
-        if (ivB64.isNotEmpty() && !mode.equals("AES", ignoreCase = true) && !mode.contains("ECB", ignoreCase = true)) {
-            val iv = Base64.decode(ivB64, Base64.DEFAULT)
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, IvParameterSpec(iv))
+        if (ivB64.isNotEmpty() && !isEcbMode(mode)) {
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, IvParameterSpec(normalizeIv(ivB64)))
         } else {
             cipher.init(Cipher.DECRYPT_MODE, secretKey)
         }
-        return Base64.encodeToString(cipher.doFinal(data), Base64.NO_WRAP)
+        return cipher.doFinal(data)
+    }
+
+    fun aesDecrypt(dataB64: String, keyB64: String, ivB64: String, mode: String): String {
+        return Base64.encodeToString(aesDecryptBytes(dataB64, keyB64, ivB64, mode), Base64.NO_WRAP)
     }
 
     fun aesEncryptUtf8(plainText: String, keyB64: String, ivB64: String = "", mode: String = "AES/ECB/PKCS7Padding"): String {
@@ -67,8 +79,7 @@ object CryptoUtils {
     }
 
     fun aesDecryptUtf8(cipherB64: String, keyB64: String, ivB64: String = "", mode: String = "AES/ECB/PKCS7Padding"): String {
-        val outB64 = aesDecrypt(cipherB64, keyB64, ivB64, mode)
-        return String(Base64.decode(outB64, Base64.DEFAULT), StandardCharsets.UTF_8)
+        return String(aesDecryptBytes(cipherB64, keyB64, ivB64, mode), StandardCharsets.UTF_8)
     }
 
     fun rsaEncrypt(dataB64: String, publicKeyPemOrB64: String, padding: String): String {
@@ -81,14 +92,22 @@ object CryptoUtils {
         return Base64.encodeToString(cipher.doFinal(input), Base64.NO_WRAP)
     }
 
-    fun rsaDecrypt(dataB64: String, privateKeyPemOrB64: String, padding: String): String {
+    fun rsaDecryptBytes(dataB64: String, privateKeyPemOrB64: String, padding: String): ByteArray {
         val cleanKey = stripPem(privateKeyPemOrB64)
         val keyBytes = Base64.decode(cleanKey, Base64.DEFAULT)
         val privKey = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(keyBytes))
         val cipher = Cipher.getInstance(resolveRsaTransformation(padding))
         cipher.init(Cipher.DECRYPT_MODE, privKey)
         val input = Base64.decode(dataB64, Base64.DEFAULT)
-        return Base64.encodeToString(cipher.doFinal(input), Base64.NO_WRAP)
+        return cipher.doFinal(input)
+    }
+
+    fun rsaDecrypt(dataB64: String, privateKeyPemOrB64: String, padding: String): String {
+        return Base64.encodeToString(rsaDecryptBytes(dataB64, privateKeyPemOrB64, padding), Base64.NO_WRAP)
+    }
+
+    fun rsaDecryptUtf8(dataB64: String, privateKeyPemOrB64: String, padding: String): String {
+        return String(rsaDecryptBytes(dataB64, privateKeyPemOrB64, padding), StandardCharsets.UTF_8)
     }
 
     fun generateRsaKeyPair(): Pair<String, String> {
@@ -108,9 +127,10 @@ object CryptoUtils {
         .replace("\\s+".toRegex(), "")
 
     private fun resolveAesTransformation(mode: String): String = when (mode) {
-        "AES", "AES/ECB/PKCS5Padding", "aes-128-ecb" -> "AES/ECB/PKCS5Padding"
-        "AES/ECB/PKCS7Padding" -> "AES/ECB/PKCS5Padding"
-        "AES/CBC/PKCS7Padding", "aes-128-cbc" -> "AES/CBC/PKCS5Padding"
+        "AES", "AES/ECB/PKCS5Padding", "AES/ECB/PKCS7Padding", "aes-128-ecb" -> "AES/ECB/PKCS5Padding"
+        "AES/ECB/NoPadding" -> "AES/ECB/NoPadding"
+        "AES/CBC/PKCS5Padding", "AES/CBC/PKCS7Padding", "aes-128-cbc" -> "AES/CBC/PKCS5Padding"
+        "AES/CBC/NoPadding" -> "AES/CBC/NoPadding"
         else -> mode.ifBlank { "AES/CBC/PKCS5Padding" }
     }
 

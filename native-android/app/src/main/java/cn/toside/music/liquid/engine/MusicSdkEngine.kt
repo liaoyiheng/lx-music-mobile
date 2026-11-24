@@ -121,7 +121,7 @@ class MusicSdkEngine(private val context: Context) {
         }
         g.setProperty("__sdk_aes_decrypt") { args ->
             runCatching {
-                CryptoUtils.aesDecrypt(
+                CryptoUtils.aesDecryptUtf8(
                     args.getOrNull(0)?.toString().orEmpty(),
                     args.getOrNull(1)?.toString().orEmpty(),
                     args.getOrNull(2)?.toString().orEmpty(),
@@ -146,7 +146,7 @@ class MusicSdkEngine(private val context: Context) {
         }
         g.setProperty("__sdk_rsa_decrypt") { args ->
             runCatching {
-                CryptoUtils.rsaDecrypt(
+                CryptoUtils.rsaDecryptUtf8(
                     args.getOrNull(0)?.toString().orEmpty(),
                     args.getOrNull(1)?.toString().orEmpty(),
                     args.getOrNull(2)?.toString().orEmpty(),
@@ -223,15 +223,19 @@ class MusicSdkEngine(private val context: Context) {
                 val method = opt.method.uppercase()
                 val reqBody = when {
                     method == "GET" || method == "HEAD" -> null
-                    else -> (opt.body ?: "").toRequestBody(
+                    else -> (opt.body ?: "").toByteArray(StandardCharsets.UTF_8).toRequestBody(
                         (contentType ?: "application/json; charset=utf-8").toMediaTypeOrNull()
                     )
                 }
                 reqBuilder.method(method, reqBody)
 
                 val client = if (opt.timeout != 15000L && opt.timeout > 0) {
+                    val t = opt.timeout.coerceIn(3_000L, 60_000L)
                     HttpClientProvider.okHttpClient.newBuilder()
-                        .callTimeout(opt.timeout, TimeUnit.MILLISECONDS)
+                        .connectTimeout(minOf(t, 20_000L), TimeUnit.MILLISECONDS)
+                        .readTimeout(t, TimeUnit.MILLISECONDS)
+                        .writeTimeout(t, TimeUnit.MILLISECONDS)
+                        .callTimeout(t + 5_000L, TimeUnit.MILLISECONDS)
                         .build()
                 } else {
                     HttpClientProvider.okHttpClient
@@ -355,7 +359,11 @@ class MusicSdkEngine(private val context: Context) {
             put("tagId", tagId)
             put("page", page)
         }.toString()
-        return json.decodeFromString(dispatch("getSongList", args))
+        val res = json.decodeFromString<SongListPageResult>(dispatch("getSongList", args))
+        return res.copy(
+            source = source,
+            list = res.list.map { item -> item.copy(source = source) },
+        )
     }
 
     suspend fun getSongListDetail(source: String, id: String, page: Int = 1): SongListDetailResult {
@@ -364,7 +372,7 @@ class MusicSdkEngine(private val context: Context) {
             put("id", id)
             put("page", page)
         }.toString()
-        return json.decodeFromString(dispatch("getSongListDetail", args))
+        return json.decodeFromString(dispatch("getSongListDetail", args, 35_000L))
     }
 
     suspend fun getLeaderboards(source: String): List<LeaderboardItem> {
@@ -372,7 +380,8 @@ class MusicSdkEngine(private val context: Context) {
         val raw = dispatch("getLeaderboards", args)
         val obj = json.parseToJsonElement(raw).jsonObject
         val arr = obj["list"] ?: return emptyList()
-        return json.decodeFromString(arr.toString())
+        return json.decodeFromString<List<LeaderboardItem>>(arr.toString())
+            .map { item -> item.copy(source = source) }
     }
 
     suspend fun getLeaderboardDetail(source: String, bangid: String, page: Int = 1): SongListDetailResult {
@@ -381,7 +390,7 @@ class MusicSdkEngine(private val context: Context) {
             put("bangid", bangid)
             put("page", page)
         }.toString()
-        return json.decodeFromString(dispatch("getLeaderboardDetail", args))
+        return json.decodeFromString(dispatch("getLeaderboardDetail", args, 35_000L))
     }
 
     suspend fun getLyric(musicInfo: MusicInfo): LyricData {

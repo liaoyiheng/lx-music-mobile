@@ -1,7 +1,6 @@
 package cn.toside.music.liquid.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +16,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,7 +32,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.BookmarkAdd
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -55,7 +53,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -69,8 +66,8 @@ import cn.toside.music.liquid.ui.components.GlassCircleIconButton
 import cn.toside.music.liquid.ui.components.LiquidGlassSurface
 import cn.toside.music.liquid.ui.components.TrackRow
 import cn.toside.music.liquid.ui.components.bouncyClick
+import cn.toside.music.liquid.ui.components.liquidCardPress
 import cn.toside.music.liquid.ui.theme.LocalLiquidColors
-import kotlin.math.absoluteValue
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -81,255 +78,96 @@ fun DiscoverScreen(
     val colors = LocalLiquidColors.current
     val state by vm.discover.collectAsState()
     var showTagSheet by remember { mutableStateOf(false) }
-
     val featured = remember(state.items) { state.items.take(5) }
-    val gridItems = remember(state.items) { if (state.items.size > 5) state.items.drop(5) else state.items }
+    val gridItems = remember(state.items) { state.items.drop(5) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background),
-        contentPadding = PaddingValues(top = 12.dp, bottom = bottomClearanceDp.dp),
-    ) {
-        // Editorial Masthead
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-            ) {
-                Text(
-                    text = "EDITORIAL CURATION",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.accent,
-                    letterSpacing = 1.6.sp,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "发现",
-                    style = MaterialTheme.typography.displaySmall,
-                    color = colors.textPrimary,
-                )
-            }
+    StandardPage { availableWidth, window ->
+        val columns = window.pageColumns(availableWidth)
+        val cardsVisible = when {
+            availableWidth >= 840.dp -> 3.25f
+            availableWidth >= 500.dp -> 2.25f
+            else -> 1.14f
         }
-
-        // Platform Source Pills (full readable labels, never truncated)
-        item {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(MusicSources.ONLINE) { src ->
-                    val active = state.source == src
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(if (active) colors.accent else colors.surface)
-                            .border(
-                                width = 0.8.dp,
-                                color = if (active) Color.Transparent else colors.divider,
-                                shape = CircleShape,
-                            )
-                            .bouncyClick(pressedScale = 0.94f) { vm.selectDiscoverSource(src) }
-                            .padding(horizontal = 15.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            text = MusicSources.displayName(src),
-                            fontSize = 13.sp,
-                            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                            color = if (active) Color.White else colors.textPrimary,
-                        )
-                    }
-                }
-            }
-        }
-
-        // Sort & Genre Tag Filter Bar (generous spacing, never ellipsized)
-        item {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(colors.accentSoft)
-                            .bouncyClick(pressedScale = 0.94f) { showTagSheet = true }
-                            .padding(horizontal = 13.dp, vertical = 7.dp),
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
-                        ) {
-                            Text(
-                                text = state.selectedTagName,
-                                fontSize = 12.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colors.accent,
-                            )
-                            Icon(
-                                imageVector = Icons.Rounded.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = colors.accent,
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
-                    }
-                }
-
-                items(state.sorts) { sort ->
-                    val active = state.selectedSortId == sort.id
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(if (active) colors.textPrimary else colors.badgeBg)
-                            .bouncyClick(pressedScale = 0.94f) { vm.selectDiscoverSort(sort.id) }
-                            .padding(horizontal = 13.dp, vertical = 7.dp),
-                    ) {
-                        Text(
-                            text = sort.name,
-                            fontSize = 12.5.sp,
-                            fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                            color = if (active) colors.background else colors.textSecondary,
-                        )
-                    }
-                }
-            }
-        }
-
-        // Loading or Error State
-        if (state.loading && state.items.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(color = colors.accent, strokeWidth = 2.6.dp)
-                }
-            }
-        } else if (state.error != null && state.items.isEmpty()) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 64.dp, horizontal = 32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = state.error ?: "加载失败",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = colors.textSecondary,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    TextButton(onClick = { vm.loadDiscover(reset = true) }) {
-                        Icon(Icons.Rounded.Refresh, null, tint = colors.accent)
-                        Spacer(Modifier.width(6.dp))
-                        Text("重新加载", color = colors.accent, fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
+        val featureWidth = if (featured.size > 1) {
+            ((availableWidth + PageGridGap) / cardsVisible - PageGridGap).coerceAtLeast(1.dp)
         } else {
-            // Magazine Editorial Hero Carousel
-            if (featured.isNotEmpty()) {
-                item {
-                    Column(modifier = Modifier.padding(top = 12.dp, bottom = 10.dp)) {
-                        Text(
-                            text = "编辑精选",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = colors.textPrimary,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-                        )
+            availableWidth.coerceIn(1.dp, 420.dp)
+        }
 
-                        val pagerState = rememberPagerState(pageCount = { featured.size })
-                        HorizontalPager(
-                            state = pagerState,
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            pageSpacing = 14.dp,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { page ->
-                            val item = featured[page]
-                            val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
-                            EditorialFeatureCarouselCard(
-                                item = item,
-                                onClick = { vm.openOnlineSongList(item) },
-                                modifier = Modifier.graphicsLayer {
-                                    val s = 1f - (pageOffset.coerceIn(0f, 1f) * 0.04f)
-                                    scaleX = s
-                                    scaleY = s
-                                },
-                            )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = bottomClearanceDp.dp + 16.dp),
+        ) {
+            item("heading") { PageHeading("发现") }
+            item("sources") {
+                PageSourcePicker(MusicSources.ONLINE, state.source, availableWidth >= 440.dp, vm::selectDiscoverSource)
+            }
+            item("filters") {
+                LazyRow(
+                    modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    item("tag") {
+                        TextButton(onClick = { showTagSheet = true }) {
+                            Text(state.selectedTagName, color = colors.accent)
+                            Icon(Icons.Rounded.KeyboardArrowDown, null, tint = colors.accent, modifier = Modifier.size(18.dp))
                         }
+                    }
+                    items(state.sorts, key = { it.id }) { sort ->
+                        PageChoiceChip(sort.name, state.selectedSortId == sort.id) { vm.selectDiscoverSort(sort.id) }
                     }
                 }
             }
 
-            // Section Title for Grid
-            if (gridItems.isNotEmpty()) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
+            when {
+                state.loading -> item("loading") { PageSpinner() }
+                state.error != null -> item("error") {
+                    PageMessage(state.error ?: "加载歌单失败") { vm.loadDiscover(reset = true) }
+                }
+                state.items.isEmpty() -> item("empty") { PageMessage("当前筛选下暂无歌单") }
+                else -> {
+                    item("featured_${state.source}_${state.selectedSortId}_${state.selectedTagId}") {
                         Column {
                             Text(
-                                text = MusicSources.displayName(state.source).uppercase(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = colors.textTertiary,
-                                letterSpacing = 1.4.sp,
-                            )
-                            Text(
-                                text = "人气歌单",
+                                "歌单精选",
                                 style = MaterialTheme.typography.titleLarge,
                                 color = colors.textPrimary,
+                                modifier = Modifier.padding(bottom = 8.dp),
+                            )
+                            val pagerState = rememberPagerState(pageCount = { featured.size })
+                            HorizontalPager(
+                                state = pagerState,
+                                pageSize = PageSize.Fixed(featureWidth),
+                                pageSpacing = PageGridGap,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { page ->
+                                val songList = featured[page]
+                                EditorialFeatureCarouselCard(songList, onClick = { vm.openOnlineSongList(songList) })
+                            }
+                        }
+                    }
+                    if (gridItems.isNotEmpty()) {
+                        item("popular-heading") {
+                            Text(
+                                "更多歌单",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = colors.textPrimary,
+                                modifier = Modifier.padding(top = 20.dp, bottom = 4.dp),
                             )
                         }
-                    }
-                }
-
-                val rows = gridItems.chunked(2)
-                itemsIndexed(rows) { rowIdx, pair ->
-                    if (rowIdx >= rows.lastIndex - 1 && state.hasMore && !state.loadingMore) {
-                        LaunchedEffect(rows.size) {
-                            vm.loadDiscover(reset = false)
+                        itemsIndexed(gridItems.chunked(columns), key = { index, _ -> "discover_${state.source}_$index" }) { _, playlists ->
+                            PageGridRow(playlists, columns, Modifier.padding(vertical = 7.dp)) { songList, cellModifier ->
+                                SongListPosterCard(songList, { vm.openOnlineSongList(songList) }, cellModifier)
+                            }
                         }
                     }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        pair.forEach { item ->
-                            SongListPosterCard(
-                                item = item,
-                                onClick = { vm.openOnlineSongList(item) },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        if (pair.size == 1) Spacer(Modifier.weight(1f))
-                    }
-                }
-
-                if (state.loadingMore) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 20.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                color = colors.accent,
-                                strokeWidth = 2.2.dp,
+                    if (state.hasMore || state.loadingMore) {
+                        item("pagination") {
+                            PageLoadMore(
+                                requestKey = "${state.source}:${state.selectedSortId}:${state.selectedTagId}:${state.page}",
+                                loading = state.loadingMore,
+                                onLoad = { vm.loadDiscover(reset = false) },
                             )
                         }
                     }
@@ -385,9 +223,9 @@ fun DiscoverScreen(
                     ) {
                         state.tags.hotTag.forEach { tag ->
                             val selected = state.selectedTagId == tag.id
-                            TagChoiceChip(
+                            PageChoiceChip(
                                 label = tag.name,
-                                selected = selected,
+                                active = selected,
                                 onClick = {
                                     vm.selectDiscoverTag(tag.id, tag.name)
                                     showTagSheet = false
@@ -411,9 +249,9 @@ fun DiscoverScreen(
                     ) {
                         group.list.forEach { tag ->
                             val selected = state.selectedTagId == tag.id
-                            TagChoiceChip(
+                            PageChoiceChip(
                                 label = tag.name,
-                                selected = selected,
+                                active = selected,
                                 onClick = {
                                     vm.selectDiscoverTag(tag.id, tag.name)
                                     showTagSheet = false
@@ -430,29 +268,6 @@ fun DiscoverScreen(
 }
 
 @Composable
-private fun TagChoiceChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val colors = LocalLiquidColors.current
-    Box(
-        modifier = Modifier
-            .clip(CircleShape)
-            .background(if (selected) colors.accent else colors.badgeBg)
-            .bouncyClick(pressedScale = 0.93f, onClick = onClick)
-            .padding(horizontal = 13.dp, vertical = 7.dp),
-    ) {
-        Text(
-            text = label,
-            fontSize = 13.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) Color.White else colors.textPrimary,
-        )
-    }
-}
-
-@Composable
 private fun EditorialFeatureCarouselCard(
     item: SongListItem,
     onClick: () -> Unit,
@@ -461,9 +276,9 @@ private fun EditorialFeatureCarouselCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(228.dp)
+            .aspectRatio(1.48f)
             .clip(RoundedCornerShape(24.dp))
-            .bouncyClick(pressedScale = 0.97f, onClick = onClick),
+            .liquidCardPress(shape = RoundedCornerShape(24.dp), onClick = onClick),
     ) {
         CoverArt(
             url = item.img,
@@ -485,25 +300,6 @@ private fun EditorialFeatureCarouselCard(
                     )
                 )
         )
-
-        // Top-left frosted badge
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(14.dp)
-                .clip(CircleShape)
-                .background(Color(0x66000000))
-                .border(0.6.dp, Color(0x40FFFFFF), CircleShape)
-                .padding(horizontal = 10.dp, vertical = 4.dp),
-        ) {
-            Text(
-                text = "FEATURED · ${MusicSources.displayName(item.source)}",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                letterSpacing = 0.8.sp,
-            )
-        }
 
         Column(
             modifier = Modifier
@@ -566,7 +362,7 @@ fun SongListPosterCard(
 ) {
     val colors = LocalLiquidColors.current
     Column(
-        modifier = modifier.bouncyClick(pressedScale = 0.965f, onClick = onClick),
+        modifier = modifier.liquidCardPress(onClick = onClick),
     ) {
         Box(
             modifier = Modifier

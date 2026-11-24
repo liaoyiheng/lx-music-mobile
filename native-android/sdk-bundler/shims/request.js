@@ -50,8 +50,19 @@ const prepareOptions = (url, rawOptions = {}) => {
       }
       body = parts.join('&')
     } else if (rawOptions.formData) {
-      headers['Content-Type'] = 'application/x-www-form-urlencoded'
-      body = typeof rawOptions.formData === 'string' ? rawOptions.formData : JSON.stringify(rawOptions.formData)
+      if (typeof rawOptions.formData === 'string') {
+        headers['Content-Type'] = 'multipart/form-data'
+        body = rawOptions.formData
+      } else {
+        const boundary = `----LxBoundary${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`
+        headers['Content-Type'] = `multipart/form-data; boundary=${boundary}`
+        const chunks = []
+        for (const [k, v] of Object.entries(rawOptions.formData)) {
+          chunks.push(`--${boundary}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v ?? ''}\r\n`)
+        }
+        chunks.push(`--${boundary}--\r\n`)
+        body = chunks.join('')
+      }
     } else {
       headers['Content-Type'] = 'application/json'
     }

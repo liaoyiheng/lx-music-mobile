@@ -2,7 +2,6 @@ package cn.toside.music.liquid.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,18 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoGraph
-import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,8 +43,8 @@ import cn.toside.music.liquid.data.model.LeaderboardItem
 import cn.toside.music.liquid.data.model.MusicSources
 import cn.toside.music.liquid.ui.MainViewModel
 import cn.toside.music.liquid.ui.components.CoverArt
-import cn.toside.music.liquid.ui.components.LiquidGlassSurface
-import cn.toside.music.liquid.ui.components.bouncyClick
+import cn.toside.music.liquid.ui.components.GlassCircleIconButton
+import cn.toside.music.liquid.ui.components.liquidCardPress
 import cn.toside.music.liquid.ui.theme.LocalLiquidColors
 
 private val EditorialGradients = listOf(
@@ -67,200 +64,62 @@ fun ChartsScreen(
     val colors = LocalLiquidColors.current
     val state by vm.charts.collectAsState()
 
-    val featuredBoards = state.boards.take(2)
-    val restBoards = if (state.boards.size > 2) state.boards.drop(2) else emptyList()
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background),
-        contentPadding = PaddingValues(bottom = bottomClearanceDp.dp),
-    ) {
-        // Editorial Large Title Header
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 14.dp, bottom = 10.dp),
-            ) {
-                Text(
-                    text = "TOP CHARTS",
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.6.sp,
-                    ),
-                    color = colors.accent,
-                )
-                Spacer(Modifier.height(2.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = "排行榜",
-                        style = MaterialTheme.typography.displaySmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.8).sp,
-                        ),
-                        color = colors.textPrimary,
-                    )
-                    LiquidGlassSurface(
-                        shape = CircleShape,
-                        useBlur = false,
-                        modifier = Modifier
-                            .size(38.dp)
-                            .bouncyClick { vm.loadCharts(state.source) },
-                    ) {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Rounded.Refresh,
-                                contentDescription = "刷新榜单",
-                                tint = colors.textPrimary,
-                                modifier = Modifier.size(19.dp),
-                            )
-                        }
+    StandardPage { availableWidth, window ->
+        val columns = window.pageColumns(availableWidth)
+        val featureColumns = window.pageColumns(availableWidth, minCell = 146.dp, maxColumns = 2)
+        val featuredBoards = state.boards.take(2)
+        val restBoards = state.boards.drop(2)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = bottomClearanceDp.dp + 16.dp),
+        ) {
+            item("heading") {
+                PageHeading("排行榜") {
+                    GlassCircleIconButton(onClick = { vm.loadCharts(state.source) }, size = 48.dp, useBlur = false) {
+                        Icon(Icons.Rounded.Refresh, "刷新榜单", tint = colors.textPrimary)
                     }
                 }
             }
-        }
+            item("sources") {
+                Column(Modifier.padding(bottom = 16.dp)) {
+                    PageSourcePicker(MusicSources.ONLINE, state.source, availableWidth >= 440.dp, vm::selectChartsSource)
+                }
+            }
 
-        // Source Pills
-        item {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(bottom = 16.dp),
-            ) {
-                items(MusicSources.ONLINE, key = { it }) { src ->
-                    val selected = state.source == src
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(if (selected) colors.accent else colors.chipBackground)
-                            .border(
-                                width = 0.7.dp,
-                                color = if (selected) Color.Transparent else colors.glassBorder,
-                                shape = CircleShape,
-                            )
-                            .bouncyClick { vm.selectChartsSource(src) }
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            text = MusicSources.displayName(src),
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                            ),
-                            color = if (selected) Color.White else colors.textPrimary,
-                        )
+            when {
+                state.loading -> item("loading") { PageSpinner() }
+                state.error != null -> item("error") {
+                    PageMessage(state.error ?: "排行榜加载失败") { vm.loadCharts(state.source) }
+                }
+                state.boards.isEmpty() -> item("empty") { PageMessage("当前音源暂无榜单") }
+                else -> {
+                    item("spotlight-heading") {
+                        Text("热门榜单", style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
                     }
-                }
-            }
-        }
-
-        if (state.loading && state.boards.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator(color = colors.accent, strokeWidth = 2.6.dp)
-                }
-            }
-        } else if (state.error != null && state.boards.isEmpty()) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 60.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = state.error ?: "排行榜加载失败",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.textSecondary,
-                    )
-                    Spacer(Modifier.height(14.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(colors.accent)
-                            .bouncyClick { vm.loadCharts(state.source) }
-                            .padding(horizontal = 22.dp, vertical = 10.dp),
-                    ) {
-                        Text("重新加载", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-        } else {
-            // Editorial Featured Top 2 Spotlight Cards
-            if (featuredBoards.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "编辑聚焦 · 官方热榜",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = colors.textPrimary,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        featuredBoards.forEachIndexed { idx, board ->
+                    itemsIndexed(featuredBoards.chunked(featureColumns), key = { index, _ -> "featured_${state.source}_$index" }) { index, boards ->
+                        PageGridRow(boards, featureColumns, Modifier.widthIn(max = 620.dp).padding(top = 8.dp, bottom = 10.dp)) { board, cellModifier ->
                             FeaturedChartCard(
                                 item = board,
-                                gradient = EditorialGradients[idx % EditorialGradients.size],
+                                gradient = EditorialGradients[(index * featureColumns + boards.indexOf(board)) % EditorialGradients.size],
                                 onClick = { vm.openLeaderboard(board) },
-                                modifier = Modifier.weight(1f),
+                                modifier = cellModifier,
                             )
-                        }
-                        if (featuredBoards.size == 1) {
-                            Spacer(Modifier.weight(1f))
                         }
                     }
-                    Spacer(Modifier.height(22.dp))
-                }
-            }
-
-            // Remaining Charts Grid (2 columns)
-            if (restBoards.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "${MusicSources.displayName(state.source)}全部榜单",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = colors.textPrimary,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-
-                val rows = restBoards.chunked(2)
-                items(rows.size, key = { "chart_row_${state.source}_$it" }) { rowIdx ->
-                    val pair = rows[rowIdx]
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 7.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        pair.forEachIndexed { colIdx, board ->
-                            val gradIdx = (rowIdx * 2 + colIdx + 2) % EditorialGradients.size
-                            ChartGridCard(
-                                item = board,
-                                fallbackGradient = EditorialGradients[gradIdx],
-                                onClick = { vm.openLeaderboard(board) },
-                                modifier = Modifier.weight(1f),
+                    if (restBoards.isNotEmpty()) {
+                        item("other-charts-heading") {
+                            Text(
+                                "更多榜单",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = colors.textPrimary,
+                                modifier = Modifier.padding(top = 12.dp, bottom = 6.dp),
                             )
                         }
-                        if (pair.size == 1) {
-                            Spacer(Modifier.weight(1f))
+                        itemsIndexed(restBoards.chunked(columns), key = { index, _ -> "charts_${state.source}_$index" }) { index, boards ->
+                            PageGridRow(boards, columns, Modifier.padding(vertical = 7.dp)) { board, cellModifier ->
+                                val gradientIndex = (index * columns + boards.indexOf(board) + 2) % EditorialGradients.size
+                                ChartGridCard(board, EditorialGradients[gradientIndex], { vm.openLeaderboard(board) }, cellModifier)
+                            }
                         }
                     }
                 }
@@ -279,11 +138,11 @@ private fun FeaturedChartCard(
     val shape = RoundedCornerShape(22.dp)
     Box(
         modifier = modifier
-            .aspectRatio(0.86f)
+            .aspectRatio(1.2f)
             .shadow(14.dp, shape, ambientColor = gradient.first().copy(alpha = 0.25f), spotColor = gradient.first().copy(alpha = 0.35f))
             .clip(shape)
             .background(Brush.linearGradient(gradient))
-            .bouncyClick(onClick = onClick),
+            .liquidCardPress(shape = shape, onClick = onClick),
     ) {
         if (!item.coverImg.isNullOrBlank()) {
             CoverArt(
@@ -315,23 +174,6 @@ private fun FeaturedChartCard(
             )
         }
 
-        // Top editorial badge
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(12.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.22f))
-                .padding(horizontal = 9.dp, vertical = 4.dp),
-        ) {
-            Text(
-                text = MusicSources.displayName(item.source),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = Color.White,
-            )
-        }
-
-        // Bottom title + play glyph
         Row(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -350,12 +192,6 @@ private fun FeaturedChartCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = "每日实时更新",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.82f),
-                )
             }
             Spacer(Modifier.width(8.dp))
             Box(
@@ -366,8 +202,8 @@ private fun FeaturedChartCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.PlayArrow,
-                    contentDescription = "播放",
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(18.dp),
                 )
@@ -387,7 +223,7 @@ private fun ChartGridCard(
     val shape = RoundedCornerShape(18.dp)
 
     Column(
-        modifier = modifier.bouncyClick(onClick = onClick),
+        modifier = modifier.liquidCardPress(shape = shape, onClick = onClick),
     ) {
         Box(
             modifier = Modifier
@@ -405,31 +241,12 @@ private fun ChartGridCard(
                     modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = MusicSources.shortBadge(item.source),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.2.sp,
-                        ),
-                        color = Color.White.copy(alpha = 0.82f),
-                    )
-                    Text(
-                        text = item.name,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            lineHeight = 22.sp,
-                        ),
-                        color = Color.White,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Rounded.AutoGraph,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.64f),
+                    modifier = Modifier.align(Alignment.Center).size(50.dp),
+                )
             }
 
             Box(
@@ -442,7 +259,7 @@ private fun ChartGridCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.PlayArrow,
+                    imageVector = Icons.Rounded.ChevronRight,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(16.dp),
@@ -457,13 +274,6 @@ private fun ChartGridCard(
             color = colors.textPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 2.dp),
-        )
-        Text(
-            text = "${MusicSources.displayName(item.source)}官方榜",
-            style = MaterialTheme.typography.labelSmall,
-            color = colors.textSecondary,
-            maxLines = 1,
             modifier = Modifier.padding(horizontal = 2.dp),
         )
     }

@@ -1,0 +1,168 @@
+name: Compose Screenshots (Roborazzi)
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_filter:
+        description: '可选测试过滤（例如 *LiquidScreensScreenshotTest*，留空跑全部）'
+        required: false
+        default: ''
+        type: string
+  push:
+    branches:
+      - kotlin-native
+      - apple-style
+      - ci/native-v2-preview
+    paths:
+      - 'native-android/app/src/**'
+      - 'native-android/build.gradle.kts'
+      - 'native-android/app/build.gradle.kts'
+      - '.github/workflows/compose-screenshots.yml'
+  pull_request:
+    paths:
+      - 'native-android/app/src/**'
+      - 'native-android/build.gradle.kts'
+      - 'native-android/app/build.gradle.kts'
+      - '.github/workflows/compose-screenshots.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compose-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    name: Render Compose UI Screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install CJK fonts & Python Pillow
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk python3-pil
+
+      - name: Compile app and screenshot tests
+        working-directory: native-android
+        timeout-minutes: 10
+        run: bash gradlew :app:compileDebugUnitTestKotlin --no-daemon --console=plain --stacktrace
+
+      - name: Record Compose Screenshots via Roborazzi
+        working-directory: native-android
+        timeout-minutes: 8
+        shell: bash
+        env:
+          TEST_FILTER: ${{ inputs.test_filter }}
+        run: |
+          args=()
+          if [[ -n "$TEST_FILTER" ]]; then
+            args+=(--tests "$TEST_FILTER")
+          fi
+          timeout --signal=TERM --kill-after=15s 6m bash gradlew :app:recordRoborazziDebug "${args[@]}" --no-daemon --console=plain --info --stacktrace
+
+      - name: Build Light & Dark Contact Sheets
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import math
+          from pathlib import Path
+          from PIL import Image, ImageDraw, ImageFont
+
+          out_root = Path("native-android/app/build/outputs/roborazzi")
+          sheets_dir = out_root / "contact-sheets"
+          sheets_dir.mkdir(parents=True, exist_ok=True)
+
+          font = ImageFont.load_default()
+
+          def build_sheet(images, dest_path, bg_rgb, fg_rgb, title):
+              if not images:
+                  print(f"No images for {dest_path.name}, skipping.")
+                  return
+              cols = 3
+              rows = math.ceil(len(images) / cols)
+              cell_w, cell_h = 460, 1020
+              pad = 24
+              header_h = 56
+              title_h = 48
+
+              canvas_w = pad + cols * (cell_w + pad)
+              canvas_h = title_h + pad + rows * (cell_h + header_h + pad)
+              sheet = Image.new("RGB", (canvas_w, canvas_h), bg_rgb)
+              draw = ImageDraw.Draw(sheet)
+              draw.text((pad, 16), f"{title} ({len(images)} screens)", fill=fg_rgb, font=font)
+
+              for idx, img_path in enumerate(sorted(images)):
+                  r = idx // cols
+                  c = idx % cols
+                  x0 = pad + c * (cell_w + pad)
+                  y0 = title_h + pad + r * (cell_h + header_h + pad)
+
+                  draw.text((x0, y0 + 12), img_path.stem, fill=fg_rgb, font=font)
+                  with Image.open(img_path) as im:
+                      rgb = im.convert("RGB")
+                      rgb.thumbnail((cell_w, cell_h), Image.Resampling.LANCZOS)
+                      dx = x0 + (cell_w - rgb.width) // 2
+                      dy = y0 + header_h
+                      sheet.paste(rgb, (dx, dy))
+
+              sheet.save(dest_path, format="PNG", optimize=True)
+              print(f"Saved {dest_path} ({sheet.width}x{sheet.height})")
+
+          light_imgs = sorted((out_root / "light").glob("*.png"))
+          dark_imgs = sorted((out_root / "dark").glob("*.png"))
+          tablet_imgs = sorted((out_root / "tablet").glob("*.png"))
+
+          build_sheet(
+              light_imgs,
+              sheets_dir / "contact-sheet-light.png",
+              bg_rgb=(242, 243, 247),
+              fg_rgb=(28, 28, 30),
+              title="LX Music Liquid V2 — Light Mode",
+          )
+          build_sheet(
+              dark_imgs,
+              sheets_dir / "contact-sheet-dark.png",
+              bg_rgb=(14, 14, 18),
+              fg_rgb=(245, 245, 250),
+              title="LX Music Liquid V2 — Dark Mode",
+          )
+          build_sheet(
+              tablet_imgs,
+              sheets_dir / "contact-sheet-tablet.png",
+              bg_rgb=(26, 26, 34),
+              fg_rgb=(245, 245, 250),
+              title="LX Music Liquid V2 — Tablet Wide",
+          )
+          PY
+
+      - name: Upload Compose Screenshots Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-screenshots
+          path: |
+            native-android/app/build/outputs/roborazzi/contact-sheets/*.png
+            native-android/app/build/outputs/roborazzi/**/*.png
+          if-no-files-found: error
+
+      - name: Upload Failure Reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-screenshots-reports
+          path: |
+            native-android/app/build/reports/tests/**
+            native-android/app/build/reports/roborazzi/**
+          if-no-files-found: ignore
