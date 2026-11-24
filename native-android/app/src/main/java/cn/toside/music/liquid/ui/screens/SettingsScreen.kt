@@ -16,14 +16,15 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -89,6 +90,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import cn.toside.music.liquid.BuildConfig
+import cn.toside.music.liquid.ui.adaptive.LiquidWidthSizeClass
 import cn.toside.music.liquid.data.model.AppLogEntry
 import cn.toside.music.liquid.data.model.AudioQuality
 import cn.toside.music.liquid.data.model.MaterialStyle
@@ -99,9 +101,9 @@ import cn.toside.music.liquid.data.model.UserApiScript
 import cn.toside.music.liquid.data.model.UserApiStatus
 import cn.toside.music.liquid.engine.AppLogger
 import cn.toside.music.liquid.ui.MainViewModel
-import cn.toside.music.liquid.ui.components.LiquidGlassSurface
 import cn.toside.music.liquid.ui.components.LiquidSegmentedControl
 import cn.toside.music.liquid.ui.components.bouncyClick
+import cn.toside.music.liquid.ui.components.liquidPress
 import cn.toside.music.liquid.ui.lockscreen.LockScreenActivity
 import cn.toside.music.liquid.ui.theme.LocalLiquidColors
 import java.text.SimpleDateFormat
@@ -171,676 +173,605 @@ fun SettingsScreen(
         listOf("128k", "320k", "FLAC", "Hi-Res")
     }
 
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.background),
-        contentPadding = PaddingValues(top = 12.dp, bottom = bottomClearanceDp.dp),
-    ) {
-        // 1. 顶部苹果风大标题 + 副标题
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
+    StandardPage(modifier = modifier, maxContentWidth = 680.dp) { availableWidth, window ->
+        val settingsWidth = if (window.widthSizeClass == LiquidWidthSizeClass.Medium) 640.dp else 680.dp
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            LazyColumn(
+                modifier = Modifier.widthIn(max = settingsWidth).fillMaxWidth().fillMaxHeight(),
+                contentPadding = PaddingValues(top = 8.dp, bottom = bottomClearanceDp.dp + 16.dp),
             ) {
-                Text(
-                    text = "PREFERENCES & SOURCES",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.accent,
-                    letterSpacing = 1.6.sp,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "设置",
-                    style = MaterialTheme.typography.displaySmall,
-                    color = colors.textPrimary,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "自定义音源管理、液态玻璃材质与多端同步",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = colors.textSecondary,
-                )
-            }
-        }
+                item("heading") { PageHeading("设置") }
 
-        // 2. 自定义音源管理（置于顶部醒目位置）
-        item {
-            SettingsSectionTitle(
-                title = "自定义音源管理",
-                trailing = if (userApiScripts.isNotEmpty()) "${userApiScripts.size} 个脚本" else null,
-            )
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(24.dp),
-                dense = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    // 状态指示胶囊
-                    UserApiStatusCapsule(status = userApiStatus)
-
-                    // 三个紧凑玻璃胶囊导入入口
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        CompactImportPill(
-                            icon = Icons.Rounded.FolderOpen,
-                            label = "导入文件",
-                            onClick = {
-                                importScriptLauncher.launch(
-                                    arrayOf(
-                                        "application/javascript",
-                                        "text/javascript",
-                                        "text/plain",
-                                        "*/*",
-                                    )
-                                )
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                        CompactImportPill(
-                            icon = Icons.Rounded.CloudDownload,
-                            label = "在线导入",
-                            onClick = { showUrlImportDialog = true },
-                            modifier = Modifier.weight(1f),
-                        )
-                        CompactImportPill(
-                            icon = Icons.Rounded.ContentPaste,
-                            label = "粘贴脚本",
-                            onClick = { showTextImportDialog = true },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-
-                    // 已导入音源列表
-                    if (userApiScripts.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(colors.badgeBg)
-                                .padding(horizontal = 14.dp, vertical = 14.dp),
-                        ) {
-                            Text(
-                                text = "暂未导入任何自定义音源脚本。支持标准洛雪音乐 .js 音源脚本，点击上方按钮即可导入并自动启用。",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colors.textSecondary,
-                            )
-                        }
-                    } else {
+                // 2. 自定义音源管理（置于顶部醒目位置）
+                item {
+                    SettingsSectionTitle(
+                        title = "自定义音源管理",
+                        trailing = if (userApiScripts.isNotEmpty()) "${userApiScripts.size} 个脚本" else null,
+                    )
+                    SettingsGroup {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(if (colors.isDark) Color(0x28000000) else Color(0x08000000))
-                                .border(0.6.dp, colors.divider, RoundedCornerShape(18.dp)),
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
-                            userApiScripts.forEachIndexed { index, script ->
-                                val isActive = if (userApiStatus.activeScriptId != null) {
-                                    userApiStatus.activeScriptId == script.id
-                                } else {
-                                    settings.activeUserApiId == script.id || script.enabled
-                                }
-                                UserApiScriptRow(
-                                    script = script,
-                                    isActive = isActive,
-                                    activeStatus = if (isActive) userApiStatus else null,
-                                    onToggle = {
-                                        vm.activateUserApi(if (isActive) null else script.id)
+                            // 状态指示胶囊
+                            UserApiStatusCapsule(status = userApiStatus)
+
+                            // Keep file, URL and clipboard import visible at narrow widths.
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                maxItemsInEachRow = if (availableWidth < 330.dp) 1 else 3,
+                            ) {
+                                CompactImportPill(
+                                    icon = Icons.Rounded.FolderOpen,
+                                    label = "导入文件",
+                                    onClick = {
+                                        importScriptLauncher.launch(
+                                            arrayOf(
+                                                "application/javascript",
+                                                "text/javascript",
+                                                "text/plain",
+                                                "*/*",
+                                            )
+                                        )
                                     },
-                                    onDelete = { deleteScriptTarget = script },
+                                    modifier = Modifier.weight(1f),
                                 )
-                                if (index < userApiScripts.lastIndex) {
-                                    HorizontalDivider(
-                                        color = colors.divider,
-                                        thickness = 0.6.dp,
-                                        modifier = Modifier.padding(horizontal = 14.dp),
+                                CompactImportPill(
+                                    icon = Icons.Rounded.CloudDownload,
+                                    label = "在线导入",
+                                    onClick = { showUrlImportDialog = true },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                CompactImportPill(
+                                    icon = Icons.Rounded.ContentPaste,
+                                    label = "粘贴脚本",
+                                    onClick = { showTextImportDialog = true },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+
+                            // 已导入音源列表
+                            if (userApiScripts.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(colors.badgeBg)
+                                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                                ) {
+                                    Text(
+                                        text = "暂未导入任何自定义音源脚本。支持标准洛雪音乐 .js 音源脚本，点击上方按钮即可导入并自动启用。",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = colors.textSecondary,
                                     )
+                                }
+                            } else {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(if (colors.isDark) Color(0x28000000) else Color(0x08000000))
+                                        .border(0.6.dp, colors.divider, RoundedCornerShape(18.dp)),
+                                ) {
+                                    userApiScripts.forEachIndexed { index, script ->
+                                        val isActive = if (userApiStatus.activeScriptId != null) {
+                                            userApiStatus.activeScriptId == script.id
+                                        } else {
+                                            settings.activeUserApiId == script.id || script.enabled
+                                        }
+                                        UserApiScriptRow(
+                                            script = script,
+                                            isActive = isActive,
+                                            activeStatus = if (isActive) userApiStatus else null,
+                                            onToggle = {
+                                                vm.activateUserApi(if (isActive) null else script.id)
+                                            },
+                                            onDelete = { deleteScriptTarget = script },
+                                        )
+                                        if (index < userApiScripts.lastIndex) {
+                                            HorizontalDivider(
+                                                color = colors.divider,
+                                                thickness = 0.6.dp,
+                                                modifier = Modifier.padding(horizontal = 14.dp),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        }
 
-        // 3. 外观与液态玻璃材质
-        item {
-            SettingsSectionTitle(title = "外观与液态玻璃材质")
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(24.dp),
-                dense = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                // 3. 外观与液态玻璃材质
+                item {
+                    SettingsSectionTitle(title = "外观与液态玻璃材质")
+                    SettingsGroup {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                SettingsIconBadge(icon = Icons.Rounded.Palette, tint = colors.accent)
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        SettingsIconBadge(icon = Icons.Rounded.Palette, tint = colors.accent)
+                                        Text(
+                                            text = "主题模式",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = colors.textPrimary,
+                                        )
+                                    }
+                                    Text(
+                                        text = settings.themeMode.label,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = colors.textSecondary,
+                                    )
+                                }
+
+                                LiquidSegmentedControl(
+                                    items = themeLabels,
+                                    selectedIndex = orderedThemeModes.indexOf(settings.themeMode).coerceAtLeast(0),
+                                    onSelect = { idx ->
+                                        val nextMode = orderedThemeModes.getOrElse(idx) { ThemeMode.SYSTEM }
+                                        vm.updateSettings { it.copy(themeMode = nextMode) }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+
+                            HorizontalDivider(color = colors.divider, thickness = 0.6.dp)
+
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
-                                    text = "主题模式",
+                                    text = "材质风格",
                                     style = MaterialTheme.typography.titleMedium,
                                     color = colors.textPrimary,
                                 )
-                            }
-                            Text(
-                                text = settings.themeMode.label,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = colors.textSecondary,
-                            )
-                        }
-
-                        LiquidSegmentedControl(
-                            items = themeLabels,
-                            selectedIndex = orderedThemeModes.indexOf(settings.themeMode).coerceAtLeast(0),
-                            onSelect = { idx ->
-                                val nextMode = orderedThemeModes.getOrElse(idx) { ThemeMode.SYSTEM }
-                                vm.updateSettings { it.copy(themeMode = nextMode) }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    HorizontalDivider(color = colors.divider, thickness = 0.6.dp)
-
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            text = "材质风格",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = colors.textPrimary,
-                        )
-                        MaterialStyle.entries.forEach { style ->
-                            val selected = settings.materialStyle == style
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(if (selected) colors.accentSoft else colors.badgeBg)
-                                    .border(
-                                        width = if (selected) 1.dp else 0.5.dp,
-                                        color = if (selected) colors.accent.copy(alpha = 0.45f) else colors.divider,
-                                        shape = RoundedCornerShape(16.dp),
-                                    )
-                                    .bouncyClick(pressedScale = 0.985f) {
-                                        vm.updateSettings { it.copy(materialStyle = style) }
-                                    }
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = style.label,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontSize = 14.5.sp,
-                                        color = if (selected) colors.accent else colors.textPrimary,
-                                    )
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        text = style.desc,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary,
-                                    )
-                                }
-                                Spacer(Modifier.width(10.dp))
-                                if (selected) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.CheckCircle,
-                                        contentDescription = null,
-                                        tint = colors.accent,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                } else {
-                                    Box(
+                                MaterialStyle.entries.forEach { style ->
+                                    val selected = settings.materialStyle == style
+                                    Row(
                                         modifier = Modifier
-                                            .size(20.dp)
-                                            .border(1.5.dp, colors.textTertiary.copy(alpha = 0.45f), CircleShape),
-                                    )
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(if (selected) colors.accentSoft else colors.badgeBg)
+                                            .border(
+                                                width = if (selected) 1.dp else 0.5.dp,
+                                                color = if (selected) colors.accent.copy(alpha = 0.45f) else colors.divider,
+                                                shape = RoundedCornerShape(16.dp),
+                                            )
+                                            .bouncyClick(pressedScale = 0.985f) {
+                                                vm.updateSettings { it.copy(materialStyle = style) }
+                                            }
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = style.label,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontSize = 14.5.sp,
+                                                color = if (selected) colors.accent else colors.textPrimary,
+                                            )
+                                            Spacer(Modifier.height(2.dp))
+                                            Text(
+                                                text = style.desc,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontSize = 12.sp,
+                                                color = colors.textSecondary,
+                                            )
+                                        }
+                                        Spacer(Modifier.width(10.dp))
+                                        if (selected) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.CheckCircle,
+                                                contentDescription = null,
+                                                tint = colors.accent,
+                                                modifier = Modifier.size(20.dp),
+                                            )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .border(1.5.dp, colors.textTertiary.copy(alpha = 0.45f), CircleShape),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-        }
 
-        // 4. 播放与音质
-        item {
-            SettingsSectionTitle(title = "播放与音质")
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(24.dp),
-                dense = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                SettingsIconBadge(icon = Icons.Rounded.HighQuality, tint = Color(0xFF0A84FF))
-                                Column {
-                                    Text(
-                                        text = "默认音质",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = colors.textPrimary,
-                                    )
-                                    Text(
-                                        text = settings.preferredQuality.label,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary,
-                                    )
-                                }
-                            }
-                            Box(
+                // 4. 播放与音质
+                item {
+                    SettingsSectionTitle(title = "播放与音质")
+                    SettingsGroup {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Column(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(colors.accentSoft)
-                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
-                                Text(
-                                    text = settings.preferredQuality.badge,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = colors.accent,
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    ) {
+                                        SettingsIconBadge(icon = Icons.Rounded.HighQuality, tint = Color(0xFF0A84FF))
+                                        Column {
+                                            Text(
+                                                text = "默认音质",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = colors.textPrimary,
+                                            )
+                                            Text(
+                                                text = settings.preferredQuality.label,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontSize = 12.sp,
+                                                color = colors.textSecondary,
+                                            )
+                                        }
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(colors.accentSoft)
+                                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                                    ) {
+                                        Text(
+                                            text = settings.preferredQuality.badge,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = colors.accent,
+                                        )
+                                    }
+                                }
+
+                                LiquidSegmentedControl(
+                                    items = qualityLabels,
+                                    selectedIndex = orderedQualities.indexOf(settings.preferredQuality).coerceAtLeast(0),
+                                    onSelect = { idx ->
+                                        val quality = orderedQualities.getOrElse(idx) { AudioQuality.FLAC }
+                                        vm.updateSettings { it.copy(preferredQuality = quality) }
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
                                 )
                             }
-                        }
 
-                        LiquidSegmentedControl(
-                            items = qualityLabels,
-                            selectedIndex = orderedQualities.indexOf(settings.preferredQuality).coerceAtLeast(0),
-                            onSelect = { idx ->
-                                val quality = orderedQualities.getOrElse(idx) { AudioQuality.FLAC }
-                                vm.updateSettings { it.copy(preferredQuality = quality) }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-
-                    SettingsSwitchRow(
-                        icon = Icons.Rounded.SwapHoriz,
-                        iconTint = Color(0xFF30D158),
-                        title = "播放失败自动换源",
-                        subtitle = "当前音源不可用时自动匹配同曲目可用音源",
-                        checked = settings.autoFallbackSource,
-                        onCheckedChange = { checked ->
-                            vm.updateSettings { it.copy(autoFallbackSource = checked) }
-                        },
-                    )
-
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-
-                    SettingsSwitchRow(
-                        icon = Icons.Rounded.Search,
-                        iconTint = Color(0xFFFF9F0A),
-                        title = "搜索联想建议",
-                        subtitle = "输入关键词时实时展示热门联想词条",
-                        checked = settings.enableSearchTips,
-                        onCheckedChange = { checked ->
-                            vm.updateSettings { it.copy(enableSearchTips = checked) }
-                        },
-                    )
-
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-
-                    SettingsSwitchRow(
-                        icon = Icons.Rounded.Subtitles,
-                        iconTint = Color(0xFFBF5AF2),
-                        title = "桌面悬浮歌词",
-                        subtitle = if (settings.desktopLyric.enabled) "已在桌面顶层显示实时歌词" else "在桌面或其它应用上方显示悬浮歌词",
-                        checked = settings.desktopLyric.enabled,
-                        onCheckedChange = { checked ->
-                            if (checked && !Settings.canDrawOverlays(context)) {
-                                showOverlayPermissionDialog = true
-                            } else {
-                                val nextDesktopLyric = settings.desktopLyric.copy(enabled = checked)
-                                vm.updateSettings { it.copy(desktopLyric = nextDesktopLyric) }
-                                vm.app.desktopLyricManager.applyConfig(nextDesktopLyric)
-                            }
-                        },
-                    )
-
-                    AnimatedVisibility(visible = settings.desktopLyric.enabled) {
-                        Column {
                             HorizontalDivider(
                                 color = colors.divider,
                                 thickness = 0.6.dp,
                                 modifier = Modifier.padding(horizontal = 16.dp),
                             )
+
                             SettingsSwitchRow(
-                                icon = Icons.Rounded.Lock,
-                                iconTint = colors.textSecondary,
-                                title = "锁定悬浮歌词位置",
-                                subtitle = "锁定后悬浮窗将穿透触摸事件，不再响应拖动",
-                                checked = settings.desktopLyric.locked,
-                                onCheckedChange = { locked ->
-                                    val nextDesktopLyric = settings.desktopLyric.copy(locked = locked)
-                                    vm.updateSettings { it.copy(desktopLyric = nextDesktopLyric) }
-                                    vm.app.desktopLyricManager.applyConfig(nextDesktopLyric)
+                                icon = Icons.Rounded.SwapHoriz,
+                                iconTint = Color(0xFF30D158),
+                                title = "播放失败自动换源",
+                                subtitle = "当前音源不可用时自动匹配同曲目可用音源",
+                                checked = settings.autoFallbackSource,
+                                onCheckedChange = { checked ->
+                                    vm.updateSettings { it.copy(autoFallbackSource = checked) }
+                                },
+                            )
+
+                            HorizontalDivider(
+                                color = colors.divider,
+                                thickness = 0.6.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+
+                            SettingsSwitchRow(
+                                icon = Icons.Rounded.Search,
+                                iconTint = Color(0xFFFF9F0A),
+                                title = "搜索联想建议",
+                                subtitle = "输入关键词时实时展示热门联想词条",
+                                checked = settings.enableSearchTips,
+                                onCheckedChange = { checked ->
+                                    vm.updateSettings { it.copy(enableSearchTips = checked) }
+                                },
+                            )
+
+                            HorizontalDivider(
+                                color = colors.divider,
+                                thickness = 0.6.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+
+                            SettingsSwitchRow(
+                                icon = Icons.Rounded.Subtitles,
+                                iconTint = Color(0xFFBF5AF2),
+                                title = "桌面悬浮歌词",
+                                subtitle = if (settings.desktopLyric.enabled) "已在桌面顶层显示实时歌词" else "在桌面或其它应用上方显示悬浮歌词",
+                                checked = settings.desktopLyric.enabled,
+                                onCheckedChange = { checked ->
+                                    if (checked && !Settings.canDrawOverlays(context)) {
+                                        showOverlayPermissionDialog = true
+                                    } else {
+                                        val nextDesktopLyric = settings.desktopLyric.copy(enabled = checked)
+                                        vm.updateSettings { it.copy(desktopLyric = nextDesktopLyric) }
+                                        vm.app.desktopLyricManager.applyConfig(nextDesktopLyric)
+                                    }
+                                },
+                            )
+
+                            AnimatedVisibility(visible = settings.desktopLyric.enabled) {
+                                Column {
+                                    HorizontalDivider(
+                                        color = colors.divider,
+                                        thickness = 0.6.dp,
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                    )
+                                    SettingsSwitchRow(
+                                        icon = Icons.Rounded.Lock,
+                                        iconTint = colors.textSecondary,
+                                        title = "锁定悬浮歌词位置",
+                                        subtitle = "锁定后悬浮窗将穿透触摸事件，不再响应拖动",
+                                        checked = settings.desktopLyric.locked,
+                                        onCheckedChange = { locked ->
+                                            val nextDesktopLyric = settings.desktopLyric.copy(locked = locked)
+                                            vm.updateSettings { it.copy(desktopLyric = nextDesktopLyric) }
+                                            vm.app.desktopLyricManager.applyConfig(nextDesktopLyric)
+                                        },
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(
+                                color = colors.divider,
+                                thickness = 0.6.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+
+                            SettingsSwitchRow(
+                                icon = Icons.Rounded.PhoneIphone,
+                                iconTint = Color(0xFFFF375F),
+                                title = "液态玻璃锁屏播放页",
+                                subtitle = if (settings.lockScreenEnabled) {
+                                    "播放时息屏自动启用全屏液态玻璃锁屏（建议开启悬浮窗权限以确保稳定弹出）"
+                                } else {
+                                    "关闭后仅保留系统锁屏媒体卡片控制"
+                                },
+                                checked = settings.lockScreenEnabled,
+                                onCheckedChange = { checked ->
+                                    vm.updateSettings { it.copy(lockScreenEnabled = checked) }
+                                    if (checked && !Settings.canDrawOverlays(context)) {
+                                        vm.showToast("已开启锁屏页，授权悬浮窗权限可确保 Android 12+ 息屏稳定唤起")
+                                    }
+                                },
+                            )
+
+                            HorizontalDivider(
+                                color = colors.divider,
+                                thickness = 0.6.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+
+                            SettingsActionRow(
+                                icon = Icons.Rounded.Preview,
+                                iconTint = Color(0xFF64D2FF),
+                                title = "预览锁屏播放页",
+                                subtitle = "无需锁屏，立即体验液态玻璃锁屏时钟、封面与实时歌词交互",
+                                onClick = {
+                                    runCatching {
+                                        context.startActivity(LockScreenActivity.createPreviewIntent(context))
+                                    }.onFailure {
+                                        vm.showToast("无法打开锁屏预览: ${it.message}")
+                                    }
+                                },
+                            )
+
+                            HorizontalDivider(
+                                color = colors.divider,
+                                thickness = 0.6.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+
+                            SettingsSwitchRow(
+                                icon = Icons.Rounded.NotificationsActive,
+                                iconTint = Color(0xFF5E5CE6),
+                                title = "通知栏显示实时歌词",
+                                subtitle = "将系统通知栏与锁屏媒体卡片副标题实时同步为当前歌词",
+                                checked = settings.notificationShowLyric,
+                                onCheckedChange = { checked ->
+                                    vm.updateSettings { it.copy(notificationShowLyric = checked) }
                                 },
                             )
                         }
                     }
-
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-
-                    SettingsSwitchRow(
-                        icon = Icons.Rounded.PhoneIphone,
-                        iconTint = Color(0xFFFF375F),
-                        title = "液态玻璃锁屏播放页",
-                        subtitle = if (settings.lockScreenEnabled) {
-                            "播放时息屏自动启用全屏液态玻璃锁屏（建议开启悬浮窗权限以确保稳定弹出）"
-                        } else {
-                            "关闭后仅保留系统锁屏媒体卡片控制"
-                        },
-                        checked = settings.lockScreenEnabled,
-                        onCheckedChange = { checked ->
-                            vm.updateSettings { it.copy(lockScreenEnabled = checked) }
-                            if (checked && !Settings.canDrawOverlays(context)) {
-                                vm.showToast("已开启锁屏页，授权悬浮窗权限可确保 Android 12+ 息屏稳定唤起")
-                            }
-                        },
-                    )
-
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-
-                    SettingsActionRow(
-                        icon = Icons.Rounded.Preview,
-                        iconTint = Color(0xFF64D2FF),
-                        title = "预览锁屏播放页",
-                        subtitle = "无需锁屏，立即体验液态玻璃锁屏时钟、封面与实时歌词交互",
-                        onClick = {
-                            runCatching {
-                                context.startActivity(LockScreenActivity.createPreviewIntent(context))
-                            }.onFailure {
-                                vm.showToast("无法打开锁屏预览: ${it.message}")
-                            }
-                        },
-                    )
-
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-
-                    SettingsSwitchRow(
-                        icon = Icons.Rounded.NotificationsActive,
-                        iconTint = Color(0xFF5E5CE6),
-                        title = "通知栏显示实时歌词",
-                        subtitle = "将系统通知栏与锁屏媒体卡片副标题实时同步为当前歌词",
-                        checked = settings.notificationShowLyric,
-                        onCheckedChange = { checked ->
-                            vm.updateSettings { it.copy(notificationShowLyric = checked) }
-                        },
-                    )
                 }
-            }
-        }
 
-        // 5. 数据同步（LX Sync Server）
-        item {
-            SettingsSectionTitle(title = "数据同步")
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(24.dp),
-                dense = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    SyncStatusHeader(syncState = syncState, savedServerUrl = settings.syncServerUrl)
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Box(
+                // 5. 数据同步（LX Sync Server）
+                item {
+                    SettingsSectionTitle(title = "数据同步")
+                    SettingsGroup {
+                        Column(
                             modifier = Modifier
-                                .weight(1f)
-                                .height(42.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(colors.accent)
-                                .bouncyClick { showSyncDialog = true },
-                            contentAlignment = Alignment.Center,
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Text(
-                                text = "配置并连接",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontSize = 13.5.sp,
-                                color = Color.White,
-                            )
+                            SyncStatusHeader(syncState = syncState, savedServerUrl = settings.syncServerUrl)
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(42.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(colors.accent)
+                                        .bouncyClick { showSyncDialog = true },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "配置并连接",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontSize = 13.5.sp,
+                                        color = Color.White,
+                                    )
+                                }
+
+                                val canDisconnect = syncState.connected || syncState.connecting || settings.syncEnabled
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(42.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(if (canDisconnect) colors.badgeBg else colors.badgeBg.copy(alpha = 0.45f))
+                                        .border(0.6.dp, colors.divider, RoundedCornerShape(14.dp))
+                                        .bouncyClick(enabled = canDisconnect) { vm.disconnectSync() },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = "断开连接",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontSize = 13.5.sp,
+                                        color = if (canDisconnect) colors.destructive else colors.textTertiary,
+                                    )
+                                }
+                            }
                         }
+                    }
+                }
 
-                        val canDisconnect = syncState.connected || syncState.connecting || settings.syncEnabled
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(42.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(if (canDisconnect) colors.badgeBg else colors.badgeBg.copy(alpha = 0.45f))
-                                .border(0.6.dp, colors.divider, RoundedCornerShape(14.dp))
-                                .bouncyClick(enabled = canDisconnect) { vm.disconnectSync() },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = "断开连接",
-                                style = MaterialTheme.typography.labelMedium,
-                                fontSize = 13.5.sp,
-                                color = if (canDisconnect) colors.destructive else colors.textTertiary,
+                // 6. 备份与恢复 / 不喜欢列表
+                item {
+                    SettingsSectionTitle(title = "备份与恢复")
+                    SettingsGroup {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SettingsActionRow(
+                                icon = Icons.Rounded.FileUpload,
+                                iconTint = Color(0xFF0A84FF),
+                                title = "导出歌单备份",
+                                subtitle = "保存全部歌单、收藏与不喜欢规则 (.lxmc)",
+                                onClick = { exportBackupLauncher.launch("lx-music-backup.lxmc") },
+                            )
+                            HorizontalDivider(
+                                color = colors.divider,
+                                thickness = 0.6.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                            SettingsActionRow(
+                                icon = Icons.Rounded.FileDownload,
+                                iconTint = Color(0xFF30D158),
+                                title = "导入歌单备份",
+                                subtitle = "从本地 .lxmc 或 JSON 备份文件恢复歌单",
+                                onClick = { importBackupLauncher.launch(arrayOf("*/*")) },
+                            )
+                            HorizontalDivider(
+                                color = colors.divider,
+                                thickness = 0.6.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                            SettingsActionRow(
+                                icon = Icons.Rounded.Block,
+                                iconTint = colors.destructive,
+                                title = "不喜欢列表规则",
+                                subtitle = "已配置 ${dislikeRules.size} 条过滤规则，每行一条",
+                                onClick = { showDislikeDialog = true },
                             )
                         }
                     }
                 }
-            }
-        }
 
-        // 6. 备份与恢复 / 不喜欢列表
-        item {
-            SettingsSectionTitle(title = "备份与恢复")
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(24.dp),
-                dense = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    SettingsActionRow(
-                        icon = Icons.Rounded.FileUpload,
-                        iconTint = Color(0xFF0A84FF),
-                        title = "导出歌单备份",
-                        subtitle = "保存全部歌单、收藏与不喜欢规则 (.lxmc)",
-                        onClick = { exportBackupLauncher.launch("lx-music-backup.lxmc") },
-                    )
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                    SettingsActionRow(
-                        icon = Icons.Rounded.FileDownload,
-                        iconTint = Color(0xFF30D158),
-                        title = "导入歌单备份",
-                        subtitle = "从本地 .lxmc 或 JSON 备份文件恢复歌单",
-                        onClick = { importBackupLauncher.launch(arrayOf("*/*")) },
-                    )
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                    SettingsActionRow(
-                        icon = Icons.Rounded.Block,
-                        iconTint = colors.destructive,
-                        title = "不喜欢列表规则",
-                        subtitle = "已配置 ${dislikeRules.size} 条过滤规则，每行一条",
-                        onClick = { showDislikeDialog = true },
-                    )
+                // 7. 存储与运行日志
+                item {
+                    SettingsSectionTitle(title = "存储与诊断")
+                    SettingsGroup {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SettingsActionRow(
+                                icon = Icons.Rounded.CleaningServices,
+                                iconTint = Color(0xFFFF9F0A),
+                                title = "一键清空缓存",
+                                subtitle = "清理本地歌曲 URL、歌词与图片缓存",
+                                onClick = { vm.clearCaches() },
+                            )
+                            HorizontalDivider(
+                                color = colors.divider,
+                                thickness = 0.6.dp,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                            SettingsActionRow(
+                                icon = Icons.Rounded.Terminal,
+                                iconTint = Color(0xFF5E5CE6),
+                                title = "查看运行日志",
+                                subtitle = "共 ${appLogs.size} 条记录 · 支持一键复制",
+                                onClick = { showLogsDialog = true },
+                            )
+                        }
+                    }
                 }
-            }
-        }
 
-        // 7. 存储与运行日志
-        item {
-            SettingsSectionTitle(title = "存储与诊断")
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(24.dp),
-                dense = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    SettingsActionRow(
-                        icon = Icons.Rounded.CleaningServices,
-                        iconTint = Color(0xFFFF9F0A),
-                        title = "一键清空缓存",
-                        subtitle = "清理本地歌曲 URL、歌词与图片缓存",
-                        onClick = { vm.clearCaches() },
-                    )
-                    HorizontalDivider(
-                        color = colors.divider,
-                        thickness = 0.6.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                    SettingsActionRow(
-                        icon = Icons.Rounded.Terminal,
-                        iconTint = Color(0xFF5E5CE6),
-                        title = "查看运行日志",
-                        subtitle = "共 ${appLogs.size} 条记录 · 支持一键复制",
-                        onClick = { showLogsDialog = true },
-                    )
-                }
-            }
-        }
-
-        // 8. 关于卡片
-        item {
-            SettingsSectionTitle(title = "关于")
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(24.dp),
-                dense = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(colors.accent, Color(0xFFFF6B81))
+                // 8. 关于卡片
+                item {
+                    SettingsSectionTitle(title = "关于")
+                    SettingsGroup {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(colors.accent, Color(0xFFFF6B81))
+                                        )
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.MusicNote,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp),
                                 )
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.MusicNote,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp),
-                        )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "洛雪音乐",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = colors.textPrimary,
+                                )
+                                Spacer(Modifier.height(3.dp))
+                                Text(
+                                    text = "版本 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontSize = 12.5.sp,
+                                    color = colors.textSecondary,
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Rounded.Info,
+                                contentDescription = null,
+                                tint = colors.textTertiary,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
                     }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "洛雪音乐 · Liquid Glass Native Edition",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = colors.textPrimary,
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = "版本 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontSize = 12.5.sp,
-                            color = colors.textSecondary,
-                        )
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = "Kotlin Native · Jetpack Compose · QuickJS · Media3",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontSize = 11.sp,
-                            color = colors.textTertiary,
-                        )
-                    }
-                    Icon(
-                        imageVector = Icons.Rounded.Info,
-                        contentDescription = null,
-                        tint = colors.textTertiary,
-                        modifier = Modifier.size(20.dp),
-                    )
                 }
             }
         }
@@ -1251,6 +1182,14 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun SettingsGroup(content: @Composable () -> Unit) {
+    val colors = LocalLiquidColors.current
+    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(colors.surfaceElevated)) {
+        content()
+    }
+}
+
+@Composable
 private fun SettingsSectionTitle(
     title: String,
     trailing: String? = null,
@@ -1259,7 +1198,7 @@ private fun SettingsSectionTitle(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 8.dp),
+            .padding(start = 12.dp, end = 12.dp, top = 20.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -1410,16 +1349,19 @@ private fun CompactImportPill(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalLiquidColors.current
-    LiquidGlassSurface(
-        shape = RoundedCornerShape(16.dp),
+    val shape = RoundedCornerShape(14.dp)
+    Box(
         modifier = modifier
-            .height(44.dp)
-            .bouncyClick(pressedScale = 0.94f, onClick = onClick),
+            .heightIn(min = 48.dp)
+            .clip(shape)
+            .background(colors.accentSoft)
+            .liquidPress(shape = shape, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp),
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {

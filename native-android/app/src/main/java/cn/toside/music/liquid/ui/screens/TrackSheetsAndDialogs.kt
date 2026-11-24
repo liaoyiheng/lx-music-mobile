@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.SwapHoriz
@@ -54,9 +56,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,9 +67,13 @@ import cn.toside.music.liquid.data.model.CommentItem
 import cn.toside.music.liquid.data.model.MusicInfo
 import cn.toside.music.liquid.data.model.MusicSources
 import cn.toside.music.liquid.ui.MainViewModel
+import cn.toside.music.liquid.ui.adaptive.LocalLiquidWindowClass
 import cn.toside.music.liquid.ui.components.CoverArt
+import cn.toside.music.liquid.ui.components.LiquidPopoverItem
+import cn.toside.music.liquid.ui.components.LiquidPopoverMenu
 import cn.toside.music.liquid.ui.components.LiquidSegmentedControl
 import cn.toside.music.liquid.ui.components.bouncyClick
+import cn.toside.music.liquid.ui.components.liquidRowPress
 import cn.toside.music.liquid.ui.theme.LocalLiquidColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,159 +102,169 @@ fun GlobalSheetsHost(vm: MainViewModel) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Anchored to the detail row's overflow button. Other callers keep the global scrollable sheet. */
 @Composable
-private fun TrackActionSheet(
+internal fun DetailTrackActionPopover(
     vm: MainViewModel,
     track: MusicInfo,
+    onDismiss: () -> Unit,
 ) {
-    val colors = LocalLiquidColors.current
-    val clipboard = LocalClipboardManager.current
-    var isFav by remember(track.id) { mutableStateOf(false) }
+    val actions = trackActionItems(vm, track, onDismiss)
+    val window = LocalLiquidWindowClass.current
+    val density = LocalDensity.current
+    // Keep the anchored menu compact and reserve the complete list for a scrollable sheet.
+    val compactActions = actions.take(3) + actions.first { it.id == "comments" } + LiquidPopoverItem(
+        id = "more",
+        title = "全部曲目操作",
+        icon = Icons.Rounded.MoreHoriz,
+        showDividerAbove = true,
+        onClick = { vm.openTrackActions(track) },
+    )
+    val comfortableWindow = window.heightDp >= 540.dp && density.fontScale < 1.25f
+    LiquidPopoverMenu(
+        expanded = true,
+        onDismissRequest = onDismiss,
+        alignment = Alignment.CenterEnd,
+        width = (window.widthDp - 32.dp).coerceIn(160.dp, 258.dp),
+        items = if (comfortableWindow) actions else compactActions,
+    )
+}
 
-    LaunchedEffect(track.id) {
+@Composable
+private fun trackActionItems(
+    vm: MainViewModel,
+    track: MusicInfo,
+    close: () -> Unit,
+): List<LiquidPopoverItem> {
+    val clipboard = LocalClipboardManager.current
+    var isFav by remember(track.source, track.id) { mutableStateOf(false) }
+    LaunchedEffect(track.source, track.id) {
         isFav = vm.repo.isFavorite(track.id)
     }
+    return listOf(
+        LiquidPopoverItem(id = "play", title = "立即播放", icon = Icons.Rounded.PlayArrow) {
+            close()
+            vm.player.playSingleTrack(track)
+        },
+        LiquidPopoverItem(id = "next", title = "下一首播放", icon = Icons.AutoMirrored.Rounded.QueueMusic) {
+            vm.player.enqueueNext(track)
+            vm.showToast("已加入下一首播放")
+            close()
+        },
+        LiquidPopoverItem(
+            id = "favorite",
+            title = if (isFav) "取消喜爱" else "添加到我的喜爱",
+            icon = if (isFav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+            selected = isFav,
+            showDividerAbove = true,
+        ) {
+            vm.toggleFavoriteTrack(track)
+            close()
+        },
+        LiquidPopoverItem(id = "collect", title = "收藏到歌单", icon = Icons.AutoMirrored.Rounded.PlaylistAdd) {
+            close()
+            vm.openPlaylistPicker(track)
+        },
+        LiquidPopoverItem(id = "comments", title = "查看歌曲评论", icon = Icons.Rounded.ChatBubbleOutline) {
+            close()
+            vm.openComments(track)
+        },
+        LiquidPopoverItem(id = "alternate", title = "跨平台换源", icon = Icons.Rounded.SwapHoriz) {
+            close()
+            vm.openAlternateSources(track)
+        },
+        LiquidPopoverItem(id = "copy", title = "复制歌曲名与歌手", icon = Icons.Rounded.ContentCopy) {
+            clipboard.setText(AnnotatedString("${track.name} - ${track.singer}"))
+            vm.showToast("已复制到剪贴板")
+            close()
+        },
+        LiquidPopoverItem(
+            id = "dislike",
+            title = "不喜欢这首歌",
+            subtitle = "以后自动跳过",
+            icon = Icons.Rounded.Block,
+            destructive = true,
+            showDividerAbove = true,
+        ) {
+            vm.addDislike(track)
+            close()
+        },
+    )
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TrackActionSheet(vm: MainViewModel, track: MusicInfo) {
+    val colors = LocalLiquidColors.current
+    val close = vm::closeTrackActions
+    val actions = trackActionItems(vm, track, close)
     ModalBottomSheet(
-        onDismissRequest = { vm.closeTrackActions() },
+        onDismissRequest = close,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = colors.surfaceElevated,
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 28.dp),
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 18.dp),
         ) {
-            // Header Track Preview
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                CoverArt(
-                    url = track.picUrl,
-                    contentDescription = track.name,
-                    cornerRadius = 12.dp,
-                    modifier = Modifier.size(52.dp),
-                )
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = track.name,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = colors.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = "${track.singer.ifBlank { "未知艺人" }} · ${MusicSources.displayName(track.source)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.textSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+            item(key = "track_preview") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CoverArt(url = track.picUrl, cornerRadius = 10.dp, modifier = Modifier.size(48.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = track.name,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = colors.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "${track.singer.ifBlank { "未知艺人" }} · ${MusicSources.displayName(track.source)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                HorizontalDivider(color = colors.divider, thickness = 0.5.dp)
+            }
+            items(actions, key = { it.id }) { action ->
+                if (action.showDividerAbove) {
+                    HorizontalDivider(
+                        color = colors.divider,
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(start = 44.dp, end = 8.dp),
                     )
                 }
+                val tint = when {
+                    action.destructive -> colors.destructive
+                    action.selected || action.id == "play" -> colors.accent
+                    else -> colors.textPrimary
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .liquidRowPress(haptic = true, onClick = action.onClick)
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    action.icon?.let { Icon(it, null, tint = tint, modifier = Modifier.size(21.dp)) }
+                    Column {
+                        Text(action.title, style = MaterialTheme.typography.bodyLarge, color = tint)
+                        action.subtitle?.let {
+                            Text(it, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+                        }
+                    }
+                }
             }
-
-            HorizontalDivider(color = colors.divider, thickness = 0.6.dp)
-            Spacer(Modifier.height(8.dp))
-
-            SheetActionRow(
-                icon = Icons.Rounded.PlayArrow,
-                label = "立即播放",
-                tint = colors.accent,
-                onClick = {
-                    vm.closeTrackActions()
-                    vm.player.playSingleTrack(track)
-                },
-            )
-            SheetActionRow(
-                icon = Icons.AutoMirrored.Rounded.QueueMusic,
-                label = "下一首播放",
-                onClick = {
-                    vm.player.enqueueNext(track)
-                    vm.showToast("已加入下一首播放")
-                    vm.closeTrackActions()
-                },
-            )
-            SheetActionRow(
-                icon = if (isFav) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                label = if (isFav) "取消喜爱" else "添加到我的喜爱",
-                tint = if (isFav) colors.accent else colors.textPrimary,
-                onClick = {
-                    vm.toggleFavoriteTrack(track)
-                    vm.closeTrackActions()
-                },
-            )
-            SheetActionRow(
-                icon = Icons.AutoMirrored.Rounded.PlaylistAdd,
-                label = "收藏到歌单",
-                onClick = { vm.openPlaylistPicker(track) },
-            )
-            SheetActionRow(
-                icon = Icons.Rounded.ChatBubbleOutline,
-                label = "查看歌曲评论",
-                onClick = { vm.openComments(track) },
-            )
-            SheetActionRow(
-                icon = Icons.Rounded.SwapHoriz,
-                label = "跨平台换源 / 查找其他版本",
-                onClick = { vm.openAlternateSources(track) },
-            )
-            SheetActionRow(
-                icon = Icons.Rounded.ContentCopy,
-                label = "复制歌曲名与歌手",
-                onClick = {
-                    clipboard.setText(AnnotatedString("${track.name} - ${track.singer}"))
-                    vm.showToast("已复制到剪贴板")
-                    vm.closeTrackActions()
-                },
-            )
-            SheetActionRow(
-                icon = Icons.Rounded.Block,
-                label = "不喜欢这首歌（以后自动跳过）",
-                tint = colors.destructive,
-                onClick = {
-                    vm.addDislike(track)
-                    vm.closeTrackActions()
-                },
-            )
         }
-    }
-}
-
-@Composable
-private fun SheetActionRow(
-    icon: ImageVector,
-    label: String,
-    tint: Color = LocalLiquidColors.current.textPrimary,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .bouncyClick(pressedScale = 0.98f, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 13.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = tint,
-            modifier = Modifier.size(22.dp),
-        )
-        Spacer(Modifier.width(14.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
-            color = tint,
-        )
     }
 }
 

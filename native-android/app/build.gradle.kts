@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
+    id("io.github.takahirom.roborazzi")
 }
 
 val appVersionName: String = (project.findProperty("APP_VERSION_NAME") as String?) ?: "2.0.0-liquid"
@@ -78,6 +79,26 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+            all { test ->
+                test.systemProperty("robolectric.graphicsMode", "NATIVE")
+                test.systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+                test.systemProperty(
+                    "roborazzi.record.filePathStrategy",
+                    "relativePathFromRoborazziContextOutputDirectory",
+                )
+                test.jvmArgs("-Xmx2048m")
+            }
+        }
+    }
+}
+
+roborazzi {
+    outputDir.set(layout.buildDirectory.dir("outputs/roborazzi"))
 }
 
 dependencies {
@@ -129,4 +150,17 @@ dependencies {
 
     // QuickJS Runtime (100% compatible with LX Music SDK & Custom User API .js scripts)
     implementation("wang.harlon.quickjs:wrapper-android:2.4.0")
+
+    // Unit Test & Roborazzi Compose Screenshot Rendering
+    testImplementation(composeBom)
+    testImplementation("androidx.compose.ui:ui-test-junit4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.14.1")
+    testImplementation("androidx.test:core-ktx:1.6.1")
+    testImplementation("androidx.test.ext:junit:1.2.1")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi:1.48.0")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi-compose:1.48.0")
+    testImplementation("io.github.takahirom.roborazzi:roborazzi-junit-rule:1.48.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }

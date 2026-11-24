@@ -107,8 +107,9 @@ const handlers = {
     const mod = musicSdk[source]
     if (!mod?.songList?.search) return { list: [], total: 0, limit, source }
     const res = await unwrapPromise(mod.songList.search(q, page, limit))
+    const rawList = Array.isArray(res?.list) ? res.list : []
     return {
-      list: Array.isArray(res?.list) ? res.list : [],
+      list: rawList.map(item => (item && !item.source ? { ...item, source } : item)),
       total: Number(res?.total ?? 0),
       limit: Number(res?.limit ?? limit),
       source,
@@ -169,8 +170,9 @@ const handlers = {
     if (!mod?.getList) throw new Error(`Unsupported songList source: ${source}`)
     const effectiveSort = sortId || (mod.sortList?.[0]?.id ?? 'hot')
     const res = await unwrapPromise(mod.getList(effectiveSort, tagId || '', page))
+    const rawList = Array.isArray(res?.list) ? res.list : []
     return {
-      list: Array.isArray(res?.list) ? res.list : [],
+      list: rawList.map(item => (item && !item.source ? { ...item, source } : item)),
       total: Number(res?.total ?? 0),
       page: Number(res?.page ?? page),
       limit: Number(res?.limit ?? 30),
@@ -195,11 +197,16 @@ const handlers = {
   async getLeaderboards({ source = 'wy' }) {
     const mod = musicSdk[source]?.leaderboard
     if (!mod) return { list: [], source }
+    const normalizeBoards = (arr) => (Array.isArray(arr) ? arr : []).map(item => ({
+      ...item,
+      bangid: String(item?.bangid ?? ''),
+      source: item?.source || source,
+    }))
     if (typeof mod.getBoards === 'function') {
       const res = await unwrapPromise(mod.getBoards())
-      return { list: Array.isArray(res?.list) ? res.list : [], source }
+      return { list: normalizeBoards(res?.list), source }
     }
-    return { list: Array.isArray(mod.list) ? mod.list : [], source }
+    return { list: normalizeBoards(mod.list), source }
   },
 
   async getLeaderboardDetail({ source = 'wy', bangid = '', page = 1 }) {

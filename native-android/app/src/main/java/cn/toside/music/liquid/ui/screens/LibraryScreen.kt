@@ -1,7 +1,6 @@
 package cn.toside.music.liquid.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -24,12 +24,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -48,6 +48,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,10 +65,10 @@ import cn.toside.music.liquid.ui.MainViewModel
 import cn.toside.music.liquid.ui.components.CoverArt
 import cn.toside.music.liquid.ui.components.EditorialHeroHeader
 import cn.toside.music.liquid.ui.components.GlassCircleIconButton
-import cn.toside.music.liquid.ui.components.LiquidGlassSurface
 import cn.toside.music.liquid.ui.components.MainTab
 import cn.toside.music.liquid.ui.components.TrackRow
-import cn.toside.music.liquid.ui.components.bouncyClick
+import cn.toside.music.liquid.ui.components.liquidCardPress
+import cn.toside.music.liquid.ui.components.liquidRowPress
 import cn.toside.music.liquid.ui.theme.LocalLiquidColors
 
 @Composable
@@ -86,206 +87,101 @@ fun LibraryScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var renameTarget by remember { mutableStateOf<UserPlaylist?>(null) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background),
-        contentPadding = PaddingValues(
-            top = 12.dp,
-            bottom = bottomClearanceDp.dp,
-        ),
-    ) {
-        // Editorial Masthead
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-            ) {
-                Text(
-                    text = "YOUR COLLECTION",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = colors.accent,
-                    letterSpacing = 1.6.sp,
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = "资料库",
-                        style = MaterialTheme.typography.displaySmall,
-                        color = colors.textPrimary,
-                    )
-
-                    // Source Status Glass Pill
-                    LiquidGlassSurface(
-                        shape = CircleShape,
-                        modifier = Modifier
-                            .height(34.dp)
-                            .bouncyClick { vm.selectTab(MainTab.SETTINGS) },
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Icon(
-                                imageVector = if (apiStatus.initialized) Icons.Rounded.CheckCircle else Icons.Rounded.WarningAmber,
-                                contentDescription = null,
-                                tint = if (apiStatus.initialized) colors.success else colors.accent,
-                                modifier = Modifier.size(15.dp),
-                            )
-                            Text(
-                                text = if (apiStatus.initialized) {
-                                    apiStatus.activeScriptName?.take(10) ?: "音源就绪"
-                                } else {
-                                    "导入音源"
-                                },
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textPrimary,
-                                maxLines = 1,
-                            )
-                        }
+    StandardPage { availableWidth, window ->
+        val columns = window.pageColumns(availableWidth)
+        val shortcutColumns = window.pageColumns(availableWidth, minCell = 128.dp, maxColumns = 2)
+        val useWideShortcuts = availableWidth >= 520.dp
+        val shortcuts = listOf(
+            LibraryShortcut(
+                PlaylistIds.DEFAULT, "试听列表", defaultList, Icons.Rounded.Headphones,
+                listOf(Color(0xFFFA243C), Color(0xFFFF6E7F)),
+            ),
+            LibraryShortcut(
+                PlaylistIds.LOVE, "我的收藏", loveList, Icons.Rounded.Favorite,
+                listOf(Color(0xFF5E5CE6), Color(0xFFBF5AF2)),
+            ),
+        )
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = 8.dp, bottom = bottomClearanceDp.dp + 16.dp),
+        ) {
+            item("heading") {
+                PageHeading("资料库") {
+                    val statusLabel = when {
+                        apiStatus.initialized -> apiStatus.activeScriptName ?: "音源就绪"
+                        apiStatus.activeScriptId == null -> "导入音源"
+                        apiStatus.errorMessage.isNullOrBlank() || apiStatus.errorMessage == "正在初始化..." -> "音源初始化中"
+                        else -> "音源异常"
+                    }
+                    TextButton(onClick = { vm.selectTab(MainTab.SETTINGS) }) {
+                        Icon(
+                            imageVector = if (apiStatus.initialized) Icons.Rounded.CheckCircle else Icons.Rounded.WarningAmber,
+                            contentDescription = null,
+                            tint = if (apiStatus.initialized) colors.success else colors.accent,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = statusLabel,
+                            modifier = Modifier.widthIn(max = if (availableWidth < 320.dp) 90.dp else 176.dp),
+                            color = colors.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }
-        }
-
-        // Magazine Featured Cards: 试听列表 & 我的收藏
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                LibraryFeaturePosterCard(
-                    title = "试听列表",
-                    eyebrow = "NOW LISTENING",
-                    count = defaultList?.trackCount ?: 0,
-                    coverUrl = defaultList?.coverUrl,
-                    icon = Icons.Rounded.Headphones,
-                    gradient = listOf(Color(0xFFFA243C), Color(0xFFFF6E7F)),
-                    onClick = { vm.openLocalPlaylist(PlaylistIds.DEFAULT) },
-                    modifier = Modifier.weight(1f),
-                )
-                LibraryFeaturePosterCard(
-                    title = "我的收藏",
-                    eyebrow = "FAVORITES",
-                    count = loveList?.trackCount ?: 0,
-                    coverUrl = loveList?.coverUrl,
-                    icon = Icons.Rounded.Favorite,
-                    gradient = listOf(Color(0xFF5E5CE6), Color(0xFFBF5AF2)),
-                    onClick = { vm.openLocalPlaylist(PlaylistIds.LOVE) },
-                    modifier = Modifier.weight(1f),
-                )
+            itemsIndexed(shortcuts.chunked(shortcutColumns), key = { index, _ -> "shortcut_$index" }) { _, entries ->
+                PageGridRow(entries, shortcutColumns, Modifier.padding(vertical = 6.dp)) { shortcut, cellModifier ->
+                    val open = { vm.openLocalPlaylist(shortcut.id) }
+                    if (useWideShortcuts) {
+                        LibraryShortcutRow(shortcut, open, cellModifier)
+                    } else {
+                        LibraryFeaturePosterCard(
+                            title = shortcut.title,
+                            count = shortcut.playlist?.trackCount ?: 0,
+                            coverUrl = shortcut.playlist?.coverUrl,
+                            icon = shortcut.icon,
+                            gradient = shortcut.gradient,
+                            onClick = open,
+                            modifier = cellModifier,
+                        )
+                    }
+                }
             }
-        }
-
-        // Section Header: 我的歌单
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
+            item("my-playlists-heading") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Text(
-                        text = "PLAYLISTS",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = colors.textTertiary,
-                        letterSpacing = 1.4.sp,
-                    )
-                    Text(
-                        text = "我的歌单",
+                        "我的歌单",
+                        modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.titleLarge,
                         color = colors.textPrimary,
                     )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(colors.accentSoft)
-                        .bouncyClick { showCreateDialog = true }
-                        .padding(horizontal = 13.dp, vertical = 7.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = null,
-                            tint = colors.accent,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            text = "新建歌单",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.accent,
-                        )
+                    TextButton(onClick = { showCreateDialog = true }) {
+                        Icon(Icons.Rounded.Add, null, tint = colors.accent, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("新建歌单", color = colors.accent)
                     }
                 }
             }
-        }
-
-        if (customLists.isEmpty()) {
-            item {
-                LiquidGlassSurface(
-                    shape = RoundedCornerShape(22.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 6.dp),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "打造你的专属音乐杂志",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = colors.textPrimary,
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = "你可以新建自建歌单、在「发现」收藏在线歌单，或在「设置」一键导入原版洛雪 .lxmc 备份。",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = colors.textSecondary,
-                        )
-                    }
+            if (customLists.isEmpty()) {
+                item("empty") {
+                    PageMessage("还没有自建歌单。你也可以在发现页收藏在线歌单，或在设置中导入洛雪备份。")
                 }
-            }
-        } else {
-            val rows = customLists.chunked(2)
-            itemsIndexed(rows) { _, pair ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 7.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    pair.forEach { playlist ->
+            } else {
+                itemsIndexed(customLists.chunked(columns), key = { index, _ -> "playlists_$index" }) { _, entries ->
+                    PageGridRow(entries, columns, Modifier.padding(vertical = 7.dp)) { playlist, cellModifier ->
                         UserPlaylistCard(
                             playlist = playlist,
                             onClick = { vm.openLocalPlaylist(playlist.id) },
                             onRename = { renameTarget = playlist },
                             onDelete = { vm.deletePlaylist(playlist.id) },
-                            modifier = Modifier.weight(1f),
+                            modifier = cellModifier,
                         )
-                    }
-                    if (pair.size == 1) {
-                        Spacer(Modifier.weight(1f))
                     }
                 }
             }
@@ -352,10 +248,49 @@ fun LibraryScreen(
     }
 }
 
+private data class LibraryShortcut(
+    val id: String,
+    val title: String,
+    val playlist: UserPlaylist?,
+    val icon: ImageVector,
+    val gradient: List<Color>,
+)
+
+@Composable
+private fun LibraryShortcutRow(shortcut: LibraryShortcut, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = LocalLiquidColors.current
+    val shape = RoundedCornerShape(18.dp)
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(colors.surfaceElevated)
+            .liquidRowPress(cornerRadius = 18.dp, onClick = onClick)
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (shortcut.playlist?.coverUrl.isNullOrBlank()) {
+            Box(
+                modifier = Modifier.size(52.dp).clip(RoundedCornerShape(12.dp))
+                    .background(Brush.linearGradient(shortcut.gradient)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(shortcut.icon, contentDescription = null, tint = Color.White)
+            }
+        } else {
+            CoverArt(shortcut.playlist?.coverUrl, cornerRadius = 12.dp, modifier = Modifier.size(52.dp))
+        }
+        Column(Modifier.weight(1f)) {
+            Text(shortcut.title, style = MaterialTheme.typography.titleMedium, color = colors.textPrimary)
+            Text("${shortcut.playlist?.trackCount ?: 0} 首歌曲", color = colors.textSecondary, style = MaterialTheme.typography.bodySmall)
+        }
+        Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = colors.textTertiary)
+    }
+}
+
 @Composable
 private fun LibraryFeaturePosterCard(
     title: String,
-    eyebrow: String,
     count: Int,
     coverUrl: String?,
     icon: ImageVector,
@@ -368,7 +303,7 @@ private fun LibraryFeaturePosterCard(
             .height(152.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(Brush.linearGradient(gradient))
-            .bouncyClick(pressedScale = 0.96f, onClick = onClick),
+            .liquidCardPress(shape = RoundedCornerShape(22.dp), onClick = onClick),
     ) {
         if (!coverUrl.isNullOrBlank()) {
             CoverArt(
@@ -423,14 +358,6 @@ private fun LibraryFeaturePosterCard(
 
             Column {
                 Text(
-                    text = eyebrow,
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White.copy(alpha = 0.78f),
-                    letterSpacing = 1.2.sp,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
                     text = title,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.ExtraBold,
@@ -456,10 +383,10 @@ private fun UserPlaylistCard(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalLiquidColors.current
-    var menuExpanded by remember { mutableStateOf(false) }
+    var menuExpanded by remember(playlist.id) { mutableStateOf(false) }
 
     Column(
-        modifier = modifier.bouncyClick(pressedScale = 0.965f, onClick = onClick),
+        modifier = modifier.liquidCardPress(onClick = onClick),
     ) {
         Box(
             modifier = Modifier
@@ -478,20 +405,18 @@ private fun UserPlaylistCard(
                     .align(Alignment.TopEnd)
                     .padding(8.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(Color(0x78000000))
-                        .bouncyClick(pressedScale = 0.88f) { menuExpanded = true },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.MoreVert,
-                        contentDescription = "歌单选项",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp),
-                    )
+                IconButton(onClick = { menuExpanded = true }, modifier = Modifier.size(48.dp)) {
+                    Box(
+                        modifier = Modifier.size(32.dp).clip(CircleShape).background(Color(0x78000000)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreVert,
+                            contentDescription = "${playlist.name}的选项",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
                 }
                 DropdownMenu(
                     expanded = menuExpanded,

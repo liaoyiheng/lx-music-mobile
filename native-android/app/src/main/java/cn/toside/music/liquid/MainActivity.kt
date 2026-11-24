@@ -32,10 +32,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -67,7 +64,9 @@ import androidx.core.view.WindowCompat
 import cn.toside.music.liquid.data.model.ThemeMode
 import cn.toside.music.liquid.ui.DetailRoute
 import cn.toside.music.liquid.ui.MainViewModel
-import cn.toside.music.liquid.ui.components.LiquidFloatingDock
+import cn.toside.music.liquid.ui.adaptive.LiquidAdaptiveShell
+import cn.toside.music.liquid.ui.adaptive.LocalLiquidWindowClass
+import cn.toside.music.liquid.ui.adaptive.rememberLiquidWindowClass
 import cn.toside.music.liquid.ui.components.LiquidGlassSurface
 import cn.toside.music.liquid.ui.components.MainTab
 import cn.toside.music.liquid.ui.screens.ChartsScreen
@@ -78,11 +77,9 @@ import cn.toside.music.liquid.ui.screens.PlayerOverlay
 import cn.toside.music.liquid.ui.screens.PlaylistDetailScreen
 import cn.toside.music.liquid.ui.screens.SearchScreen
 import cn.toside.music.liquid.ui.screens.SettingsScreen
-import cn.toside.music.liquid.ui.theme.LocalHazeState
 import cn.toside.music.liquid.ui.theme.LocalLiquidColors
 import cn.toside.music.liquid.ui.theme.LxLiquidTheme
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.haze
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 
@@ -150,6 +147,7 @@ private fun LxLiquidRoot(
     val settings by vm.settings.collectAsState()
     val activeTab by vm.activeTab.collectAsState()
     val detailRoute by vm.detailRoute.collectAsState()
+    val playlists by vm.playlists.collectAsState()
     val playerExpanded by vm.playerExpanded.collectAsState()
     val playerState by vm.player.state.collectAsState()
 
@@ -210,6 +208,7 @@ private fun LxLiquidRoot(
     }
 
     val hazeState = remember { HazeState() }
+    val windowClass = rememberLiquidWindowClass()
 
     LxLiquidTheme(
         themeMode = settings.themeMode,
@@ -217,16 +216,6 @@ private fun LxLiquidRoot(
         hazeState = hazeState,
     ) {
         val colors = LocalLiquidColors.current
-        val navBarBottomDp = WindowInsets.navigationBars
-            .asPaddingValues()
-            .calculateBottomPadding()
-            .value
-        val bottomClearanceDp = if (playerState.currentTrack != null) {
-            168f + navBarBottomDp
-        } else {
-            98f + navBarBottomDp
-        }
-
         BackHandler(
             enabled = playerExpanded || detailRoute != null || activeTab != MainTab.DISCOVER,
         ) {
@@ -247,15 +236,21 @@ private fun LxLiquidRoot(
                 .fillMaxSize()
                 .background(colors.background),
         ) {
-            // Underlying content container feeds HazeState so LiquidFloatingDock blurs it in real time.
-            // Clear LocalHazeState inside the haze source subtree so in-page LiquidGlassSurface cards
-            // never attach Modifier.hazeChild as a descendant of Modifier.haze (which Haze 1.1.1 forbids).
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .haze(state = hazeState),
-            ) {
-                CompositionLocalProvider(LocalHazeState provides null) {
+            LiquidAdaptiveShell(
+                window = windowClass,
+                hazeState = hazeState,
+                activeTab = activeTab,
+                detailRoute = detailRoute,
+                playlists = playlists,
+                playerState = playerState,
+                playerExpanded = playerExpanded,
+                onSelectTab = vm::selectTab,
+                onOpenPlaylist = vm::openLocalPlaylist,
+                onOpenPlayer = vm::openPlayer,
+                onTogglePlay = { vm.player.togglePlayPause() },
+                onSkipNext = { vm.player.skipNext() },
+                onSkipPrevious = { vm.player.skipPrevious() },
+            ) { bottomClearanceDp ->
                 AnimatedContent(
                     targetState = activeTab,
                     transitionSpec = {
@@ -310,27 +305,6 @@ private fun LxLiquidRoot(
                         )
                     }
                 }
-                }
-            }
-
-            // Floating Liquid Glass Dock (visible across tabs and detail view; hidden in full player)
-            AnimatedVisibility(
-                visible = !playerExpanded,
-                enter = fadeIn(tween(200)) + slideInVertically(
-                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-                ) { it / 2 },
-                exit = fadeOut(tween(160)) + slideOutVertically(tween(160)) { it / 2 },
-                modifier = Modifier.align(Alignment.BottomCenter),
-            ) {
-                LiquidFloatingDock(
-                    activeTab = activeTab,
-                    onSelectTab = { vm.selectTab(it) },
-                    playerState = playerState,
-                    onMiniPlayerClick = { vm.openPlayer() },
-                    onTogglePlay = { vm.player.togglePlayPause() },
-                    onSkipNext = { vm.player.skipNext() },
-                    onSkipPrevious = { vm.player.skipPrevious() },
-                )
             }
 
             // Full-Screen Fluid Mesh Player Overlay
@@ -349,14 +323,15 @@ private fun LxLiquidRoot(
                 ) + fadeOut(animationSpec = tween(180)),
                 modifier = Modifier.fillMaxSize(),
             ) {
-                PlayerOverlay(
-                    vm = vm,
-                    onDismiss = { vm.closePlayer() },
-                )
+                CompositionLocalProvider(LocalLiquidWindowClass provides windowClass) {
+                    PlayerOverlay(vm = vm, onDismiss = vm::closePlayer)
+                }
             }
 
             // Global Bottom Sheets (Track Actions, Playlist Picker, Comments, Alternates, Sleep Timer)
-            GlobalSheetsHost(vm = vm)
+            CompositionLocalProvider(LocalLiquidWindowClass provides windowClass) {
+                GlobalSheetsHost(vm = vm)
+            }
 
             // Top Floating Liquid Glass Toast Capsule
             AnimatedVisibility(
