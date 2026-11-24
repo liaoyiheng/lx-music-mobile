@@ -1,130 +1,139 @@
-import { useRef, forwardRef, useImperativeHandle, useState } from 'react'
-import { View } from 'react-native'
+import { useRef, forwardRef, useImperativeHandle } from 'react'
+import { TouchableOpacity, View } from 'react-native'
 
-import DorpDownMenu, { type DorpDownMenuProps as _DorpDownMenuProps } from '@/components/common/DorpDownMenu'
-import { useSourceListI18n } from '@/components/SourceSelector'
+import LargeTitle from '@/components/apple/LargeTitle'
 import Text from '@/components/common/Text'
-import { IonIcon } from '@/components/common/Icon'
 import { useI18n } from '@/lang'
-import { useSettingValue } from '@/store/setting/hook'
-import SearchInput, { type SearchInputType, type SearchInputProps } from './SearchInput'
+import { useStatusbarHeight } from '@/store/common/hook'
 import { createStyle } from '@/utils/tools'
-import { type Source as MusicSource } from '@/store/search/music/state'
-import { type Source as SonglistSource } from '@/store/search/songlist/state'
-import { useApple, fontSize, fontWeight, pagePadding, radius, spacing } from '@/theme/apple'
-
-type Sources = Readonly<Array<MusicSource | SonglistSource>>
-type Source = Sources[number]
+import { useApple, fontWeight, pagePadding, spacing } from '@/theme/apple'
+import SourceSelector, { type SearchSource, type SearchSources } from '../SourceSelector'
+import SearchInput, { type SearchInputType, type SearchInputProps } from './SearchInput'
 
 export interface HeaderBarProps {
-  onSourceChange: (source: Source) => void
+  isActive: boolean
+  sourceList: SearchSources
+  source: SearchSource
+  onSourceChange: (source: SearchSource) => void
   onTipSearch: SearchInputProps['onChangeText']
   onSearch: SearchInputProps['onSubmit']
+  onClear: NonNullable<SearchInputProps['onClear']>
+  onCancel: () => void
+  onFocus: NonNullable<SearchInputProps['onFocus']>
   onHideTipList: SearchInputProps['onBlur']
   onShowTipList: SearchInputProps['onTouchStart']
 }
 
 export interface HeaderBarType {
-  setSourceList: (list: Sources, activeSource: Source) => void
   setText: SearchInputType['setText']
+  focus: SearchInputType['focus']
   blur: SearchInputType['blur']
 }
 
 /**
- * 搜索栏：圆角搜索框 + 右侧来源切换胶囊
+ * 搜索头部：
+ * - 默认空态：LargeTitle「搜索」+ 右侧液态玻璃音源胶囊 + 独立圆角玻璃搜索框
+ * - 聚焦或有输入关键词时：收起 LargeTitle，带 statusBarHeight 安全间距的聚焦搜索框 + 右侧红色「取消」按钮
  */
-export default forwardRef<HeaderBarType, HeaderBarProps>(({ onSourceChange, onTipSearch, onSearch, onHideTipList, onShowTipList }, ref) => {
+export default forwardRef<HeaderBarType, HeaderBarProps>(({
+  isActive,
+  sourceList,
+  source,
+  onSourceChange,
+  onTipSearch,
+  onSearch,
+  onClear,
+  onCancel,
+  onFocus,
+  onHideTipList,
+  onShowTipList,
+}, ref) => {
   const apple = useApple()
   const t = useI18n()
-  const sourceNameType = useSettingValue('common.sourceNameType')
+  const statusBarHeight = useStatusbarHeight()
   const searchInputRef = useRef<SearchInputType>(null)
-  const [list, setList] = useState<Sources>([])
-  const [source, setSource] = useState<Source>('kw')
 
   useImperativeHandle(ref, () => ({
-    setSourceList(newList, activeSource) {
-      setList(newList)
-      setSource(activeSource)
-    },
     setText(text) {
       searchInputRef.current?.setText(text)
+    },
+    focus() {
+      searchInputRef.current?.focus()
     },
     blur() {
       searchInputRef.current?.blur()
     },
   }), [])
 
-  const sourceList_t = useSourceListI18n(list)
-  type DorpDownMenuProps = _DorpDownMenuProps<typeof sourceList_t>
-
-  const handleChangeSource: DorpDownMenuProps['onPress'] = ({ action }) => {
-    onSourceChange(action as Source)
-    setSource(action as Source)
-  }
-
   return (
-    <View style={styles.searchBar}>
-      <View style={styles.input}>
-        <SearchInput
-          ref={searchInputRef}
-          onChangeText={onTipSearch}
-          onSubmit={onSearch}
-          onBlur={onHideTipList}
-          onTouchStart={onShowTipList}
+    <View style={styles.wrapper}>
+      {!isActive ? (
+        <LargeTitle
+          title={t('nav_search')}
+          right={(
+            <SourceSelector
+              list={sourceList}
+              source={source}
+              onSourceChange={onSourceChange}
+            />
+          )}
         />
-      </View>
-      <View style={styles.selector}>
-        <DorpDownMenu
-          menus={sourceList_t}
-          onPress={handleChangeSource}
-          fontSize={fontSize.subhead}
-          activeId={source}
-          center
-        >
-          <View style={{ ...styles.pill, backgroundColor: apple.fill }}>
-            <Text
-              style={styles.pillText}
-              size={fontSize.footnote}
-              color={apple.accent}
-              numberOfLines={1}
-            >
-              {t(`source_${sourceNameType}_${source}`)}
+      ) : null}
+      <View
+        style={[
+          styles.searchBarRow,
+          isActive && { paddingTop: statusBarHeight + spacing.sm },
+        ]}
+      >
+        <View style={styles.inputWrap}>
+          <SearchInput
+            ref={searchInputRef}
+            onChangeText={onTipSearch}
+            onSubmit={onSearch}
+            onClear={onClear}
+            onFocus={onFocus}
+            onBlur={onHideTipList}
+            onTouchStart={onShowTipList}
+          />
+        </View>
+        {isActive ? (
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={onCancel}
+            style={styles.cancelBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 6, right: 8 }}
+          >
+            <Text size={16} color={apple.accent} style={styles.cancelText}>
+              {t('apple_cancel')}
             </Text>
-            <IonIcon name="chevron-down" rawSize={12} color={apple.accent} />
-          </View>
-        </DorpDownMenu>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   )
 })
 
 const styles = createStyle({
-  searchBar: {
+  wrapper: {
+    zIndex: 3,
+  },
+  searchBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 48,
-    paddingLeft: pagePadding,
-    paddingRight: pagePadding,
-    zIndex: 2,
+    paddingHorizontal: pagePadding,
+    paddingBottom: spacing.sm + 2,
+    gap: 10,
   },
-  input: {
+  inputWrap: {
     flex: 1,
-    height: 36,
+    height: 40,
   },
-  selector: {
-    marginLeft: spacing.sm,
+  cancelBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 2,
     flexShrink: 0,
   },
-  pill: {
-    height: 32,
-    paddingLeft: 10,
-    paddingRight: 8,
-    borderRadius: radius.pill,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pillText: {
-    marginRight: spacing.xxs + 2,
+  cancelText: {
     fontWeight: fontWeight.medium,
   },
 })

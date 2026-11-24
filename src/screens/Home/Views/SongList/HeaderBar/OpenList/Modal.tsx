@@ -4,9 +4,8 @@ import Text from '@/components/common/Text'
 import { View } from 'react-native'
 import Input, { type InputType } from '@/components/common/Input'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
+import { useApple, fontSize, radius } from '@/theme/apple'
 import { useI18n } from '@/lang'
-// import SourceSelector, { type SourceSelectorProps, type SourceSelectorType } from '../SourceSelector'
 import { type Source } from '@/store/songlist/state'
 
 interface IdInputType {
@@ -15,7 +14,7 @@ interface IdInputType {
   focus: () => void
 }
 const IdInput = forwardRef<IdInputType, {}>((props, ref) => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
   const [text, setText] = useState('')
   const inputRef = useRef<InputType>(null)
@@ -38,7 +37,7 @@ const IdInput = forwardRef<IdInputType, {}>((props, ref) => {
       placeholder={t('songlist_open_input_placeholder')}
       value={text}
       onChangeText={setText}
-      style={{ ...styles.input, backgroundColor: theme['c-primary-input-background'] }}
+      style={{ ...styles.input, backgroundColor: apple.fill }}
     />
   )
 })
@@ -46,7 +45,6 @@ const IdInput = forwardRef<IdInputType, {}>((props, ref) => {
 
 export interface ModalProps {
   onOpenId: (id: string) => void
-  // onSourceChange: SourceSelectorProps['onSourceChange']
 }
 export interface ModalType {
   show: (source: Source) => void
@@ -54,17 +52,15 @@ export interface ModalType {
 
 export default forwardRef<ModalType, ModalProps>(({ onOpenId }, ref) => {
   const alertRef = useRef<ConfirmAlertType>(null)
-  // const sourceSelectorRef = useRef<SourceSelectorType>(null)
   const inputRef = useRef<IdInputType>(null)
   const [visible, setVisible] = useState(false)
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
 
   const handleShow = (source: Source) => {
     alertRef.current?.setVisible(true)
     requestAnimationFrame(() => {
       inputRef.current?.setText('')
-      // sourceSelectorRef.current?.setSource(source)
       setTimeout(() => {
         inputRef.current?.focus()
       }, 300)
@@ -98,10 +94,9 @@ export default forwardRef<ModalType, ModalProps>(({ onOpenId }, ref) => {
         >
           <View style={styles.content}>
             <View style={styles.col}>
-              {/* <SourceSelector style={{ ...styles.selector, backgroundColor: theme['c-primary-input-background'] }} ref={sourceSelectorRef} onSourceChange={onSourceChange} /> */}
               <IdInput ref={inputRef} />
             </View>
-            <Text style={styles.inputTipText} size={13} color={theme['c-600']}>{t('songlist_open_input_tip')}</Text>
+            <Text style={styles.inputTipText} size={fontSize.footnote} color={apple.secondaryLabel}>{t('songlist_open_input_tip')}</Text>
           </View>
         </ConfirmAlert>
       : null
@@ -119,25 +114,14 @@ const styles = createStyle({
     flexDirection: 'row',
     height: 38,
   },
-  // selector: {
-  //   borderTopLeftRadius: 4,
-  //   borderBottomLeftRadius: 4,
-  // },
   input: {
     flexGrow: 1,
     flexShrink: 1,
     minWidth: 290,
-    // borderRadius: 4,
-    // borderTopRightRadius: 4,
-    // borderBottomRightRadius: 4,
-    // paddingTop: 2,
-    // paddingBottom: 2,
+    borderRadius: radius.medium,
     height: '100%',
   },
   inputTipText: {
     marginTop: 15,
-    // lineHeight: 18,
   },
 })
-
-

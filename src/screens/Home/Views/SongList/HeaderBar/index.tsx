@@ -1,21 +1,19 @@
-import { forwardRef, useImperativeHandle, useRef } from 'react'
-import { View } from 'react-native'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { ScrollView } from 'react-native'
 
 import SortTab, { type SortTabProps, type SortTabType } from './SortTab'
 import { createStyle } from '@/utils/tools'
-import SourceSelector, {
-  type SourceSelectorType,
-  type SourceSelectorProps,
-} from './SourceSelector'
 import { type Source } from '@/store/songlist/state'
 import Tag, { type TagType, type TagProps } from './Tag'
-import OpenList, { type OpenListType } from './OpenList'
 import { pagePadding, spacing } from '@/theme/apple'
 
 export interface HeaderBarProps {
+  source?: Source
+  sortId?: string
+  tagName?: string
+  tagId?: string
   onSortChange: SortTabProps['onSortChange']
   onTagChange: TagProps['onTagChange']
-  onSourceChange: SourceSelectorProps['onSourceChange']
 }
 
 export interface HeaderBarType {
@@ -23,59 +21,54 @@ export interface HeaderBarType {
 }
 
 /**
- * 歌单单行紧凑工具条
- * 左侧：分类标签胶囊 + 排序胶囊
- * 右侧：打开歌单图标按钮 + 来源胶囊
+ * 歌单广场轻量标签与排序胶囊行（单行横向滚动）
  */
-export default forwardRef<HeaderBarType, HeaderBarProps>(({ onSortChange, onTagChange, onSourceChange }, ref) => {
+export default forwardRef<HeaderBarType, HeaderBarProps>(({
+  source,
+  sortId,
+  tagName,
+  tagId,
+  onSortChange,
+  onTagChange,
+}, ref) => {
   const sortTabRef = useRef<SortTabType>(null)
   const tagRef = useRef<TagType>(null)
-  const openListRef = useRef<OpenListType>(null)
-  const sourceSelectorRef = useRef<SourceSelectorType>(null)
+  const scrollViewRef = useRef<ScrollView>(null)
+
+  useEffect(() => {
+    if (!source) return
+    sortTabRef.current?.setSource(source, sortId ?? '')
+    tagRef.current?.setSelectedTagInfo(source, tagName ?? '', tagId ?? '')
+  }, [source, sortId, tagName, tagId])
 
   useImperativeHandle(ref, () => ({
-    setSource(source, sortId, tagName, tagId) {
-      sortTabRef.current?.setSource(source, sortId)
-      tagRef.current?.setSelectedTagInfo(source, tagName, tagId)
-      sourceSelectorRef.current?.setSource(source)
-      openListRef.current?.setInfo(source)
+    setSource(nextSource, nextSortId, nextTagName, nextTagId) {
+      scrollViewRef.current?.scrollTo({ x: 0, animated: false })
+      sortTabRef.current?.setSource(nextSource, nextSortId)
+      tagRef.current?.setSelectedTagInfo(nextSource, nextTagName, nextTagId)
     },
   }), [])
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      ref={scrollViewRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      keyboardShouldPersistTaps="always"
+      contentContainerStyle={styles.content}
+    >
       <Tag ref={tagRef} onTagChange={onTagChange} />
-      <View style={styles.sortWrap}>
-        <SortTab ref={sortTabRef} onSortChange={onSortChange} />
-      </View>
-      <View style={styles.right}>
-        <OpenList ref={openListRef} />
-        <View style={styles.gap} />
-        <SourceSelector ref={sourceSelectorRef} onSourceChange={onSourceChange} />
-      </View>
-    </View>
+      <SortTab ref={sortTabRef} onSortChange={onSortChange} />
+    </ScrollView>
   )
 })
 
 const styles = createStyle({
-  container: {
-    zIndex: 2,
+  content: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 40,
     paddingHorizontal: pagePadding,
-  },
-  sortWrap: {
-    flex: 1,
-    marginHorizontal: spacing.sm,
-    justifyContent: 'center',
-  },
-  right: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexShrink: 0,
-  },
-  gap: {
-    width: spacing.xs,
+    paddingTop: spacing.md + 2,
+    paddingBottom: spacing.xs,
   },
 })

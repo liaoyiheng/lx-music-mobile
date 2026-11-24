@@ -1,29 +1,35 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { View } from 'react-native'
 import OnlineList, { type OnlineListType, type OnlineListProps } from '@/components/OnlineList'
 import { clearListDetail, getListDetail, setListDetail, setListDetailInfo } from '@/core/leaderboard'
 import boardState from '@/store/leaderboard/state'
+import { useHorizontalMode } from '@/utils/hooks'
+import { size } from '@/theme/apple'
 import { handlePlay } from './listAction'
 
-// export type MusicListProps = Pick<OnlineListProps,
-// 'onLoadMore'
-// | 'onPlayList'
-// | 'onRefresh'
-// >
+export interface MusicListProps {
+  ListHeaderComponent?: OnlineListProps['ListHeaderComponent']
+  onListLoaded?: (total: number) => void
+}
 
 export interface MusicListType {
   loadList: (source: LX.OnlineSource, listId: string) => void
 }
 
-export default forwardRef<MusicListType, {}>((props, ref) => {
+export default forwardRef<MusicListType, MusicListProps>(({ ListHeaderComponent, onListLoaded }, ref) => {
   const listRef = useRef<OnlineListType>(null)
   const isUnmountedRef = useRef(false)
+  const isWide = useHorizontalMode()
+
   useImperativeHandle(ref, () => ({
     async loadList(source, id) {
       const listDetailInfo = boardState.listDetailInfo
       listRef.current?.setList([])
+      onListLoaded?.(0)
       if (listDetailInfo.id == id && listDetailInfo.source == source && listDetailInfo.list.length) {
         requestAnimationFrame(() => {
           listRef.current?.setList(listDetailInfo.list)
+          onListLoaded?.(listDetailInfo.total || listDetailInfo.list.length)
         })
       } else {
         listRef.current?.setStatus('loading')
@@ -35,14 +41,16 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
           requestAnimationFrame(() => {
             listRef.current?.setList(result.list)
             listRef.current?.setStatus(boardState.listDetailInfo.maxPage <= page ? 'end' : 'idle')
+            onListLoaded?.(boardState.listDetailInfo.total || result.list.length)
           })
         }).catch(() => {
           if (boardState.listDetailInfo.list.length && page == 1) clearListDetail()
           listRef.current?.setStatus('error')
+          onListLoaded?.(0)
         })
       }
     },
-  }), [])
+  }), [onListLoaded])
 
   useEffect(() => {
     isUnmountedRef.current = false
@@ -51,10 +59,8 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
     }
   }, [])
 
-
   const handlePlayList: OnlineListProps['onPlayList'] = (index) => {
     const listDetailInfo = boardState.listDetailInfo
-    // console.log(boardState.listDetailInfo)
     void handlePlay(listDetailInfo.id, listDetailInfo.list, index)
   }
   const handleRefresh: OnlineListProps['onRefresh'] = () => {
@@ -65,6 +71,7 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
       if (isUnmountedRef.current) return
       listRef.current?.setList(result.list)
       listRef.current?.setStatus(boardState.listDetailInfo.maxPage <= page ? 'end' : 'idle')
+      onListLoaded?.(boardState.listDetailInfo.total || result.list.length)
     }).catch(() => {
       if (boardState.listDetailInfo.list.length && page == 1) clearListDetail()
       listRef.current?.setStatus('error')
@@ -78,19 +85,24 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
       if (isUnmountedRef.current) return
       listRef.current?.setList(result.list, true)
       listRef.current?.setStatus(boardState.listDetailInfo.maxPage <= page ? 'end' : 'idle')
+      onListLoaded?.(boardState.listDetailInfo.total || boardState.listDetailInfo.list.length)
     }).catch(() => {
       if (boardState.listDetailInfo.list.length && page == 1) clearListDetail()
       listRef.current?.setStatus('error')
     })
   }
 
-  return <OnlineList
-    ref={listRef}
-    onPlayList={handlePlayList}
-    onRefresh={handleRefresh}
-    onLoadMore={handleLoadMore}
-    checkHomePagerIdle
-    rowType='medium'
-   />
+  return (
+    <View style={{ flex: 1, paddingBottom: isWide ? size.miniPlayerClearance : size.dockClearance }}>
+      <OnlineList
+        ref={listRef}
+        onPlayList={handlePlayList}
+        onRefresh={handleRefresh}
+        onLoadMore={handleLoadMore}
+        ListHeaderComponent={ListHeaderComponent}
+        checkHomePagerIdle
+        rowType="medium"
+      />
+    </View>
+  )
 })
-

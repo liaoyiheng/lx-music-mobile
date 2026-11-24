@@ -1,10 +1,7 @@
 import { useRef, forwardRef, useImperativeHandle } from 'react'
-import { TouchableOpacity } from 'react-native'
-import { IonIcon } from '@/components/common/Icon'
+import { GlassCircleButton } from '@/components/apple/LiquidGlass'
 import Modal, { type ModalType } from './Modal'
 import { type Source } from '@/store/songlist/state'
-import { createStyle } from '@/utils/tools'
-import { useApple, radius } from '@/theme/apple'
 import { navigations } from '@/navigation'
 import commonState from '@/store/common/state'
 
@@ -13,7 +10,6 @@ export interface OpenListType {
 }
 
 export default forwardRef<OpenListType, {}>((props, ref) => {
-  const apple = useApple()
   const modalRef = useRef<ModalType>(null)
   const songlistInfoRef = useRef<{ source: Source }>({ source: 'kw' })
 
@@ -37,24 +33,13 @@ export default forwardRef<OpenListType, {}>((props, ref) => {
 
   return (
     <>
-      <TouchableOpacity
-        style={{ ...styles.button, backgroundColor: apple.fill }}
-        activeOpacity={0.6}
+      <GlassCircleButton
+        icon="link-outline"
+        iconSize={16}
+        size={32}
         onPress={() => modalRef.current?.show(songlistInfoRef.current.source)}
-      >
-        <IonIcon name="link-outline" rawSize={16} color={apple.accent} />
-      </TouchableOpacity>
+      />
       <Modal ref={modalRef} onOpenId={handleOpenSonglist} />
     </>
   )
-})
-
-const styles = createStyle({
-  button: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 })

@@ -3,13 +3,14 @@ import { StyleSheet, View, type ViewStyle } from 'react-native'
 
 import { createStyle } from '@/utils/tools'
 import DorpDownMenu, { type DorpDownMenuProps as _DorpDownMenuProps } from '@/components/common/DorpDownMenu'
+import { GlassSurface } from '@/components/apple/LiquidGlass'
 import { useSourceListI18n } from '@/components/SourceSelector'
 import Text from '@/components/common/Text'
 import { IonIcon } from '@/components/common/Icon'
 import { useI18n } from '@/lang'
 import { useSettingValue } from '@/store/setting/hook'
 import songlistState, { type Source, type InitState } from '@/store/songlist/state'
-import { useApple, fontSize, fontWeight, radius, spacing } from '@/theme/apple'
+import { useApple, fontSize, fontWeight, radius } from '@/theme/apple'
 
 type Sources = Readonly<InitState['sources']>
 
@@ -22,6 +23,9 @@ export interface SourceSelectorType {
   setSource: (source: Source) => void
 }
 
+/**
+ * 歌单广场顶部液态玻璃音源胶囊（accent 圆点 + 音源名 + 下拉箭头）
+ */
 export default forwardRef<SourceSelectorType, SourceSelectorProps>(({ style, onSourceChange }, ref) => {
   const apple = useApple()
   const t = useI18n()
@@ -52,17 +56,18 @@ export default forwardRef<SourceSelectorType, SourceSelectorProps>(({ style, onS
         fontSize={fontSize.subhead}
         activeId={source}
       >
-        <View style={{ ...styles.pill, backgroundColor: apple.fill }}>
+        <GlassSurface borderRadius={radius.pill} innerStyle={styles.pill}>
+          <View style={[styles.dot, { backgroundColor: apple.accent }]} />
           <Text
             style={styles.text}
-            size={fontSize.footnote}
-            color={apple.label}
+            size={13.5}
+            color={apple.accent}
             numberOfLines={1}
           >
             {t(`source_${sourceNameType}_${source}`)}
           </Text>
-          <IonIcon name="chevron-down" rawSize={12} color={apple.secondaryLabel} />
-        </View>
+          <IonIcon name="chevron-down" rawSize={13} color={apple.accent} />
+        </GlassSurface>
       </DorpDownMenu>
     </View>
   )
@@ -73,15 +78,19 @@ const styles = createStyle({
     flexShrink: 0,
   },
   pill: {
-    height: 30,
-    paddingLeft: 10,
-    paddingRight: 8,
-    borderRadius: radius.pill,
+    height: 32,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   text: {
-    marginRight: spacing.xxs + 2,
-    fontWeight: fontWeight.medium,
+    fontWeight: fontWeight.semibold,
+    letterSpacing: -0.1,
   },
 })

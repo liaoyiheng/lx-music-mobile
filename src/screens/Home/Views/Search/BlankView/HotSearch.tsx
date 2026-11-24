@@ -1,11 +1,11 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { View } from 'react-native'
+import { forwardRef, memo, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { StyleSheet, TouchableOpacity, View } from 'react-native'
 import { type Source, type InitState } from '@/store/hotSearch/state'
-import Button from '@/components/common/Button'
 import { getList } from '@/core/hotSearch'
 import Text from '@/components/common/Text'
 import { createStyle } from '@/utils/tools'
 import { useI18n } from '@/lang'
+import { useSettingValue } from '@/store/setting/hook'
 import { useApple, fontSize, fontWeight, radius, spacing } from '@/theme/apple'
 
 interface ListProps {
@@ -18,25 +18,39 @@ export interface HotSearchType {
 
 export type List = NonNullable<InitState['sourceList'][keyof InitState['sourceList']]>
 
-const ListItem = ({ keyword, onSearch }: {
+const HotChip = memo(({ keyword, onSearch }: {
   keyword: string
   onSearch: (keyword: string) => void
 }) => {
   const apple = useApple()
   return (
-    <Button style={{ ...styles.chip, backgroundColor: apple.fill }} onPress={() => { onSearch(keyword) }}>
-      <Text color={apple.label} size={fontSize.subhead} numberOfLines={1}>{keyword}</Text>
-    </Button>
+    <TouchableOpacity
+      activeOpacity={0.65}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: apple.fill,
+          borderColor: apple.isDark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 0, 0, 0.06)',
+        },
+      ]}
+      onPress={() => { onSearch(keyword) }}
+    >
+      <Text color={apple.label} size={13.5} style={styles.chipText} numberOfLines={1}>
+        {keyword}
+      </Text>
+    </TouchableOpacity>
   )
-}
+})
 
 /**
- * 热门搜索：小标题 + 胶囊关键词
+ * 热门搜索：紧凑标题行（含当前音源提示）+ 轻量玻璃胶囊云
  */
-export default forwardRef<HotSearchType, ListProps>((props, ref) => {
+export default forwardRef<HotSearchType, ListProps>(({ onSearch, onEmptyChange }, ref) => {
   const [list, setList] = useState<List>([])
+  const [currentSource, setCurrentSource] = useState<Source>('kw')
   const t = useI18n()
   const apple = useApple()
+  const sourceNameType = useSettingValue('common.sourceNameType')
 
   const isUnmountedRef = useRef(false)
   useEffect(() => {
@@ -48,48 +62,66 @@ export default forwardRef<HotSearchType, ListProps>((props, ref) => {
 
   useImperativeHandle(ref, () => ({
     show(source) {
-      void getList(source).then((list) => {
+      setCurrentSource(source)
+      void getList(source).then((nextList) => {
         if (isUnmountedRef.current) return
-        setList(list)
-        props.onEmptyChange?.(list.length === 0)
+        setList(nextList)
+        onEmptyChange?.(nextList.length === 0)
       })
     },
-  }), [props.onEmptyChange])
+  }), [onEmptyChange])
+
+  if (!list.length) return null
 
   return (
-    list.length
-      ? (
-          <View style={styles.section}>
-            <Text style={styles.title} size={fontSize.title3} color={apple.label}>{t('search_hot_search')}</Text>
-            <View style={styles.list}>
-              {
-                list.map(keyword => <ListItem keyword={keyword} key={keyword} onSearch={props.onSearch} />)
-              }
-            </View>
-          </View>
-        )
-      : null
+    <View style={styles.section}>
+      <View style={styles.header}>
+        <Text style={styles.title} size={fontSize.footnote} color={apple.secondaryLabel}>
+          {t('search_hot_search')}
+        </Text>
+        <Text style={styles.sourceHint} size={11.5} color={apple.tertiaryLabel} numberOfLines={1}>
+          {t(`source_${sourceNameType}_${currentSource}`)}
+        </Text>
+      </View>
+      <View style={styles.list}>
+        {list.map(keyword => <HotChip keyword={keyword} key={keyword} onSearch={onSearch} />)}
+      </View>
+    </View>
   )
 })
 
 const styles = createStyle({
   section: {
-    paddingTop: spacing.xl,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
   },
   title: {
-    fontWeight: fontWeight.bold,
+    fontWeight: fontWeight.semibold,
+  },
+  sourceHint: {
+    fontWeight: fontWeight.medium,
   },
   list: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 7,
   },
   chip: {
-    height: 32,
+    height: 30,
     maxWidth: '100%',
-    paddingHorizontal: 14,
+    paddingHorizontal: 13,
     borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
-    marginRight: spacing.sm,
-    marginTop: spacing.sm + 2,
+    alignItems: 'center',
+  },
+  chipText: {
+    fontWeight: fontWeight.medium,
   },
 })

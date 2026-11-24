@@ -1,6 +1,5 @@
-import { useRef, forwardRef, useImperativeHandle } from 'react'
+import { useRef, forwardRef, useImperativeHandle, type ReactNode } from 'react'
 import { type ListInfoItem } from '@/store/songlist/state'
-// import LoadingMask, { LoadingMaskType } from '@/components/common/LoadingMask'
 import List, { type ListProps, type ListType, type Status } from './List'
 import { navigations } from '@/navigation'
 import commonState from '@/store/common/state'
@@ -8,6 +7,9 @@ import commonState from '@/store/common/state'
 export interface SonglistProps {
   onRefresh: ListProps['onRefresh']
   onLoadMore: ListProps['onLoadMore']
+  enableEditorial?: boolean
+  filterComponent?: ReactNode
+  listHeaderTitle?: string
 }
 export interface SonglistType {
   setList: (list: ListInfoItem[], showSource?: boolean) => void
@@ -17,9 +19,11 @@ export interface SonglistType {
 export default forwardRef<SonglistType, SonglistProps>(({
   onRefresh,
   onLoadMore,
+  enableEditorial,
+  filterComponent,
+  listHeaderTitle,
 }, ref) => {
   const listRef = useRef<ListType>(null)
-  // const loadingMaskRef = useRef<LoadingMaskType>(null)
 
   useImperativeHandle(ref, () => ({
     setList(list, showSource) {
@@ -40,6 +44,9 @@ export default forwardRef<SonglistType, SonglistProps>(({
       onRefresh={onRefresh}
       onLoadMore={onLoadMore}
       onOpenDetail={handleOpenDetail}
+      enableEditorial={enableEditorial}
+      filterComponent={filterComponent}
+      listHeaderTitle={listHeaderTitle}
     />
   )
 })

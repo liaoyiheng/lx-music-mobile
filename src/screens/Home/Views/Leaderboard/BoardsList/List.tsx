@@ -1,12 +1,18 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
-import { ScrollView, View, type LayoutChangeEvent } from 'react-native'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { FlatList, type FlatListProps } from 'react-native'
 
 import { createStyle } from '@/utils/tools'
 import { type Position } from './ListMenu'
-import ListItem, { type ListItemProps } from './ListItem'
+import ListItem, { BOARD_ITEM_STEP, type ListItemProps } from './ListItem'
 import { type BoardItem } from '@/store/leaderboard/state'
+import { pagePadding } from '@/theme/apple'
+
+type FlatListType = FlatListProps<BoardItem>
 
 export interface ListProps {
+  list?: BoardItem[]
+  activeId?: string
+  source?: LX.OnlineSource
   onBoundChange: (listId: string) => void
   onShowMenu: (info: { listId: string, name: string, index: number }, position: Position) => void
 }
@@ -15,19 +21,54 @@ export interface ListType {
   hideMenu: () => void
 }
 
-export default forwardRef<ListType, ListProps>(({ onBoundChange, onShowMenu }, ref) => {
-  const [activeId, setActiveId] = useState('')
+export default forwardRef<ListType, ListProps>(({
+  list: propList,
+  activeId: propActiveId,
+  source,
+  onBoundChange,
+  onShowMenu,
+}, ref) => {
+  const [innerActiveId, setInnerActiveId] = useState('')
   const [longPressIndex, setLongPressIndex] = useState(-1)
-  const [list, setList] = useState<BoardItem[]>([])
-  const scrollViewRef = useRef<ScrollView>(null)
-  const needScrollRef = useRef(false)
+  const [innerList, setInnerList] = useState<BoardItem[]>([])
+  const flatListRef = useRef<FlatList<BoardItem>>(null)
+  const lastScrolledKeyRef = useRef('')
+
+  const list = propList ?? innerList
+  const activeId = propActiveId ?? innerActiveId
+
+  const scrollToActive = (targetList: BoardItem[], targetId: string) => {
+    if (!targetList.length || !targetId) return
+    const idx = targetList.findIndex(b => b.id == targetId)
+    if (idx <= 0) {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: false })
+      return
+    }
+    flatListRef.current?.scrollToIndex({
+      index: idx,
+      animated: false,
+      viewPosition: 0.15,
+    })
+  }
+
+  useEffect(() => {
+    if (!propList?.length || !propActiveId) return
+    const key = `${source ?? ''}:${propList[0]?.id ?? ''}`
+    if (lastScrolledKeyRef.current != key) {
+      lastScrolledKeyRef.current = key
+      requestAnimationFrame(() => {
+        scrollToActive(propList, propActiveId)
+      })
+    }
+  }, [propList, propActiveId, source])
 
   useImperativeHandle(ref, () => ({
-    setList(list, activeId) {
-      needScrollRef.current = true
-      scrollViewRef.current?.scrollTo({ x: 0, animated: false })
-      setList(list)
-      setActiveId(activeId)
+    setList(nextList, nextActiveId) {
+      setInnerList(nextList)
+      setInnerActiveId(nextActiveId)
+      requestAnimationFrame(() => {
+        scrollToActive(nextList, nextActiveId)
+      })
     },
     hideMenu() {
       setLongPressIndex(-1)
@@ -35,7 +76,7 @@ export default forwardRef<ListType, ListProps>(({ onBoundChange, onShowMenu }, r
   }), [])
 
   const handleBoundChange = (item: BoardItem) => {
-    setActiveId(item.id)
+    setInnerActiveId(item.id)
     onBoundChange(item.id)
   }
 
@@ -44,46 +85,47 @@ export default forwardRef<ListType, ListProps>(({ onBoundChange, onShowMenu }, r
     onShowMenu({ listId, name, index }, position)
   }
 
-  /** 首次显示时把当前榜单滚到可见位置 */
-  const handleActiveLayout = (e: LayoutChangeEvent) => {
-    if (!needScrollRef.current) return
-    needScrollRef.current = false
-    const x = Math.max(e.nativeEvent.layout.x - 16, 0)
-    if (x > 0) {
-      scrollViewRef.current?.scrollTo({ x, animated: false })
-    }
-  }
+  const renderItem: FlatListType['renderItem'] = ({ item, index }) => (
+    <ListItem
+      item={item}
+      index={index}
+      sourceLabel={source}
+      longPressIndex={longPressIndex}
+      activeId={activeId}
+      onShowMenu={handleShowMenu}
+      onBoundChange={handleBoundChange}
+    />
+  )
+  const getKey: FlatListType['keyExtractor'] = item => item.id
+  const getItemLayout: FlatListType['getItemLayout'] = (_data, index) => ({
+    length: BOARD_ITEM_STEP,
+    offset: BOARD_ITEM_STEP * index,
+    index,
+  })
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
+    <FlatList
+      ref={flatListRef}
       horizontal
+      data={list}
+      renderItem={renderItem}
+      keyExtractor={getKey}
+      getItemLayout={getItemLayout}
       showsHorizontalScrollIndicator={false}
-      keyboardShouldPersistTaps={'always'}
+      keyboardShouldPersistTaps="always"
       contentContainerStyle={styles.content}
-    >
-      {
-        list.map((item, index) => (
-          <View key={item.id} onLayout={item.id == activeId ? handleActiveLayout : undefined}>
-            <ListItem
-              item={item}
-              index={index}
-              longPressIndex={longPressIndex}
-              activeId={activeId}
-              onShowMenu={handleShowMenu}
-              onBoundChange={handleBoundChange}
-            />
-          </View>
-        ))
-      }
-    </ScrollView>
+      onScrollToIndexFailed={() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false })
+      }}
+    />
   )
 })
 
 const styles = createStyle({
   content: {
-    paddingLeft: 16,
-    paddingRight: 8,
-    alignItems: 'center',
+    paddingLeft: pagePadding,
+    paddingRight: pagePadding - 12,
+    paddingVertical: 4,
+    alignItems: 'flex-start',
   },
 })
