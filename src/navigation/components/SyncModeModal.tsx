@@ -3,74 +3,80 @@ import { View, ScrollView } from 'react-native'
 
 import Button from '@/components/common/Button'
 import { createStyle } from '@/utils/tools'
-import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
 import { useI18n } from '@/lang'
 import ModalContent from './ModalContent'
 import syncState from '@/store/sync/state'
 import CheckBox from '@/components/common/CheckBox'
 import { setSyncModeComponentId } from '@/core/sync'
-
+import { useApple, fontWeight, hairline, radius } from '@/theme/apple'
 
 const styles = createStyle({
   main: {
-    // flexGrow: 0,
     flexShrink: 1,
-    marginTop: 15,
-    marginLeft: 15,
-    // marginRight: 15,
-    marginBottom: 15,
+    paddingTop: 20,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
   },
   content: {
     flexGrow: 0,
   },
   title: {
     textAlign: 'center',
-    marginBottom: 10,
-    marginRight: 15,
+    fontWeight: fontWeight.bold,
+    letterSpacing: -0.2,
+    marginBottom: 14,
   },
   btnGroup: {
-    marginTop: 10,
+    marginTop: 12,
+  },
+  groupLabel: {
+    fontWeight: fontWeight.semibold,
+    marginBottom: 6,
   },
   btns: {
     flexDirection: 'row',
-    // justifyContent: 'center',
-    justifyContent: 'flex-start',
-    marginTop: 5,
-    marginBottom: 5,
-    // paddingBottom: 15,
-    // paddingLeft: 15,
-    // paddingRight: 15,
+    flexWrap: 'wrap',
+    gap: 8,
   },
   btn: {
-    // flex: 1,
-    paddingTop: 9,
-    paddingBottom: 9,
-    paddingLeft: 8,
-    paddingRight: 8,
+    flexGrow: 1,
+    minWidth: 112,
+    height: 40,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    borderRadius: 4,
-    marginRight: 15,
-    minWidth: 100,
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    borderWidth: hairline,
+  },
+  primaryBtn: {
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  btnText: {
+    fontWeight: fontWeight.semibold,
+  },
+  checkboxWrap: {
+    marginTop: 8,
   },
   tips: {
-    paddingLeft: 15,
-    paddingRight: 15,
-    paddingBottom: 10,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    paddingTop: 4,
+    gap: 4,
   },
   tipTitle: {
-    fontWeight: 'bold',
+    fontWeight: fontWeight.semibold,
   },
   tip: {
-    // paddingLeft: 15,
-    // paddingRight: 15,
-    paddingBottom: 5,
+    lineHeight: 17,
   },
 })
 
-
 const ListModeModal = () => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
   const [isOverwrite, setOverwrite] = useState(false)
 
@@ -82,54 +88,74 @@ const ListModeModal = () => {
   return (
     <>
       <View style={styles.main}>
-        <Text style={styles.title} size={16}>{t('sync__list_mode_title', { name: syncState.serverName })}</Text>
+        <Text style={styles.title} size={16} color={apple.label}>{t('sync__list_mode_title', { name: syncState.serverName })}</Text>
         <ScrollView style={styles.content} keyboardShouldPersistTaps={'always'}>
-          <View style={{ ...styles.btnGroup, marginTop: 0 }}>
-            <Text size={14}>{t('sync__mode_merge_tip')}</Text>
+          <View style={[styles.btnGroup, { marginTop: 0 }]}>
+            <Text size={13} color={apple.secondaryLabel} style={styles.groupLabel}>{t('sync__mode_merge_tip')}</Text>
             <View style={styles.btns}>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('merge_local_remote') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_merge_btn_local_remote')}</Text>
+              <Button
+                activeOpacity={0.75}
+                style={[styles.btn, styles.primaryBtn, { backgroundColor: apple.accent, borderColor: 'rgba(255, 255, 255, 0.34)', shadowColor: apple.accent }]}
+                onPress={() => { handleSelectMode('merge_local_remote') }}
+              >
+                <Text size={13} color={apple.onAccent} style={styles.btnText}>{t('sync__mode_merge_btn_local_remote')}</Text>
               </Button>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('merge_remote_local') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_merge_btn_remote_local')}</Text>
+              <Button
+                activeOpacity={0.75}
+                style={[styles.btn, styles.primaryBtn, { backgroundColor: apple.accent, borderColor: 'rgba(255, 255, 255, 0.34)', shadowColor: apple.accent }]}
+                onPress={() => { handleSelectMode('merge_remote_local') }}
+              >
+                <Text size={13} color={apple.onAccent} style={styles.btnText}>{t('sync__mode_merge_btn_remote_local')}</Text>
               </Button>
             </View>
           </View>
           <View style={styles.btnGroup}>
-            <Text size={14}>{t('sync__mode_overwrite_label')}</Text>
+            <Text size={13} color={apple.secondaryLabel} style={styles.groupLabel}>{t('sync__mode_overwrite_label')}</Text>
             <View style={styles.btns}>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('overwrite_local_remote') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_overwrite_btn_local_remote')}</Text>
+              <Button
+                activeOpacity={0.65}
+                style={[styles.btn, { backgroundColor: apple.fill, borderColor: apple.glassBorder }]}
+                onPress={() => { handleSelectMode('overwrite_local_remote') }}
+              >
+                <Text size={13} color={apple.label} style={styles.btnText}>{t('sync__mode_overwrite_btn_local_remote')}</Text>
               </Button>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('overwrite_remote_local') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_overwrite_btn_remote_local')}</Text>
+              <Button
+                activeOpacity={0.65}
+                style={[styles.btn, { backgroundColor: apple.fill, borderColor: apple.glassBorder }]}
+                onPress={() => { handleSelectMode('overwrite_remote_local') }}
+              >
+                <Text size={13} color={apple.label} style={styles.btnText}>{t('sync__mode_overwrite_btn_remote_local')}</Text>
               </Button>
             </View>
-            <View>
+            <View style={styles.checkboxWrap}>
               <CheckBox check={isOverwrite} onChange={setOverwrite} label={t('sync__mode_overwrite')} />
             </View>
           </View>
           <View style={styles.btnGroup}>
-            <Text size={14}>{t('sync__mode_other_label')}</Text>
+            <Text size={13} color={apple.secondaryLabel} style={styles.groupLabel}>{t('sync__mode_other_label')}</Text>
             <View style={styles.btns}>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('cancel') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_overwrite_btn_cancel')}</Text>
+              <Button
+                activeOpacity={0.65}
+                style={[styles.btn, { backgroundColor: apple.fill, borderColor: apple.glassBorder }]}
+                onPress={() => { handleSelectMode('cancel') }}
+              >
+                <Text size={13} color={apple.secondaryLabel} style={styles.btnText}>{t('sync__mode_overwrite_btn_cancel')}</Text>
               </Button>
             </View>
           </View>
         </ScrollView>
       </View>
       <View style={styles.tips}>
-        <Text style={styles.tip} size={12} color={theme['c-600']}>
-          <Text style={styles.tipTitle} size={12}>{t('sync__mode_merge_tip')}</Text>
+        <Text style={styles.tip} size={12} color={apple.secondaryLabel}>
+          <Text style={styles.tipTitle} size={12} color={apple.label}>{t('sync__mode_merge_tip')}</Text>
           {t('sync__list_mode_merge_tip_desc')}
         </Text>
-        <Text style={styles.tip} size={12} color={theme['c-600']}>
-          <Text style={styles.tipTitle} size={12}>{t('sync__mode_overwrite_tip')}</Text>
+        <Text style={styles.tip} size={12} color={apple.secondaryLabel}>
+          <Text style={styles.tipTitle} size={12} color={apple.label}>{t('sync__mode_overwrite_tip')}</Text>
           {t('sync__list_mode_overwrite_tip_desc')}
         </Text>
-        <Text style={styles.tip} size={12} color={theme['c-600']}>
-          <Text style={styles.tipTitle} size={12}>{t('sync__mode_other_tip')}</Text>
+        <Text style={styles.tip} size={12} color={apple.secondaryLabel}>
+          <Text style={styles.tipTitle} size={12} color={apple.label}>{t('sync__mode_other_tip')}</Text>
           {t('sync__list_mode_other_tip_desc')}
         </Text>
       </View>
@@ -137,9 +163,8 @@ const ListModeModal = () => {
   )
 }
 
-
 const DislikeModeModal = () => {
-  const theme = useTheme()
+  const apple = useApple()
   const t = useI18n()
   const handleSelectMode = (mode: LX.Sync.Dislike.SyncMode) => {
     global.app_event.selectSyncMode({ type: 'dislike', mode })
@@ -148,51 +173,71 @@ const DislikeModeModal = () => {
   return (
     <>
       <View style={styles.main}>
-        <Text style={styles.title} size={16}>{t('sync__dislike_mode_title', { name: syncState.serverName })}</Text>
+        <Text style={styles.title} size={16} color={apple.label}>{t('sync__dislike_mode_title', { name: syncState.serverName })}</Text>
         <ScrollView style={styles.content} keyboardShouldPersistTaps={'always'}>
-          <View style={{ ...styles.btnGroup, marginTop: 0 }}>
-            <Text size={14}>{t('sync__mode_merge_tip')}</Text>
+          <View style={[styles.btnGroup, { marginTop: 0 }]}>
+            <Text size={13} color={apple.secondaryLabel} style={styles.groupLabel}>{t('sync__mode_merge_tip')}</Text>
             <View style={styles.btns}>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('merge_local_remote') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_merge_btn_local_remote')}</Text>
+              <Button
+                activeOpacity={0.75}
+                style={[styles.btn, styles.primaryBtn, { backgroundColor: apple.accent, borderColor: 'rgba(255, 255, 255, 0.34)', shadowColor: apple.accent }]}
+                onPress={() => { handleSelectMode('merge_local_remote') }}
+              >
+                <Text size={13} color={apple.onAccent} style={styles.btnText}>{t('sync__mode_merge_btn_local_remote')}</Text>
               </Button>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('merge_remote_local') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_merge_btn_remote_local')}</Text>
+              <Button
+                activeOpacity={0.75}
+                style={[styles.btn, styles.primaryBtn, { backgroundColor: apple.accent, borderColor: 'rgba(255, 255, 255, 0.34)', shadowColor: apple.accent }]}
+                onPress={() => { handleSelectMode('merge_remote_local') }}
+              >
+                <Text size={13} color={apple.onAccent} style={styles.btnText}>{t('sync__mode_merge_btn_remote_local')}</Text>
               </Button>
             </View>
           </View>
           <View style={styles.btnGroup}>
-            <Text size={14}>{t('sync__mode_overwrite_label')}</Text>
+            <Text size={13} color={apple.secondaryLabel} style={styles.groupLabel}>{t('sync__mode_overwrite_label')}</Text>
             <View style={styles.btns}>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('overwrite_local_remote') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_overwrite_btn_local_remote')}</Text>
+              <Button
+                activeOpacity={0.65}
+                style={[styles.btn, { backgroundColor: apple.fill, borderColor: apple.glassBorder }]}
+                onPress={() => { handleSelectMode('overwrite_local_remote') }}
+              >
+                <Text size={13} color={apple.label} style={styles.btnText}>{t('sync__mode_overwrite_btn_local_remote')}</Text>
               </Button>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('overwrite_remote_local') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_overwrite_btn_remote_local')}</Text>
+              <Button
+                activeOpacity={0.65}
+                style={[styles.btn, { backgroundColor: apple.fill, borderColor: apple.glassBorder }]}
+                onPress={() => { handleSelectMode('overwrite_remote_local') }}
+              >
+                <Text size={13} color={apple.label} style={styles.btnText}>{t('sync__mode_overwrite_btn_remote_local')}</Text>
               </Button>
             </View>
           </View>
           <View style={styles.btnGroup}>
-            <Text size={14}>{t('sync__mode_other_label')}</Text>
+            <Text size={13} color={apple.secondaryLabel} style={styles.groupLabel}>{t('sync__mode_other_label')}</Text>
             <View style={styles.btns}>
-              <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={() => { handleSelectMode('cancel') }}>
-                <Text size={13} color={theme['c-button-font']}>{t('sync__mode_overwrite_btn_cancel')}</Text>
+              <Button
+                activeOpacity={0.65}
+                style={[styles.btn, { backgroundColor: apple.fill, borderColor: apple.glassBorder }]}
+                onPress={() => { handleSelectMode('cancel') }}
+              >
+                <Text size={13} color={apple.secondaryLabel} style={styles.btnText}>{t('sync__mode_overwrite_btn_cancel')}</Text>
               </Button>
             </View>
           </View>
         </ScrollView>
       </View>
       <View style={styles.tips}>
-        <Text style={styles.tip} size={12} color={theme['c-600']}>
-          <Text style={styles.tipTitle} size={12}>{t('sync__mode_merge_tip')}</Text>
+        <Text style={styles.tip} size={12} color={apple.secondaryLabel}>
+          <Text style={styles.tipTitle} size={12} color={apple.label}>{t('sync__mode_merge_tip')}</Text>
           {t('sync__dislike_mode_merge_tip_desc')}
         </Text>
-        <Text style={styles.tip} size={12} color={theme['c-600']}>
-          <Text style={styles.tipTitle} size={12}>{t('sync__mode_overwrite_tip')}</Text>
+        <Text style={styles.tip} size={12} color={apple.secondaryLabel}>
+          <Text style={styles.tipTitle} size={12} color={apple.label}>{t('sync__mode_overwrite_tip')}</Text>
           {t('sync__dislike_mode_overwrite_tip_desc')}
         </Text>
-        <Text style={styles.tip} size={12} color={theme['c-600']}>
-          <Text style={styles.tipTitle} size={12}>{t('sync__mode_other_tip')}</Text>
+        <Text style={styles.tip} size={12} color={apple.secondaryLabel}>
+          <Text style={styles.tipTitle} size={12} color={apple.label}>{t('sync__mode_other_tip')}</Text>
           {t('sync__dislike_mode_other_tip_desc')}
         </Text>
       </View>
@@ -216,4 +261,3 @@ export default ({ componentId }: { componentId: string }) => {
     </ModalContent>
   )
 }
-
