@@ -1,36 +1,55 @@
-// Modified for Apple Music style UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
+// Modified for Apple Music iOS 26 Liquid Glass UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Animated, AppState, PanResponder, StatusBar, TouchableOpacity, View, type LayoutChangeEvent } from 'react-native'
-import PagerView, { type PagerViewOnPageSelectedEvent } from 'react-native-pager-view'
+import {
+  Animated,
+  AppState,
+  PanResponder,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  type LayoutChangeEvent,
+} from 'react-native'
 import { Navigation } from 'react-native-navigation'
+import PagerView, { type PagerViewOnPageSelectedEvent } from 'react-native-pager-view'
+import DesktopLyricEnable, { type DesktopLyricEnableType } from '@/components/DesktopLyricEnable'
+import MusicAddModal, { type MusicAddModalType } from '@/components/MusicAddModal'
 import PageContent from '@/components/PageContent'
-import Image from '@/components/common/Image'
-import Text from '@/components/common/Text'
+import TimeoutExitEditModal, { type TimeoutExitEditModalType, useTimeInfo } from '@/components/TimeoutExitEditModal'
 import { IonIcon } from '@/components/common/Icon'
-import { setComponentId } from '@/core/common'
+import Text from '@/components/common/Text'
 import { COMPONENT_IDS, NAV_SHEAR_NATIVE_IDS } from '@/config/constant'
+import { setComponentId, updateSetting } from '@/core/common'
+import { toggleTranslation } from '@/core/lyric'
+import { togglePlay } from '@/core/player/player'
+import { useI18n } from '@/lang'
 import { pop } from '@/navigation'
-import commonState, { type InitState as CommonState } from '@/store/common/state'
 import { useStatusbarHeight } from '@/store/common/hook'
-import { usePlayerMusicInfo } from '@/store/player/hook'
+import commonState, { type InitState as CommonState } from '@/store/common/state'
+import { useIsPlay } from '@/store/player/hook'
+import playerState from '@/store/player/state'
+import { useSettingValue } from '@/store/setting/hook'
+import { fontWeight, pagePadding, radius, spacing } from '@/theme/apple'
 import { useHorizontalMode, useWindowSize } from '@/utils/hooks'
-import { screenkeepAwake, screenUnkeepAwake } from '@/utils/nativeModules/utils'
-import { fontSize, fontWeight, pagePadding, radius, size, spacing } from '@/theme/apple'
+import { screenUnkeepAwake, screenkeepAwake } from '@/utils/nativeModules/utils'
 import { createStyle } from '@/utils/tools'
 
-import Background from './components/Background'
-import Header from './components/Header'
-import Artwork from './components/Artwork'
-import TrackInfo, { MusicAddBtn } from './components/TrackInfo'
-import PlayProgress from './components/PlayProgress'
-import ControlBtns from './components/ControlBtns'
-import ActionBar from './components/ActionBar'
-import SettingPopup, { type SettingPopupType } from './components/SettingPopup'
 import Lyric from './Lyric'
+import ActionBar, { type PlayerViewMode } from './components/ActionBar'
+import Artwork from './components/Artwork'
+import Background from './components/Background'
+import ControlBtns from './components/ControlBtns'
+import Header from './components/Header'
+import PlayProgress from './components/PlayProgress'
+import SettingPopup, { type SettingPopupType } from './components/SettingPopup'
+import TrackInfo, { MiniTrackHeader } from './components/TrackInfo'
+import UpNextQueue from './components/UpNextQueue'
 
 /** 下拉超过此距离（或快速下滑）即关闭 */
 const CLOSE_DISTANCE = 120
 const CLOSE_VELOCITY = 1
+
+const VIEW_ORDER: readonly PlayerViewMode[] = ['cover', 'lyric', 'queue']
 
 /** 歌词保持亮屏：歌词可见、应用在前台且没有打开评论页时 */
 const useLyricKeepAwake = (lyricVisible: boolean) => {
@@ -55,7 +74,7 @@ const useLyricKeepAwake = (lyricVisible: boolean) => {
     })
     const handleComponentIdsChange = (ids: CommonState['componentIds']) => {
       if (!visibleRef.current) return
-      if (ids.comment) screenUnkeepAwake()
+      if (ids.comment) screenkeepAwake()
       else if (AppState.currentState == 'active') screenkeepAwake()
     }
     global.state_event.on('componentIdsUpdated', handleComponentIdsChange)
@@ -100,116 +119,215 @@ const usePullToClose = (componentId: string) => {
   return { translateY, panHandlers: panResponder.panHandlers }
 }
 
-/** 用容器尺寸算封面边长 */
-const useArtworkSize = (ratio: number) => {
+/** 根据容器宽度和高度计算响应式大封面尺寸：min(screenW - 64, 326, height * 0.92) */
+const useArtworkSize = (maxSize = 326) => {
   const [imageSize, setImageSize] = useState(0)
   const onLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
     const { width, height } = nativeEvent.layout
-    setImageSize(Math.max(Math.floor(Math.min(width * ratio, height * 0.92)), 0))
-  }, [ratio])
+    const target = Math.floor(Math.min(width - 64, height * 0.92, maxSize))
+    setImageSize(Math.max(target, 0))
+  }, [maxSize])
   return { imageSize, onLayout }
 }
 
-/** 歌词视图顶部紧凑歌曲行：44x44 小封面 + 歌名（白粗体）+ 歌手（半透明白），点击切回封面视图 */
-const LyricTrackHeader = memo(({ onBackToArtwork }: { onBackToArtwork: () => void }) => {
-  const musicInfo = usePlayerMusicInfo()
+/** 歌词视图底部紧凑控制条：居中 52×52 播放/暂停圆钮 + 右侧「译」切换胶囊 */
+const LyricCompactTransport = memo(() => {
+  const isPlay = useIsPlay()
+  const t = useI18n()
+  const isShowTranslation = useSettingValue('player.isShowLyricTranslation')
+
+  const handleToggleTrans = useCallback(() => {
+    const next = !isShowTranslation
+    updateSetting({ 'player.isShowLyricTranslation': next })
+    void toggleTranslation(next)
+  }, [isShowTranslation])
 
   return (
-    <View style={styles.lyricHeader}>
-      <TouchableOpacity style={styles.lyricHeaderMain} activeOpacity={0.7} onPress={onBackToArtwork}>
-        {musicInfo.pic ? (
-          <Image url={musicInfo.pic} style={styles.miniArtwork} />
-        ) : (
-          <View style={styles.miniArtworkPlaceholder}>
-            <IonIcon name="musical-notes" size={18} color="rgba(255, 255, 255, 0.35)" />
-          </View>
-        )}
-        <View style={styles.miniTexts}>
-          <Text numberOfLines={1} size={fontSize.headline} color="#FFFFFF" style={styles.miniTitle}>{musicInfo.name}</Text>
-          <Text numberOfLines={1} size={fontSize.footnote} color="rgba(255, 255, 255, 0.68)" style={styles.miniSinger}>{musicInfo.singer}</Text>
-        </View>
+    <View style={styles.lyricTransportRow}>
+      <TouchableOpacity
+        style={styles.lyricPlayBtn}
+        activeOpacity={0.72}
+        onPress={togglePlay}
+        accessibilityRole="button"
+        accessibilityLabel={t(isPlay ? 'apple_player_pause' : 'apple_player_play')}
+      >
+        <IonIcon name={isPlay ? 'pause' : 'play'} rawSize={24} color="#FFFFFF" />
       </TouchableOpacity>
-      <MusicAddBtn />
+      <TouchableOpacity
+        style={[styles.transPillBtn, isShowTranslation ? styles.transPillBtnActive : null]}
+        activeOpacity={0.72}
+        onPress={handleToggleTrans}
+        accessibilityRole="button"
+        accessibilityLabel={t('apple_player_translation')}
+      >
+        <Text
+          size={12}
+          color={isShowTranslation ? '#16161C' : 'rgba(255, 255, 255, 0.88)'}
+          style={styles.transPillText}
+        >
+          {t('apple_player_translation')}
+        </Text>
+      </TouchableOpacity>
     </View>
   )
 })
 
-/** 竖屏：封面视图 / 歌词视图切换（支持底部歌词按钮或左右滑），下方固定播放控制 */
-const VerticalLayout = memo(({ componentId, panHandlers }: {
+/** 竖屏 / 窄屏：三视图无缝切换（封面主控 / 逐字大字歌词 / 待播清单） */
+const VerticalLayout = memo(({
+  componentId,
+  panHandlers,
+  onShowSetting,
+  onShowMusicAdd,
+}: {
   componentId: string
   panHandlers: ReturnType<typeof usePullToClose>['panHandlers']
+  onShowSetting: () => void
+  onShowMusicAdd: () => void
 }) => {
+  const { imageSize, onLayout } = useArtworkSize(326)
   const pagerRef = useRef<PagerView>(null)
-  const [pageIndex, setPageIndex] = useState(0)
+  const [activeView, setActiveView] = useState<PlayerViewMode>('cover')
   const [lyricInited, setLyricInited] = useState(false)
-  const { imageSize, onLayout } = useArtworkSize(0.86)
-  useLyricKeepAwake(pageIndex == 1)
+  const [queueInited, setQueueInited] = useState(false)
+
+  useLyricKeepAwake(activeView === 'lyric')
+
+  const switchToView = useCallback((view: PlayerViewMode) => {
+    const idx = VIEW_ORDER.indexOf(view)
+    if (idx < 0) return
+    if (view === 'lyric') setLyricInited(true)
+    if (view === 'queue') setQueueInited(true)
+    setActiveView(view)
+    pagerRef.current?.setPage(idx)
+  }, [])
 
   const onPageSelected = useCallback(({ nativeEvent }: PagerViewOnPageSelectedEvent) => {
-    setPageIndex(nativeEvent.position)
-    if (nativeEvent.position == 1) setLyricInited(true)
+    const view = VIEW_ORDER[nativeEvent.position] ?? 'cover'
+    if (view === 'lyric') setLyricInited(true)
+    if (view === 'queue') setQueueInited(true)
+    setActiveView(view)
   }, [])
 
   const handleToggleLyric = useCallback(() => {
-    const next = pageIndex == 0 ? 1 : 0
-    if (next == 1) setLyricInited(true)
-    setPageIndex(next)
-    pagerRef.current?.setPage(next)
-  }, [pageIndex])
+    switchToView(activeView === 'lyric' ? 'cover' : 'lyric')
+  }, [activeView, switchToView])
 
-  const handleBackToArtwork = useCallback(() => {
-    setPageIndex(0)
-    pagerRef.current?.setPage(0)
-  }, [])
+  const handleToggleQueue = useCallback(() => {
+    switchToView(activeView === 'queue' ? 'cover' : 'queue')
+  }, [activeView, switchToView])
 
-  const lyric = useMemo(() => <Lyric direction="vertical" />, [])
+  const handleBackToCover = useCallback(() => {
+    switchToView('cover')
+  }, [switchToView])
+
+  const lyricView = useMemo(() => <Lyric direction="vertical" />, [])
+  const queueView = useMemo(() => <UpNextQueue />, [])
 
   return (
-    <>
-      <PagerView ref={pagerRef} style={styles.pager} onPageSelected={onPageSelected}>
-        <View collapsable={false} style={styles.page} onLayout={onLayout} {...panHandlers}>
-          {imageSize ? <Artwork componentId={componentId} imageSize={imageSize} /> : null}
+    <View style={styles.verticalRoot}>
+      <PagerView
+        ref={pagerRef}
+        style={styles.pager}
+        initialPage={0}
+        onPageSelected={onPageSelected}
+      >
+        {/* 视图 A：封面主控 */}
+        <View collapsable={false} style={styles.coverPage}>
+          <View style={styles.artworkWrap} onLayout={onLayout} {...panHandlers}>
+            {imageSize ? <Artwork componentId={componentId} imageSize={imageSize} /> : null}
+          </View>
+          <View style={styles.playerControls} nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_player}>
+            <TrackInfo onShowSetting={onShowSetting} onShowMusicAdd={onShowMusicAdd} />
+            <PlayProgress />
+            <ControlBtns />
+          </View>
         </View>
-        <View collapsable={false} style={styles.lyricPage}>
-          <LyricTrackHeader onBackToArtwork={handleBackToArtwork} />
-          <View style={styles.lyricBody}>
-            {lyricInited ? lyric : null}
+
+        {/* 视图 B：大字沉浸歌词 */}
+        <View collapsable={false} style={styles.subPage}>
+          <MiniTrackHeader
+            onBackToCover={handleBackToCover}
+            onShowSetting={onShowSetting}
+            onShowMusicAdd={onShowMusicAdd}
+          />
+          <View style={styles.subBody}>
+            {lyricInited ? lyricView : null}
+          </View>
+          <LyricCompactTransport />
+        </View>
+
+        {/* 视图 C：待播清单 */}
+        <View collapsable={false} style={styles.subPage}>
+          <MiniTrackHeader
+            onBackToCover={handleBackToCover}
+            onShowSetting={onShowSetting}
+            onShowMusicAdd={onShowMusicAdd}
+          />
+          <View style={styles.subBody}>
+            {queueInited ? queueView : null}
           </View>
         </View>
       </PagerView>
-      <View style={styles.player} nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_player}>
-        {pageIndex == 0 ? <TrackInfo /> : null}
-        <PlayProgress />
-        <ControlBtns />
-        <ActionBar lyricActive={pageIndex == 1} onToggleLyric={handleToggleLyric} />
+
+      <View style={styles.bottomBarWrap}>
+        <ActionBar
+          activeView={activeView}
+          onToggleLyric={handleToggleLyric}
+          onShowSetting={onShowSetting}
+          onToggleQueue={handleToggleQueue}
+        />
       </View>
-    </>
+    </View>
   )
 })
 
-/** 宽屏：左侧封面与播放控制，右侧歌词 */
-const WideLayout = memo(({ componentId, panHandlers }: {
+/** 宽屏 / 横屏：左侧封面主控，右侧在歌词与待播清单间切换 */
+const WideLayout = memo(({
+  componentId,
+  panHandlers,
+  onShowSetting,
+  onShowMusicAdd,
+}: {
   componentId: string
   panHandlers: ReturnType<typeof usePullToClose>['panHandlers']
+  onShowSetting: () => void
+  onShowMusicAdd: () => void
 }) => {
-  const { imageSize, onLayout } = useArtworkSize(0.9)
-  useLyricKeepAwake(true)
+  const { imageSize, onLayout } = useArtworkSize(320)
+  const [rightView, setRightView] = useState<'lyric' | 'queue'>('lyric')
+
+  useLyricKeepAwake(rightView === 'lyric')
+
+  const handleToggleLyric = useCallback(() => {
+    setRightView('lyric')
+  }, [])
+
+  const handleToggleQueue = useCallback(() => {
+    setRightView(prev => prev === 'queue' ? 'lyric' : 'queue')
+  }, [])
 
   return (
     <View style={styles.wide}>
       <View style={styles.wideLeft}>
-        <View style={styles.page} onLayout={onLayout} {...panHandlers}>
+        <View style={styles.artworkWrap} onLayout={onLayout} {...panHandlers}>
           {imageSize ? <Artwork componentId={componentId} imageSize={imageSize} /> : null}
         </View>
-        <View style={styles.player} nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_player}>
-          <TrackInfo />
+        <View style={styles.widePlayerControls} nativeID={NAV_SHEAR_NATIVE_IDS.playDetail_player}>
+          <TrackInfo onShowSetting={onShowSetting} onShowMusicAdd={onShowMusicAdd} />
           <PlayProgress />
           <ControlBtns />
-          <ActionBar />
+          <View style={styles.wideActionWrap}>
+            <ActionBar
+              activeView={rightView}
+              onToggleLyric={handleToggleLyric}
+              onShowSetting={onShowSetting}
+              onToggleQueue={handleToggleQueue}
+            />
+          </View>
         </View>
       </View>
       <View style={styles.wideRight}>
-        <Lyric direction="horizontal" />
+        {rightView === 'lyric' ? <Lyric direction="horizontal" /> : <UpNextQueue />}
       </View>
     </View>
   )
@@ -219,6 +337,10 @@ export default ({ componentId }: { componentId: string }) => {
   const isWide = useHorizontalMode()
   const statusBarHeight = useStatusbarHeight()
   const popupRef = useRef<SettingPopupType>(null)
+  const desktopLyricEnableRef = useRef<DesktopLyricEnableType>(null)
+  const timeoutExitModalRef = useRef<TimeoutExitEditModalType>(null)
+  const musicAddModalRef = useRef<MusicAddModalType>(null)
+  const timeInfo = useTimeInfo()
   const { translateY, panHandlers } = usePullToClose(componentId)
 
   useEffect(() => {
@@ -229,8 +351,27 @@ export default ({ componentId }: { componentId: string }) => {
   const handleClose = useCallback(() => {
     void pop(componentId)
   }, [componentId])
+
   const handleShowSetting = useCallback(() => {
     popupRef.current?.show()
+  }, [])
+
+  const handleToggleDesktopLyric = useCallback((enable: boolean) => {
+    desktopLyricEnableRef.current?.setEnabled(enable)
+  }, [])
+
+  const handleShowTimeoutExit = useCallback(() => {
+    timeoutExitModalRef.current?.show()
+  }, [])
+
+  const handleShowMusicAdd = useCallback(() => {
+    const musicInfo = playerState.playMusicInfo.musicInfo
+    if (!musicInfo || !playerState.playMusicInfo.listId) return
+    musicAddModalRef.current?.show({
+      musicInfo: 'progress' in musicInfo ? musicInfo.metadata.musicInfo : musicInfo,
+      isMove: false,
+      listId: playerState.playMusicInfo.listId,
+    })
   }, [])
 
   return (
@@ -239,15 +380,35 @@ export default ({ componentId }: { componentId: string }) => {
       <Animated.View style={{ ...styles.root, transform: [{ translateY }] }}>
         <Background />
         <View style={{ ...styles.container, paddingTop: statusBarHeight }}>
-          <Header onClose={handleClose} onShowSetting={handleShowSetting} panHandlers={panHandlers} />
-          {
-            isWide
-              ? <WideLayout componentId={componentId} panHandlers={panHandlers} />
-              : <VerticalLayout componentId={componentId} panHandlers={panHandlers} />
-          }
+          <Header onClose={handleClose} panHandlers={panHandlers} />
+          {isWide ? (
+            <WideLayout
+              componentId={componentId}
+              panHandlers={panHandlers}
+              onShowSetting={handleShowSetting}
+              onShowMusicAdd={handleShowMusicAdd}
+            />
+          ) : (
+            <VerticalLayout
+              componentId={componentId}
+              panHandlers={panHandlers}
+              onShowSetting={handleShowSetting}
+              onShowMusicAdd={handleShowMusicAdd}
+            />
+          )}
         </View>
       </Animated.View>
-      <SettingPopup ref={popupRef} direction={isWide ? 'horizontal' : 'vertical'} />
+      <SettingPopup
+        ref={popupRef}
+        direction={isWide ? 'horizontal' : 'vertical'}
+        timeoutActive={timeInfo.active}
+        onToggleDesktopLyric={handleToggleDesktopLyric}
+        onShowTimeoutExit={handleShowTimeoutExit}
+        onShowMusicAdd={handleShowMusicAdd}
+      />
+      <DesktopLyricEnable ref={desktopLyricEnableRef} />
+      <TimeoutExitEditModal ref={timeoutExitModalRef} timeInfo={timeInfo} />
+      <MusicAddModal ref={musicAddModalRef} />
     </PageContent>
   )
 }
@@ -262,58 +423,71 @@ const styles = createStyle({
   container: {
     flex: 1,
   },
+  verticalRoot: {
+    flex: 1,
+  },
   pager: {
     flex: 1,
   },
-  page: {
+  coverPage: {
     flex: 1,
   },
-  lyricPage: {
+  subPage: {
     flex: 1,
   },
-  lyricHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: pagePadding * 1.5,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
-  },
-  lyricHeaderMain: {
+  subBody: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: spacing.md,
-  },
-  miniArtwork: {
-    width: size.songArtwork,
-    height: size.songArtwork,
-    borderRadius: radius.small,
-  },
-  miniArtworkPlaceholder: {
-    width: size.songArtwork,
-    height: size.songArtwork,
-    borderRadius: radius.small,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  miniTexts: {
-    flex: 1,
-    marginLeft: spacing.md,
-  },
-  miniTitle: {
-    fontWeight: fontWeight.bold,
-  },
-  miniSinger: {
-    marginTop: 2,
-  },
-  lyricBody: {
-    flex: 1,
+    minHeight: 0,
     overflow: 'hidden',
   },
-  player: {
-    paddingHorizontal: pagePadding * 1.5,
+  artworkWrap: {
+    flex: 1,
+  },
+  playerControls: {
+    paddingHorizontal: pagePadding + 12,
+    paddingBottom: spacing.xs,
+  },
+  bottomBarWrap: {
+    paddingHorizontal: pagePadding,
     paddingBottom: spacing.lg,
+  },
+  lyricTransportRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: pagePadding + 12,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+    position: 'relative',
+  },
+  lyricPlayBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transPillBtn: {
+    position: 'absolute',
+    right: pagePadding + 12,
+    height: 28,
+    paddingHorizontal: 11,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.26)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transPillBtnActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.90)',
+    borderColor: 'rgba(255, 255, 255, 0.96)',
+  },
+  transPillText: {
+    fontWeight: fontWeight.bold,
   },
   wide: {
     flex: 1,
@@ -321,7 +495,14 @@ const styles = createStyle({
   },
   wideLeft: {
     flex: 1,
-    maxWidth: 520,
+    maxWidth: 500,
+  },
+  widePlayerControls: {
+    paddingHorizontal: pagePadding + 12,
+    paddingBottom: spacing.lg,
+  },
+  wideActionWrap: {
+    marginTop: spacing.xs,
   },
   wideRight: {
     flex: 1,

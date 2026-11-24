@@ -1,12 +1,16 @@
 import { useMemo } from 'react'
-import { View } from 'react-native'
+import { TouchableOpacity, View } from 'react-native'
+import { IonIcon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
-import { RadioRow } from '@/components/apple/RadioRow'
-import { useSettingValue } from '@/store/setting/hook'
 import { updateSetting } from '@/core/common'
 import { useI18n } from '@/lang'
-import { fontSize, useApple } from '@/theme/apple'
-import styles from './style'
+import { useSettingValue } from '@/store/setting/hook'
+import { fontSize } from '@/theme/apple'
+import styles, {
+  GLASS_DARK_ACCENT,
+  GLASS_DARK_LABEL,
+  GLASS_DARK_SUB_LABEL,
+} from './style'
 
 type Align_Type = LX.AppSetting['playDetail.style.align']
 
@@ -18,7 +22,6 @@ const ALIGN_LIST = [
 
 export default () => {
   const t = useI18n()
-  const apple = useApple()
   const activeAlign = useSettingValue('playDetail.style.align')
   const list = useMemo(() => {
     return ALIGN_LIST.map(id => ({ id, name: t(`play_detail_setting_lrc_align_${id}`) }))
@@ -30,19 +33,28 @@ export default () => {
 
   return (
     <View style={styles.section}>
-      <Text size={fontSize.footnote} color={apple.secondaryLabel} style={styles.sectionTitle}>
+      <Text size={fontSize.footnote} color={GLASS_DARK_SUB_LABEL} style={styles.sectionTitle}>
         {t('play_detail_setting_lrc_align')}
       </Text>
-      <View style={{ ...styles.card, backgroundColor: apple.secondaryBackground }}>
-        {list.map(({ id, name }, index) => (
-          <RadioRow
-            key={id}
-            label={name}
-            selected={activeAlign == id}
-            onPress={() => { setPosition(id) }}
-            showSeparator={index < list.length - 1}
-          />
-        ))}
+      <View style={styles.card}>
+        {list.map(({ id, name }, index) => {
+          const selected = activeAlign == id
+          return (
+            <View key={id}>
+              <TouchableOpacity
+                activeOpacity={0.65}
+                onPress={() => { setPosition(id) }}
+                style={styles.row}
+              >
+                <Text style={styles.rowLabel} color={GLASS_DARK_LABEL} numberOfLines={1}>
+                  {name}
+                </Text>
+                {selected ? <IonIcon name="checkmark" rawSize={20} color={GLASS_DARK_ACCENT} /> : null}
+              </TouchableOpacity>
+              {index < list.length - 1 ? <View style={styles.rowSep} /> : null}
+            </View>
+          )
+        })}
       </View>
     </View>
   )

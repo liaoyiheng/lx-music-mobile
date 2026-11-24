@@ -1,78 +1,127 @@
-// Modified for Apple Music style UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
-import { memo, useMemo, useEffect, useRef, useCallback } from 'react'
-import { View, FlatList, type FlatListProps, type LayoutChangeEvent, type NativeSyntheticEvent, type NativeScrollEvent } from 'react-native'
-// import { useLayout } from '@/utils/hooks'
+// Modified for Apple Music iOS 26 Liquid Glass UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  FlatList,
+  TouchableOpacity,
+  View,
+  type FlatListProps,
+  type LayoutChangeEvent,
+  type ListRenderItem,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native'
+import { IonIcon } from '@/components/common/Icon'
+import Text, { AnimatedColorText } from '@/components/common/Text'
+import { useI18n } from '@/lang'
 import { type Line, useLrcPlay, useLrcSet } from '@/plugins/lyric'
-import { createStyle } from '@/utils/tools'
-// import { useComponentIds } from '@/store/common/hook'
-import { fontWeight } from '@/theme/apple'
-import { useSettingValue } from '@/store/setting/hook'
-import { AnimatedColorText } from '@/components/common/Text'
-import { setSpText } from '@/utils/pixelRatio'
 import playerState from '@/store/player/state'
+import { useSettingValue } from '@/store/setting/hook'
+import { fontWeight, pagePadding, spacing } from '@/theme/apple'
+import { setSpText } from '@/utils/pixelRatio'
 import { scrollTo } from '@/utils/scroll'
+import { createStyle } from '@/utils/tools'
 import PlayLine, { type PlayLineType } from './components/PlayLine'
-// import { screenkeepAwake } from '@/utils/nativeModules/utils'
-// import { log } from '@/utils/log'
-// import { toast } from '@/utils/tools'
 
 type FlatListType = FlatListProps<Line>
 export type LyricDirection = 'vertical' | 'horizontal'
 
+type DepthBucket = 'past' | 'active' | 'next1' | 'next2'
+
+const getDepthBucket = (lineNum: number, activeLine: number): DepthBucket => {
+  if (lineNum === activeLine) return 'active'
+  if (lineNum < activeLine) return 'past'
+  if (lineNum === activeLine + 1) return 'next1'
+  return 'next2'
+}
+
+const BUCKET_OPACITY: Record<DepthBucket, number> = {
+  active: 1,
+  past: 0.38,
+  next1: 0.50,
+  next2: 0.38,
+}
 
 interface LineProps {
   line: Line
   lineNum: number
-  activeLine: number
+  depthBucket: DepthBucket
   direction: LyricDirection
   onLayout: (lineNum: number, height: number, width: number) => void
+  onSeek: (timeMs: number) => void
 }
-const LrcLine = memo(({ line, lineNum, activeLine, direction, onLayout }: LineProps) => {
-  const lrcFontSize = useSettingValue(direction == 'horizontal' ? 'playDetail.horizontal.style.lrcFontSize' : 'playDetail.vertical.style.lrcFontSize')
+
+const LrcLine = memo(({ line, lineNum, depthBucket, direction, onLayout, onSeek }: LineProps) => {
+  const lrcFontSize = useSettingValue(
+    direction == 'horizontal'
+      ? 'playDetail.horizontal.style.lrcFontSize'
+      : 'playDetail.vertical.style.lrcFontSize',
+  )
   const textAlign = useSettingValue('playDetail.style.align')
-  const baseSize = lrcFontSize / 10
-  const active = activeLine == lineNum
-  // 当前行 24–26pt 粗体纯白 #FFFFFF，非当前行 20–22pt 粗体半透明白 rgba(255,255,255,0.38)
-  const size = active ? Math.round(baseSize * 1.15) : baseSize
-  const lineHeight = setSpText(size) * 1.45
-  const opacity = active ? 1 : 0.38
+  // 默认 210 -> 26pt（当前行 ~28pt Bold），随设置字号比例缩放
+  const baseSize = Math.round((lrcFontSize / 10) * 1.24)
+  const active = depthBucket === 'active'
+  const size = active ? Math.round(baseSize * 1.07) : baseSize
+  const lineHeight = setSpText(size) * 1.32
+  const opacity = BUCKET_OPACITY[depthBucket]
 
   const handleLayout = ({ nativeEvent }: LayoutChangeEvent) => {
     onLayout(lineNum, nativeEvent.layout.height, nativeEvent.layout.width)
   }
 
-
-  // textBreakStrategy="simple" 用于解决某些设备上字体被截断的问题
-  // https://stackoverflow.com/a/72822360
   return (
-    <View style={styles.line} onLayout={handleLayout}>
-      <AnimatedColorText style={{
-        ...styles.lineText,
-        fontWeight: fontWeight.bold,
-        textAlign,
-        lineHeight,
-      }} textBreakStrategy="simple" color="#FFFFFF" opacity={opacity} size={size}>{line.text}</AnimatedColorText>
-      {
-        line.extendedLyrics.map((lrc, index) => {
-          return (<AnimatedColorText style={{
+    <TouchableOpacity
+      activeOpacity={0.72}
+      onPress={() => { onSeek(line.time) }}
+      onLayout={handleLayout}
+      style={styles.line}
+    >
+      <AnimatedColorText
+        style={[
+          styles.lineText,
+          {
+            fontWeight: fontWeight.bold,
+            textAlign,
+            lineHeight,
+          },
+          active ? styles.activeGlow : null,
+        ]}
+        textBreakStrategy="simple"
+        color="#FFFFFF"
+        opacity={opacity}
+        size={size}
+      >
+        {line.text}
+      </AnimatedColorText>
+      {line.extendedLyrics.map((lrc, index) => (
+        <AnimatedColorText
+          key={index}
+          style={{
             ...styles.lineTranslationText,
             textAlign,
-            lineHeight: lineHeight * 0.82,
-          }} textBreakStrategy="simple" key={index} color="#FFFFFF" opacity={active ? 0.85 : 0.38} size={size * 0.78}>{lrc}</AnimatedColorText>)
-        })
-      }
-    </View>
+            lineHeight: setSpText(Math.max(13, Math.round(baseSize * 0.58))) * 1.4,
+          }}
+          textBreakStrategy="simple"
+          color="#FFFFFF"
+          opacity={active ? 0.78 : 0.38}
+          size={Math.max(13, Math.round(baseSize * 0.58))}
+        >
+          {lrc}
+        </AnimatedColorText>
+      ))}
+    </TouchableOpacity>
   )
 }, (prevProps, nextProps) => {
   return prevProps.line === nextProps.line &&
-    prevProps.activeLine != nextProps.lineNum &&
-    nextProps.activeLine != nextProps.lineNum
+    prevProps.depthBucket === nextProps.depthBucket &&
+    prevProps.direction === nextProps.direction
 })
+
 const wait = async() => new Promise(resolve => setTimeout(resolve, 100))
 
-export default ({ direction }: { direction: LyricDirection }) => {
+export default memo(({ direction }: { direction: LyricDirection }) => {
   const lyricLines = useLrcSet()
   const { line } = useLrcPlay()
+  const t = useI18n()
   const flatListRef = useRef<FlatList>(null)
   const playLineRef = useRef<PlayLineType>(null)
   const isPauseScrollRef = useRef(true)
@@ -84,33 +133,29 @@ export default ({ direction }: { direction: LyricDirection }) => {
   const listLayoutInfoRef = useRef<{ spaceHeight: number, lineHeights: number[] }>({ spaceHeight: 0, lineHeights: [] })
   const scrollCancelRef = useRef<(() => void) | null>(null)
   const isShowLyricProgressSetting = useSettingValue('playDetail.isShowLyricProgressSetting')
-  // useLock()
-  // const [imgUrl, setImgUrl] = useState(null)
-  // const theme = useGetter('common', 'theme')
-  // const { onLayout, ...layout } = useLayout()
+  const [spaceHeight, setSpaceHeight] = useState(220)
 
-  // useEffect(() => {
-  //   const url = playMusicInfo ? playMusicInfo.musicInfo.img : null
-  //   if (imgUrl == url) return
-  //   setImgUrl(url)
-  // // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [playMusicInfo])
-
-  // const imgWidth = useMemo(() => layout.width * 0.75, [layout.width])
   const handleScrollToActive = (index = lineRef.current.line) => {
     if (index < 0) return
     if (flatListRef.current) {
-      // console.log('handleScrollToActive', index)
       if (scrollInfoRef.current && lineRef.current.line - lineRef.current.prevLine == 1) {
         let offset = listLayoutInfoRef.current.spaceHeight
-        for (let line = 0; line < index; line++) {
-          offset += listLayoutInfoRef.current.lineHeights[line]
+        for (let i = 0; i < index; i++) {
+          offset += listLayoutInfoRef.current.lineHeights[i] ?? 0
         }
-        offset += (listLayoutInfoRef.current.lineHeights[line] ?? 0) / 2
+        offset += (listLayoutInfoRef.current.lineHeights[index] ?? 0) / 2
+        offset -= scrollInfoRef.current.layoutMeasurement.height * 0.38
         try {
-          scrollCancelRef.current = scrollTo(flatListRef.current, scrollInfoRef.current, offset - scrollInfoRef.current.layoutMeasurement.height * 0.42, 600, () => {
-            scrollCancelRef.current = null
-          })
+          scrollCancelRef.current?.()
+          scrollCancelRef.current = scrollTo(
+            flatListRef.current,
+            scrollInfoRef.current,
+            offset,
+            600,
+            () => {
+              scrollCancelRef.current = null
+            },
+          )
         } catch {}
       } else {
         if (scrollCancelRef.current) {
@@ -121,7 +166,7 @@ export default ({ direction }: { direction: LyricDirection }) => {
           flatListRef.current.scrollToIndex({
             index,
             animated: true,
-            viewPosition: 0.42,
+            viewPosition: 0.38,
           })
         } catch {}
       }
@@ -134,16 +179,17 @@ export default ({ direction }: { direction: LyricDirection }) => {
       playLineRef.current?.updateScrollInfo(nativeEvent)
     }
   }
+
   const handleScrollBeginDrag = () => {
     isPauseScrollRef.current = true
     playLineRef.current?.setVisible(true)
-    if (delayScrollTimeout.current) {
-      clearTimeout(delayScrollTimeout.current)
-      delayScrollTimeout.current = null
-    }
     if (scrollTimoutRef.current) {
       clearTimeout(scrollTimoutRef.current)
       scrollTimoutRef.current = null
+    }
+    if (delayScrollTimeout.current) {
+      clearTimeout(delayScrollTimeout.current)
+      delayScrollTimeout.current = null
     }
     if (scrollCancelRef.current) {
       scrollCancelRef.current()
@@ -163,7 +209,6 @@ export default ({ direction }: { direction: LyricDirection }) => {
     }, 3000)
   }
 
-
   useEffect(() => {
     return () => {
       if (delayScrollTimeout.current) {
@@ -174,11 +219,11 @@ export default ({ direction }: { direction: LyricDirection }) => {
         clearTimeout(scrollTimoutRef.current)
         scrollTimoutRef.current = null
       }
+      scrollCancelRef.current?.()
     }
   }, [])
 
   useEffect(() => {
-    // linesRef.current = lyricLines
     listLayoutInfoRef.current.lineHeights = []
     lineRef.current.prevLine = 0
     lineRef.current.line = 0
@@ -243,8 +288,10 @@ export default ({ direction }: { direction: LyricDirection }) => {
     playLineRef.current?.updateLayoutInfo(listLayoutInfoRef.current)
   }, [])
 
-  const handleSpaceLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
-    listLayoutInfoRef.current.spaceHeight = nativeEvent.layout.height
+  const handleContainerLayout = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
+    const h = Math.max(120, Math.round(nativeEvent.layout.height * 0.36))
+    setSpaceHeight(h)
+    listLayoutInfoRef.current.spaceHeight = h
     playLineRef.current?.updateLayoutInfo(listLayoutInfoRef.current)
   }, [])
 
@@ -253,23 +300,46 @@ export default ({ direction }: { direction: LyricDirection }) => {
     global.app_event.setProgress(time)
   }, [])
 
-  const renderItem: FlatListType['renderItem'] = ({ item, index }) => {
+  const handleSeekByLine = useCallback((timeMs: number) => {
+    global.app_event.setProgress(timeMs / 1000)
+  }, [])
+
+  const renderItem = useCallback<ListRenderItem<Line>>(({ item, index }) => {
     return (
-      <LrcLine line={item} lineNum={index} activeLine={line} direction={direction} onLayout={handleLineLayout} />
+      <LrcLine
+        line={item}
+        lineNum={index}
+        depthBucket={getDepthBucket(index, line)}
+        direction={direction}
+        onLayout={handleLineLayout}
+        onSeek={handleSeekByLine}
+      />
     )
-  }
-  const getkey: FlatListType['keyExtractor'] = (item, index) => `${index}${item.text}`
+  }, [direction, handleLineLayout, handleSeekByLine, line])
+
+  const getKey: FlatListType['keyExtractor'] = useCallback((item: Line, index: number) => `${index}${item.text}`, [])
 
   const spaceComponent = useMemo(() => (
-    <View style={styles.space} onLayout={handleSpaceLayout}></View>
-  ), [handleSpaceLayout])
+    <View style={{ height: spaceHeight }} />
+  ), [spaceHeight])
+
+  if (!lyricLines.length) {
+    return (
+      <View style={styles.emptyWrap} onLayout={handleContainerLayout}>
+        <IonIcon name="chatbubble-ellipses-outline" rawSize={34} color="rgba(255, 255, 255, 0.34)" />
+        <Text size={16} color="rgba(255, 255, 255, 0.56)" style={styles.emptyText}>
+          {t('apple_player_lyrics')}
+        </Text>
+      </View>
+    )
+  }
 
   return (
-    <>
+    <View style={styles.wrapper} onLayout={handleContainerLayout}>
       <FlatList
         data={lyricLines}
         renderItem={renderItem}
-        keyExtractor={getkey}
+        keyExtractor={getKey}
         style={styles.container}
         ref={flatListRef}
         showsVerticalScrollIndicator={false}
@@ -277,43 +347,47 @@ export default ({ direction }: { direction: LyricDirection }) => {
         ListFooterComponent={spaceComponent}
         onScrollBeginDrag={handleScrollBeginDrag}
         onScrollEndDrag={onScrollEndDrag}
-        fadingEdgeLength={100}
-        initialNumToRender={Math.max(line + 10, 10)}
+        fadingEdgeLength={120}
+        initialNumToRender={Math.max(line + 10, 12)}
         onScrollToIndexFailed={handleScrollToIndexFailed}
         onScroll={handleScroll}
       />
-      { isShowLyricProgressSetting ? <PlayLine ref={playLineRef} onPlayLine={handlePlayLine} /> : null }
-    </>
+      {isShowLyricProgressSetting ? <PlayLine ref={playLineRef} onPlayLine={handlePlayLine} /> : null}
+    </View>
   )
-}
+})
 
 const styles = createStyle({
+  wrapper: {
+    flex: 1,
+    minHeight: 0,
+  },
   container: {
     flex: 1,
-    paddingLeft: 24,
-    paddingRight: 24,
-    // backgroundColor: 'rgba(0,0,0,0.1)',
-  },
-  space: {
-    paddingTop: '100%',
+    paddingHorizontal: pagePadding + 6,
   },
   line: {
-    paddingTop: 12,
-    paddingBottom: 12,
+    paddingVertical: 11,
   },
   lineText: {
-    textAlign: 'center',
-    // fontSize: 16,
-    // lineHeight: 20,
-    // paddingTop: 5,
-    // paddingBottom: 5,
-    // opacity: 0,
+    letterSpacing: -0.35,
+  },
+  activeGlow: {
+    textShadowColor: 'rgba(255, 255, 255, 0.35)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
   },
   lineTranslationText: {
-    textAlign: 'center',
-    // fontSize: 13,
-    // lineHeight: 17,
     paddingTop: 5,
-    // paddingBottom: 5,
+    fontWeight: fontWeight.medium,
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  emptyText: {
+    fontWeight: fontWeight.medium,
   },
 })

@@ -1,15 +1,15 @@
-// Added for Apple Music style UI (based on lyswhut/lx-music-mobile, Apache-2.0)
-import { memo } from 'react'
-import { TouchableOpacity, View } from 'react-native'
+// Modified for Apple Music iOS 26 Liquid Glass UI. Original: lyswhut/lx-music-mobile (Apache-2.0)
+import { memo, useCallback, useRef } from 'react'
+import { Animated, TouchableWithoutFeedback, View } from 'react-native'
 import { IonIcon } from '@/components/common/Icon'
-import { useIsPlay } from '@/store/player/hook'
 import { playNext, playPrev, togglePlay } from '@/core/player/player'
 import { useI18n } from '@/lang'
+import { useIsPlay } from '@/store/player/hook'
 import { spacing } from '@/theme/apple'
 import { createStyle } from '@/utils/tools'
 
 const SIDE_BTN = 64
-const MAIN_BTN = 80
+const MAIN_BTN = 76
 
 const handlePlayPrev = () => {
   void playPrev()
@@ -18,30 +18,86 @@ const handlePlayNext = () => {
   void playNext()
 }
 
-const Btn = ({ icon, label, btnSize, iconSize, onPress }: {
+const TransportBtn = memo(({ icon, label, btnSize, iconSize, onPress }: {
   icon: string
   label: string
   btnSize: number
   iconSize: number
   onPress: () => void
 }) => {
-  return (
-    <TouchableOpacity style={{ ...styles.btn, width: btnSize, height: btnSize }} activeOpacity={0.5} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
-      <IonIcon name={icon} color="#FFFFFF" rawSize={iconSize} />
-    </TouchableOpacity>
-  )
-}
+  const scaleAnim = useRef(new Animated.Value(1)).current
 
-/** 上一首（34）/ 播放暂停（44）/ 下一首（34），纯白饱满 */
+  const handlePressIn = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.86,
+      useNativeDriver: true,
+      speed: 36,
+      bounciness: 4,
+    }).start()
+  }, [scaleAnim])
+
+  const handlePressOut = useCallback(() => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 22,
+      bounciness: 8,
+    }).start()
+  }, [scaleAnim])
+
+  return (
+    <TouchableWithoutFeedback
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Animated.View
+        style={[
+          styles.btn,
+          {
+            width: btnSize,
+            height: btnSize,
+            borderRadius: btnSize / 2,
+            transform: [{ scale: scaleAnim }],
+          },
+        ]}
+      >
+        <IonIcon name={icon} color="#FFFFFF" rawSize={iconSize} />
+      </Animated.View>
+    </TouchableWithoutFeedback>
+  )
+})
+
+/** 极简三键播控：上一首（34pt）/ 播放暂停（48pt）/ 下一首（34pt），带柔和缩放反馈 */
 export default memo(() => {
   const isPlay = useIsPlay()
   const t = useI18n()
 
   return (
     <View style={styles.container}>
-      <Btn icon="play-back" label={t('apple_player_prev')} btnSize={SIDE_BTN} iconSize={34} onPress={handlePlayPrev} />
-      <Btn icon={isPlay ? 'pause' : 'play'} label={t(isPlay ? 'apple_player_pause' : 'apple_player_play')} btnSize={MAIN_BTN} iconSize={44} onPress={togglePlay} />
-      <Btn icon="play-forward" label={t('apple_player_next')} btnSize={SIDE_BTN} iconSize={34} onPress={handlePlayNext} />
+      <TransportBtn
+        icon="play-back"
+        label={t('apple_player_prev')}
+        btnSize={SIDE_BTN}
+        iconSize={34}
+        onPress={handlePlayPrev}
+      />
+      <TransportBtn
+        icon={isPlay ? 'pause' : 'play'}
+        label={t(isPlay ? 'apple_player_pause' : 'apple_player_play')}
+        btnSize={MAIN_BTN}
+        iconSize={48}
+        onPress={togglePlay}
+      />
+      <TransportBtn
+        icon="play-forward"
+        label={t('apple_player_next')}
+        btnSize={SIDE_BTN}
+        iconSize={34}
+        onPress={handlePlayNext}
+      />
     </View>
   )
 })
@@ -51,7 +107,8 @@ const styles = createStyle({
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'center',
-    paddingVertical: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
   },
   btn: {
     justifyContent: 'center',
